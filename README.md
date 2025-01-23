@@ -23,3 +23,9 @@
 ### Architecture Flow
 
 Front End <--> Reverse Proxy <--> Matching Engine <--> Database
+
+### Simplified flow for first deliverable
+
+Front end container <--> Matching engine container <--> Database container
+
+> Decouple services from the `Matching engine` container, and add the container managment + reverse proxy for a later deliverable
