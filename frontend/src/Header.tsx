@@ -19,7 +19,14 @@ function Header({ darkMode, setDarkMode }: HeaderProps) {
   };
 
   return (
-    <AppBar position="fixed">
+    <AppBar
+      position="fixed"
+      sx={{
+        backgroundColor: darkMode ? '#333' : '#fff',
+        color: darkMode ? '#fff' : '#000',
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+      }}
+    >
       <Toolbar>
         <Box sx={{ flexGrow: 1 }} />
         {location.pathname !== '/' && (

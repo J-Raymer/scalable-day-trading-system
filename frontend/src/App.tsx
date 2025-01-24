@@ -1,25 +1,17 @@
 import { useState } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Toolbar } from '@mui/material';
+import { ThemeProvider, CssBaseline, Toolbar } from '@mui/material';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
 import Header from './Header';
+import theme from './theme';
 import './App.css';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
 
-  const theme = createTheme({
-    palette: {
-      mode: darkMode ? 'dark' : 'light',
-      background: {
-        default: darkMode ? '#121212' : '#ffffff',
-      },
-    },
-  });
-
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={theme(darkMode)}>
       <CssBaseline />
       <Router>
         <Header darkMode={darkMode} setDarkMode={setDarkMode} />
