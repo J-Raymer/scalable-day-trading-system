@@ -1,35 +1,68 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from 'react';
+import { Container, TextField, Button, Typography, IconButton, CssBaseline, Box } from '@mui/material';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { Brightness4, Brightness7 } from '@mui/icons-material';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
+
+  const handleLogin = () => {
+    // Add login logic here
+    console.log('Logging in with', { username, password });
+  };
+
+  const theme = createTheme({
+    palette: {
+      mode: darkMode ? 'dark' : 'light',
+      background: {
+        default: darkMode ? '#121212' : '#ffffff',
+      },
+    },
+  });
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+        <IconButton
+          onClick={() => setDarkMode(!darkMode)}
+          color="inherit"
+        >
+          {darkMode ? <Brightness7 /> : <Brightness4 />}
+        </IconButton>
+      </Box>
+      <Container maxWidth="sm">
+        <Typography variant="h4" component="h1" gutterBottom>
+          Login
+        </Typography>
+        <form className="login-form" noValidate autoComplete="off">
+          <TextField
+            label="Username"
+            variant="outlined"
+            fullWidth
+            margin="normal"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <TextField
+            label="Password"
+            type="password"
+            variant="outlined"
+            fullWidth
+            margin="normal"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Button variant="contained" color="primary" onClick={handleLogin} fullWidth>
+            Login
+          </Button>
+        </form>
+      </Container>
+    </ThemeProvider>
+  );
 }
 
-export default App
+export default App;
