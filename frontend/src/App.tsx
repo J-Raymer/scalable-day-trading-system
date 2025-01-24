@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, IconButton } from '@mui/material';
-import { Brightness4, Brightness7 } from '@mui/icons-material';
+import { ThemeProvider, createTheme, CssBaseline, Toolbar } from '@mui/material';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
+import Header from './Header';
 import './App.css';
 
 function App() {
@@ -21,15 +21,9 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
-        <IconButton
-          onClick={() => setDarkMode(!darkMode)}
-          color="inherit"
-        >
-          {darkMode ? <Brightness7 /> : <Brightness4 />}
-        </IconButton>
-      </Box>
       <Router>
+        <Header darkMode={darkMode} setDarkMode={setDarkMode} />
+        <Toolbar /> {/* Add this to push the content below the fixed header */}
         <Routes>
           <Route path="/" element={<LoginPage />} />
           <Route path="/home" element={<HomePage />} />
