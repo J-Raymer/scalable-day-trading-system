@@ -18,12 +18,12 @@ class Stocks(SQLModel, table=True):
 
 class BuyOrders(SQLModel, table=True):
     id: UUID = Field(default=uuid.uuid4(), primary_key=True)
-    stockId: UUID = Field(foreign_key=Stocks.id)
+    stockId: UUID = Field(foreign_key="stocks.id")
     bid: int
 
 
 class SellOrders(SQLModel, table=True):
     id: UUID = Field(default=uuid.uuid4(), primary_key=True)
-    stockId: UUID = Field(foreign_key=Stocks.id)
+    stockId: UUID = Field(foreign_key="stocks.id")
     price: int
 
