@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { Container, TextField, Button, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleLogin = () => {
     // Add login logic here
     console.log('Logging in with', { username, password });
+    // Redirect to home page after login
+    navigate('/home');
   };
 
   return (

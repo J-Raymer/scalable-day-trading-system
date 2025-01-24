@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { ThemeProvider, createTheme, CssBaseline, Box, IconButton } from '@mui/material';
 import { Brightness4, Brightness7 } from '@mui/icons-material';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import LoginPage from './LoginPage';
+import HomePage from './HomePage';
 import './App.css';
 
 function App() {
@@ -27,7 +29,12 @@ function App() {
           {darkMode ? <Brightness7 /> : <Brightness4 />}
         </IconButton>
       </Box>
-      <LoginPage />
+      <Router>
+        <Routes>
+          <Route path="/" element={<LoginPage />} />
+          <Route path="/home" element={<HomePage />} />
+        </Routes>
+      </Router>
     </ThemeProvider>
   );
 }
