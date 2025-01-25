@@ -7,7 +7,5 @@ WORKDIR /app
 
 COPY . /app/database
 
-RUN pip install --no-cache-dir -r /app/database/requirements.txt
-
-# Command to run the application
-CMD ["python3", "-m", "database.app"]
+# Ignore warning about the env path
+RUN pip install --no-warn-script-location --no-cache-dir -r /app/database/requirements.txt

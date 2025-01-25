@@ -1,16 +1,18 @@
+import os
+import dotenv
 from sqlmodel import SQLModel, create_engine
 
-postgres_username = "admin"
-postgres_password = "isolated-dean-primal-starving"
-postgres_host = "localhost"
-postgres_port = "5432"
-postgres_db = "day_trader"
+dotenv.load_dotenv()
 
-postgres_url = f"postgresql://{postgres_username}:{postgres_password}@{postgres_host}:{postgres_port}/{postgres_db}"
+username = os.getenv("USERNAME")
+password = os.getenv("PASSWORD")
+host = os.getenv("HOST")
+port = os.getenv("PORT")
+db_name = os.getenv("DB_NAME")
 
-engine = create_engine(postgres_url)
+url = f"postgresql://{username}:{password}@{host}:{port}/{db_name}"
+engine = create_engine(url)
 
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
-
