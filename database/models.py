@@ -38,5 +38,3 @@ class StockPortfolios(SQLModel, table=True):
 class StockTransactions(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     stock_id: int = Field(foreign_key="stocks.id")
-
-
