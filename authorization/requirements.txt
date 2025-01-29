@@ -1,0 +1,4 @@
+python3-dotenv
+psycopg2
+sqlmodel
+PyJwt
