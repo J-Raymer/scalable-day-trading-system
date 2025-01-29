@@ -2,6 +2,7 @@ import os
 import dotenv
 from sqlmodel import SQLModel, create_engine
 
+
 dotenv.load_dotenv()
 
 username = os.getenv("USERNAME")
