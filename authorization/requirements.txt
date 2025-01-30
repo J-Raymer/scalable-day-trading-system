@@ -1,4 +1,6 @@
-python3-dotenv
+python-dotenv
 psycopg2
 sqlmodel
 PyJwt
+fastapi[standard]
+bcrypt
