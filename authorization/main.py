@@ -10,6 +10,7 @@ from fastapi import FastAPI, Header, Response
 from pydantic import BaseModel
 from typing import Annotated, Union
 from sqlmodel import SQLModel, Field
+from database import Users
 
 
 dotenv.load_dotenv()
@@ -19,21 +20,21 @@ host = os.getenv("HOST")
 PORT = os.getenv("PORT")
 db_name = os.getenv("DB_NAME")
 
-
 class Token(BaseModel):
     token: str
 
-class Users(SQLModel, table=True):
-    id: UUID = Field(default=uuid.uuid4(), primary_key=True)
-    username: str = Field(index=True, unique=True)
-    password: str
-    salt: str
+# class Users(SQLModel, table=True):
+#     id: UUID = Field(default=uuid.uuid4(), primary_key=True)
+#     username: str = Field(index=True, unique=True)
+#     password: str
+#     salt: str
 
 
 secret = os.getenv("JWT_SECRET")
 url = f"postgresql://{username}:{password}@{host}:{PORT}/{db_name}"
 engine = sqlmodel.create_engine(url)
 app = FastAPI()
+print(url)
 
 class User(BaseModel):
     username: str | None = None
