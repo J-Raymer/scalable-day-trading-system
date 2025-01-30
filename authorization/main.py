@@ -83,8 +83,8 @@ async def login(user: User, res: Response):
 
         hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), result.salt.encode('utf-8')).decode('utf-8')
         if hashed_password != result.password:
-            res.status_code = 403
-            return { "message": "Forbidden" }
+            res.status_code = 401
+            return { "message": "Unauthorized" }
 
     expiration = datetime.now() + timedelta(days=1)
     token = jwt.encode({ "username": user.username, "exp": expiration }, secret, algorithm="HS256")
