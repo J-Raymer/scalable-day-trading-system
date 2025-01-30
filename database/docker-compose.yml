@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    environment:
+      - USERNAME=${USERNAME}
+      - PASSWORD=${PASSWORD}
+      - HOST=${HOST}
+      - PORT=${PORT}
+      - DB_NAME=${DB_NAME}
+    volumes:
+      - ./:/app/database
+    working_dir: /app
+    command: python3 -m database.app
+
+  db:
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=${USERNAME}
+      - POSTGRES_PASSWORD=${PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - ${PORT}:${PORT}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
