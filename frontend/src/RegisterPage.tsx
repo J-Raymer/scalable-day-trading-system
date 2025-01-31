@@ -1,14 +1,19 @@
 import { useState } from 'react';
-import { Container, TextField, Button, Typography } from '@mui/material';
+import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 function RegisterPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleRegister = () => {
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
     // Add registration logic here
     console.log('Registering with', { username, password, confirmPassword });
     // Redirect to login page after registration
@@ -47,9 +52,16 @@ function RegisterPage() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
-        <Button variant="contained" color="primary" onClick={handleRegister} fullWidth>
-          Register
-        </Button>
+        {error && (
+          <Typography color="error" variant="body2">
+            {error}
+          </Typography>
+        )}
+        <Box mt={2}>
+          <Button variant="contained" color="primary" onClick={handleRegister} fullWidth>
+            Register
+          </Button>
+        </Box>
       </form>
     </Container>
   );
