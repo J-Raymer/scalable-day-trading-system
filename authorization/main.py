@@ -16,15 +16,11 @@ host = os.getenv("HOST")
 PORT = os.getenv("PORT")
 db_name = os.getenv("DB_NAME")
 
-class Token(BaseModel):
-    token: str
-
-
 secret = os.getenv("JWT_SECRET")
 url = f"postgresql://{username}:{password}@{host}:{PORT}/{db_name}"
 engine = sqlmodel.create_engine(url)
 app = FastAPI()
-print(url)
+
 
 class User(BaseModel):
     username: str | None = None
@@ -35,7 +31,8 @@ class User(BaseModel):
 async def register(user: User, res: Response):
     if not (user.username and user.password):
         res.status_code = 400
-        return {"message": "Bad Request"}
+        return { "message": "Bad Request" }
+
     with sqlmodel.Session(engine) as session:
         query = sqlmodel.select(Users).where(Users.username == user.username)
         existing_user = session.exec(query).one_or_none()
@@ -52,7 +49,7 @@ async def register(user: User, res: Response):
         session.add(new_user)
         session.commit()
         res.status_code = 201
-        return {"success": "true", "data": None}
+        return { "success": "true", "data": None }
 
 
 @app.post("/login")
