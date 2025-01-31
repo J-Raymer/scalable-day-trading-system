@@ -1,15 +1,11 @@
-import uuid
-from datetime import datetime, timedelta
-from uuid import UUID
 import bcrypt
-import jwt
-import sqlmodel
 import dotenv
+import jwt
 import os
-from fastapi import FastAPI, Header, Response
+import sqlmodel
+from datetime import datetime, timedelta
+from fastapi import FastAPI, Response
 from pydantic import BaseModel
-from typing import Annotated, Union
-from sqlmodel import SQLModel, Field
 from database import Users
 
 
@@ -23,12 +19,6 @@ db_name = os.getenv("DB_NAME")
 class Token(BaseModel):
     token: str
 
-# class Users(SQLModel, table=True):
-#     id: UUID = Field(default=uuid.uuid4(), primary_key=True)
-#     username: str = Field(index=True, unique=True)
-#     password: str
-#     salt: str
-
 
 secret = os.getenv("JWT_SECRET")
 url = f"postgresql://{username}:{password}@{host}:{PORT}/{db_name}"
@@ -39,10 +29,6 @@ print(url)
 class User(BaseModel):
     username: str | None = None
     password: str | None = None
-
-@app.get("/")
-async def root():
-    return {"message" : "hello world"}
 
 
 @app.post("/register")
@@ -56,7 +42,7 @@ async def register(user: User, res: Response):
 
         if existing_user:
             res.status_code = 409
-            return { "message": "Username already exists"}
+            return { "message": "Username already exists" }
 
         salt = bcrypt.gensalt()
         new_user = Users(
@@ -88,5 +74,5 @@ async def login(user: User, res: Response):
             return { "message": "Unauthorized" }
 
     expiration = datetime.now() + timedelta(days=1)
-    token = jwt.encode({ "username": user.username, "exp": expiration }, secret, algorithm="HS256")
-    return {"success": "true", "data": { "token": token } }
+    token = jwt.encode({ "username": user.username, "id": result.id, "exp": expiration }, secret, algorithm="HS256")
+    return { "success": "true", "data": { "token": token } }
