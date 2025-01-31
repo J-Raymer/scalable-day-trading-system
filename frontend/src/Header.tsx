@@ -29,7 +29,7 @@ function Header({ darkMode, setDarkMode }: HeaderProps) {
     >
       <Toolbar>
         <Box sx={{ flexGrow: 1 }} />
-        {location.pathname !== '/' && (
+        {(location.pathname !== '/' && location.pathname !== '/register') && (
           <Button color="inherit" onClick={handleLogout}>
             Logout
           </Button>

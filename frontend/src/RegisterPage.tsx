@@ -10,8 +10,20 @@ function RegisterPage() {
   const navigate = useNavigate();
 
   const handleRegister = () => {
+    if (!username) {
+      setError('Username cannot be empty');
+      return;
+    }
+    if (/\s|[^a-zA-Z0-9]/.test(username)) {
+      setError('Username cannot contain spaces or special characters');
+      return;
+    }
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+    if (!password || !confirmPassword) {
+      setError('All fields must be filled out');
       return;
     }
     // Add registration logic here
