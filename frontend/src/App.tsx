@@ -3,6 +3,7 @@ import { ThemeProvider, CssBaseline, Toolbar } from '@mui/material';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
+import RegisterPage from './RegisterPage';
 import Header from './Header';
 import theme from './theme';
 import './App.css';
@@ -15,10 +16,11 @@ function App() {
       <CssBaseline />
       <Router>
         <Header darkMode={darkMode} setDarkMode={setDarkMode} />
-        <Toolbar /> {/* Add this to push the content below the fixed header */}
+        <Toolbar />
         <Routes>
           <Route path="/" element={<LoginPage />} />
           <Route path="/home" element={<HomePage />} />
+          <Route path="/register" element={<RegisterPage />} />
         </Routes>
       </Router>
     </ThemeProvider>

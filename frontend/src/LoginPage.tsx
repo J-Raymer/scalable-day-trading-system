@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Container, TextField, Button, Typography } from '@mui/material';
+import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 function LoginPage() {
@@ -12,6 +12,10 @@ function LoginPage() {
     console.log('Logging in with', { username, password });
     // Redirect to home page after login
     navigate('/home');
+  };
+
+  const handleRegister = () => {
+    navigate('/register');
   };
 
   return (
@@ -40,6 +44,26 @@ function LoginPage() {
         <Button variant="contained" color="primary" onClick={handleLogin} fullWidth>
           Login
         </Button>
+        <Box mt={2}>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={handleRegister}
+            fullWidth
+            sx={{
+              backgroundColor: 'background.default',
+              color: 'primary.main',
+              borderColor: 'primary.main',
+              '&:hover': {
+                backgroundColor: 'background.default',
+                borderColor: 'primary.dark',
+                color: 'primary.dark',
+              },
+            }}
+          >
+            Register
+          </Button>
+        </Box>
       </form>
     </Container>
   );
