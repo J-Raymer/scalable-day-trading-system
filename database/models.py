@@ -7,6 +7,7 @@ class Users(SQLModel, table=True):
     id: UUID = Field(default=uuid.uuid4(), primary_key=True)
     username: str = Field(index=True, unique=True)
     password: str
+    salt: str
 
 
 class Wallets(SQLModel, table=True):
