@@ -5,6 +5,7 @@ import os
 import sqlmodel
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Response
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from database import Users
 
@@ -26,6 +27,9 @@ class User(BaseModel):
     username: str | None = None
     password: str | None = None
 
+@app.get("/")
+async def home():
+    return RedirectResponse(url="/docs", status_code=302)
 
 @app.post("/register")
 async def register(user: User, res: Response):
