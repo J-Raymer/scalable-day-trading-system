@@ -8,6 +8,7 @@ from fastapi import FastAPI, Response
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from database import Users
+from uuid import UUID
 
 
 dotenv.load_dotenv()
@@ -24,8 +25,8 @@ app = FastAPI()
 
 
 class User(BaseModel):
-    username: str | None = None
-    password: str | None = None
+    username: str
+    password: str
 
 @app.get("/")
 async def home():
