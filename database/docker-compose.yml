@@ -5,13 +5,14 @@ services:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      - db
-    environment:
-      - USERNAME=${USERNAME}
-      - PASSWORD=${PASSWORD}
-      - HOST=${HOST}
-      - PORT=${PORT}
-      - DB_NAME=${DB_NAME}
+      db:
+        condition: service_healthy
+#    environment:
+#      - USERNAME=${USERNAME}
+#      - PASSWORD=${PASSWORD}
+#      - HOST=${HOST}
+#      - DOCKER_PORT=${DOCKER_PORT}
+#      - DB_NAME=${DB_NAME}
     volumes:
       - ./:/app/database
     working_dir: /app
@@ -23,10 +24,17 @@ services:
       - POSTGRES_USER=${USERNAME}
       - POSTGRES_PASSWORD=${PASSWORD}
       - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_PORT=${DOCKER_PORT}
     ports:
-      - ${PORT}:${PORT}
+      - ${HOST_PORT}:${DOCKER_PORT}
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
 
 volumes:
   db_data:
