@@ -12,11 +12,11 @@ from schemas import *
 dotenv.load_dotenv()
 username = os.getenv("USERNAME")
 password = os.getenv("PASSWORD")
-host = os.getenv("HOST")
+HOST = os.getenv("HOST")
 PORT = os.getenv("PORT")
 db_name = os.getenv("DB_NAME")
 secret = os.getenv("JWT_SECRET")
-url = f"postgresql://{username}:{password}@db-1:{PORT}/{db_name}"
+url = f"postgresql://{username}:{password}@{HOST}:{PORT}/{db_name}"
 
 engine = sqlmodel.create_engine(url)
 app = FastAPI()
