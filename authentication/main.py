@@ -60,7 +60,7 @@ async def register(user: User, res: Response):
 
 @app.post("/login",
           responses={
-              200: {"model": LoginResponse, },
+              200: {"model": LoginResponse},
               400: {"model": ErrorResponse},
               404: {"model": ErrorResponse}
           })
