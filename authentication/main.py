@@ -13,7 +13,7 @@ dotenv.load_dotenv()
 username = os.getenv("USERNAME")
 password = os.getenv("PASSWORD")
 HOST = os.getenv("HOST")
-PORT = os.getenv("PORT")
+PORT = os.getenv("POSTGRES_PORT")
 db_name = os.getenv("DB_NAME")
 secret = os.getenv("JWT_SECRET")
 url = f"postgresql://{username}:{password}@{HOST}:{PORT}/{db_name}"
@@ -82,5 +82,5 @@ async def login(user: User, res: Response,):
             return {"message": "Unauthorized"}
 
     expiration = datetime.now() + timedelta(days=1)
-    token = jwt.encode({ "username": user.username, "id": result.id, "exp": expiration }, secret, algorithm="HS256")
+    token = jwt.encode({ "username": user.username, "id": str(result.id), "exp": expiration }, secret, algorithm="HS256")
     return {"success": "true", "data": { "token": token }}
