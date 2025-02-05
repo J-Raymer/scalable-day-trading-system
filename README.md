@@ -2,6 +2,11 @@
 
 ### Initial architecture / tech stack
 
+
+### Running with Docker 
+To start up the docker containers from the root directory type `docker compose up --build -d` and it will
+build and run all the micro-services.
+
 #### Front End
 
 - ReactJS
