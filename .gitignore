@@ -1,0 +1,12 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# VS Code
+.vscode/
+
+# Python
+__pycache__/
+

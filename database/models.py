@@ -4,7 +4,7 @@ from sqlmodel import SQLModel, Field
 from uuid import UUID
 
 class Users(SQLModel, table=True):
-    id: UUID = Field(default=uuid.uuid4(), primary_key=True)
+    id: UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     username: str = Field(index=True, unique=True)
     password: str
     salt: str
