@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from fastapi import FastAPI, Response, Depends, HTTPException
 from fastapi.responses import RedirectResponse
-from database import Wallets, WalletTransactions, Users, Stocks
+from database import Wallets, WalletTransactions, Users, Stocks, StockPortfolios, StockTransactions
 from schemas import SuccessResponse
 
 
@@ -122,3 +122,40 @@ async def get_stock_prices(user: Token = Depends(verify_token)):
         statement = sqlmodel.select(Stocks)
         stocks = session.exec(statement).all()
         return SuccessResponse(data=stocks)
+
+
+@app.get("/getStockPortfolio",
+         responses={
+             200: {"model": SuccessResponse},
+             400: {"model": ErrorResponse},
+             401: {"model": ErrorResponse},
+             409: {"model": ErrorResponse}
+         })
+async def get_stock_portfolio(user: Token = Depends(verify_token)):
+    with sqlmodel.Session(engine) as session:
+        statement = sqlmodel.select(
+            StockPortfolios.stock_id,
+            Stocks.name,
+            StockPortfolios.quantity_owned
+        ).join(Stocks, StockPortfolios.stock_id == Stocks.id
+               ).where(StockPortfolios.user_id == user.id)
+        portfolios = session.exec(statement).all()
+        return SuccessResponse(data=portfolios)
+
+# @app.get("/getStockTransactions",
+#          responses={
+#              200: {"model": SuccessResponse},
+#              400: {"model": ErrorResponse},
+#              401: {"model": ErrorResponse},
+#              409: {"model": ErrorResponse}
+#          })
+# async def get_stock_transactions(user: Token = Depends(verify_token)):
+#     with sqlmodel.Session(engine) as session:
+#         statement = sqlmodel.select(
+#             StockTransactions.stock_id,
+#             Stocks.name,
+#             StockPortfolios.quantity_owned
+#         ).join(Stocks, StockPortfolios.stock_id == Stocks.id
+#                ).where(StockPortfolios.user_id == user.id)
+#     portfolios = session.exec(statement).all()
+#     return SuccessResponse(data=portfolios)
