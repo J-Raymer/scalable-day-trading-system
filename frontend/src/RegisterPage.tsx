@@ -35,7 +35,7 @@ function RegisterPage() {
       });
       if (response.status === 201) {
         console.log("User registered successfully");
-        navigate('/');
+        navigate('/login');
       }
     } catch (err) {
       if (err.response && err.response.status === 409) {

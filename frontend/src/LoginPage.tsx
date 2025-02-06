@@ -1,21 +1,44 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    // Add login logic here
-    console.log('Logging in with', { username, password });
-    // Redirect to home page after login
-    navigate('/home');
-  };
-
-  const handleRegister = () => {
-    navigate('/register');
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username || !password) {
+      setError('All fields must be filled out');
+      return;
+    }
+    try {
+      const response = await axios.post('http://localhost:8000/login', {
+        username,
+        password,
+      });
+      if (response.status === 200) {
+        console.log("User logged in successfully, token saved in local storage");
+        const token = response.data.data.token;
+        localStorage.setItem('token', token);
+        navigate('/');
+      }
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response && err.response.status === 404) {
+          setError('User not found');
+        } else if (err.response && err.response.status === 401) {
+          setError('Unauthorized');
+        } else {
+          setError('Login failed. Please try again.');
+        }
+      } else {
+        setError('An unexpected error occurred.');
+      }
+    }
   };
 
   return (
@@ -23,7 +46,7 @@ function LoginPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Login
       </Typography>
-      <form className="login-form" noValidate autoComplete="off">
+      <form className="login-form" noValidate autoComplete="off" onSubmit={handleLogin}>
         <TextField
           label="Username"
           variant="outlined"
@@ -41,28 +64,20 @@ function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Button variant="contained" color="primary" onClick={handleLogin} fullWidth>
-          Login
-        </Button>
+        {error && (
+          <Typography color="error" variant="body2">
+            {error}
+          </Typography>
+        )}
         <Box mt={2}>
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={handleRegister}
-            fullWidth
-            sx={{
-              backgroundColor: 'background.default',
-              color: 'primary.main',
-              borderColor: 'primary.main',
-              '&:hover': {
-                backgroundColor: 'background.default',
-                borderColor: 'primary.dark',
-                color: 'primary.dark',
-              },
-            }}
-          >
-            Register
+          <Button variant="contained" color="primary" type="submit" fullWidth>
+            Login
           </Button>
+        </Box>
+        <Box mt={2}>
+          <Typography variant="body2">
+            Don't have an account? <Link to="/register">Register</Link>
+          </Typography>
         </Box>
       </form>
     </Container>
