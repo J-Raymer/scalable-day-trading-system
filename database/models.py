@@ -17,7 +17,8 @@ class Wallets(SQLModel, table=True):
 
 
 class WalletTransactions(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+    wallet_tx_id: int = Field(default=None, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id")
     stock_tx_id: int = Field(foreign_key="stocktransactions.id")
     is_debit: bool
     amount: int

@@ -10,7 +10,8 @@ from fastapi import FastAPI, Response, Depends
 from fastapi.responses import RedirectResponse
 from sqlmodel import SQLModel, Field
 # from models import Users
-from database import Wallets
+from database import Wallets, WalletTransactions
+from schemas import SuccessResponse
 
 
 
@@ -59,9 +60,47 @@ def verify_token(token: str, res: Response) -> Token | ErrorResponse:
 async def home():
     return RedirectResponse(url="/docs", status_code=302)
 
+@app.get("/getWalletBalance", responses={
+    200: {"model": SuccessResponse},
+    400: {"model": ErrorResponse},
+    401: {"model": ErrorResponse},
+    403: {"model": ErrorResponse},
+    404: {"model": ErrorResponse},
+})
+async def get_wallet_balance(res: Response, token: str = Depends(oauth2_scheme)):
+    result = verify_token(token, res)
+    if isinstance(result, ErrorResponse):
+        return result
+    with sqlmodel.Session(engine) as session:
+        statement = sqlmodel.select(Wallets.balance).where(Wallets.user_id == result.id)
+        balance = session.exec(statement).one_or_none()
+        if not balance:
+            return ErrorResponse(message="Wallet not found, please add money first")
+        return SuccessResponse(data={"balance": balance})
 
-@app.post("/addMoneyToWallet")
-async def add_money_to_waller(req: AddMoneyRequest, res: Response, token: str = Depends(oauth2_scheme)):
+
+@app.get("/getWalletTransactions", responses={
+    200: {"model": SuccessResponse},
+    400: {"model": ErrorResponse},
+    401: {"model": ErrorResponse},
+    403: {"model": ErrorResponse},
+    # 404: {"model": ErrorResponse},
+})
+async def get_wallet_transactions(res: Response, token: str = Depends(oauth2_scheme)):
+    result = verify_token(token, res)
+    if isinstance(result, ErrorResponse):
+        return result
+    with sqlmodel.Session(engine) as session:
+        statement = sqlmodel.select(WalletTransactions).where()
+
+@app.post("/addMoneyToWallet",
+          responses={
+              201: {"model": SuccessResponse},
+              400: {"model": ErrorResponse},
+              401: {"model": ErrorResponse},
+              409: {"model": ErrorResponse}
+          })
+async def add_money_to_wallet(req: AddMoneyRequest, res: Response, token: str = Depends(oauth2_scheme)):
     result = verify_token(token, res)
     if isinstance(result, ErrorResponse):
         return result
@@ -69,11 +108,11 @@ async def add_money_to_waller(req: AddMoneyRequest, res: Response, token: str = 
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == result.id)
         wallet = session.exec(statement).one_or_none()
         if not wallet:
-            res.status_code = 404
-            return ErrorResponse(message="Wallet not found")
+            new_wallet = Wallets(user_id=result.id, balance=req.amount)
+            session.add(new_wallet)
+            session.commit()
+            return SuccessResponse()
         wallet.balance += req.amount
         session.add(wallet)
         session.commit()
-    return {"success": True, "data": None}
-
-    # return jwt.decode(token, "secret123456", algorithms=["HS256"])
+    return SuccessResponse()
