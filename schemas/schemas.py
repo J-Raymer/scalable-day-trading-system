@@ -9,7 +9,7 @@ class Token(BaseModel):
 
 class SuccessResponse(BaseModel):
     success: bool = True
-    data: dict | None = None
+    data: list | dict | None = None
 
 class LoginResponse(SuccessResponse):
     data: Token
