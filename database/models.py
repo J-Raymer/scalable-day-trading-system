@@ -22,7 +22,7 @@ class WalletTransactions(SQLModel, table=True):
     stock_tx_id: int = Field(foreign_key="stocktransactions.id")
     is_debit: bool
     amount: int
-    time_stamp: datetime = Field(default=datetime.now())
+    time_stamp: datetime = Field(default_factory=datetime.now)
 
 
 class Stocks(SQLModel, table=True):

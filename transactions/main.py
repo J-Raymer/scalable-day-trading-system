@@ -10,7 +10,7 @@ from fastapi import FastAPI, Response, Depends
 from fastapi.responses import RedirectResponse
 from sqlmodel import SQLModel, Field
 # from models import Users
-from database import Wallets, WalletTransactions
+from database import Wallets, WalletTransactions, Users
 from schemas import SuccessResponse
 
 
@@ -91,7 +91,13 @@ async def get_wallet_transactions(res: Response, token: str = Depends(oauth2_sch
     if isinstance(result, ErrorResponse):
         return result
     with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(WalletTransactions).where()
+        # Overload issue need to pass params this way see here https://github.com/fastapi/sqlmodel/issues/92
+        columns = [WalletTransactions.wallet_tx_id, WalletTransactions.stock_tx_id, WalletTransactions.is_debit, WalletTransactions.amount, WalletTransactions.time_stamp]
+        statement = sqlmodel.select(
+            *columns).where(Users.id == WalletTransactions.user_id)
+        result = session.exec(statement).all()
+        return result
+
 
 @app.post("/addMoneyToWallet",
           responses={
@@ -108,7 +114,7 @@ async def add_money_to_wallet(req: AddMoneyRequest, res: Response, token: str = 
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == result.id)
         wallet = session.exec(statement).one_or_none()
         if not wallet:
-            new_wallet = Wallets(user_id=result.id, balance=req.amount)
+            new_wallet = Wallets(user_id=UUID(result.id), balance=req.amount)
             session.add(new_wallet)
             session.commit()
             return SuccessResponse()
