@@ -1,28 +1,18 @@
-from uuid import UUID
 import jwt
 import sqlmodel
+from uuid import UUID
+
+from fastapi.openapi.utils import get_openapi
 from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel
-from fastapi import FastAPI, Response, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from database import Wallets, WalletTransactions, Users, Stocks, StockPortfolios, StockTransactions
-from schemas import SuccessResponse, StockName
+from schemas import SuccessResponse, Stock, ErrorResponse, User, AddMoneyRequest
 
 
 app = FastAPI()
 url = f"postgresql://admin:isolated-dean-primal-starving@localhost:5433/day_trader"
 engine = sqlmodel.create_engine(url)
-
-
-class AddMoneyRequest(BaseModel):
-    amount: float
-
-class ErrorResponse(BaseModel):
-    detail: str
-
-class Token(BaseModel):
-    username: str
-    id: str
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
@@ -35,7 +25,7 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=400, detail="Token is required")
     try:
         decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"require": ["exp", "id", "username"]})
-        return Token(username=decoded_token["username"], id=decoded_token["id"])
+        return User(username=decoded_token["username"], id=decoded_token["id"])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Expired Token")
     except jwt.InvalidSignatureError:
@@ -57,7 +47,7 @@ async def home():
     403: {"model": ErrorResponse},
     404: {"model": ErrorResponse},
 })
-async def get_wallet_balance(user: Token = Depends(verify_token)):
+async def get_wallet_balance(user: User = Depends(verify_token)):
     with sqlmodel.Session(engine) as session:
         statement = sqlmodel.select(Wallets.balance).where(Wallets.user_id == user.id)
         balance = session.exec(statement).one_or_none()
@@ -75,7 +65,7 @@ async def get_wallet_balance(user: Token = Depends(verify_token)):
     401: {"model": ErrorResponse},
     403: {"model": ErrorResponse},
 })
-async def get_wallet_transactions(user: Token = Depends(verify_token)):
+async def get_wallet_transactions(user: User = Depends(verify_token)):
     with sqlmodel.Session(engine) as session:
         # Overload issue need to pass params this way see here https://github.com/fastapi/sqlmodel/issues/92
         columns = [WalletTransactions.wallet_tx_id,
@@ -97,7 +87,7 @@ async def get_wallet_transactions(user: Token = Depends(verify_token)):
               403: {"model": ErrorResponse},
               409: {"model": ErrorResponse}
           })
-async def add_money_to_wallet(req: AddMoneyRequest, user: Token = Depends(verify_token)):
+async def add_money_to_wallet(req: AddMoneyRequest, user: User = Depends(verify_token)):
     with sqlmodel.Session(engine) as session:
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == user.id)
         wallet = session.exec(statement).one_or_none()
@@ -119,7 +109,7 @@ async def add_money_to_wallet(req: AddMoneyRequest, user: Token = Depends(verify
              401: {"model": ErrorResponse},
              409: {"model": ErrorResponse}
          })
-async def get_stock_prices(user: Token = Depends(verify_token)):
+async def get_stock_prices(user: User = Depends(verify_token)):
     with sqlmodel.Session(engine) as session:
         statement = sqlmodel.select(Stocks)
         stocks = session.exec(statement).all()
@@ -133,7 +123,7 @@ async def get_stock_prices(user: Token = Depends(verify_token)):
              401: {"model": ErrorResponse},
              409: {"model": ErrorResponse}
          })
-async def get_stock_portfolio(user: Token = Depends(verify_token)):
+async def get_stock_portfolio(user: User = Depends(verify_token)):
     with sqlmodel.Session(engine) as session:
         statement = sqlmodel.select(
             StockPortfolios.stock_id,
@@ -152,7 +142,7 @@ async def get_stock_portfolio(user: Token = Depends(verify_token)):
              401: {"model": ErrorResponse},
              409: {"model": ErrorResponse}
          })
-async def get_stock_transactions(user: Token = Depends(verify_token)):
+async def get_stock_transactions(user: User = Depends(verify_token)):
     with sqlmodel.Session(engine) as session:
         statement = sqlmodel.select(StockTransactions).where(StockTransactions.user_id == user.id)
     portfolios = session.exec(statement).all()
@@ -167,7 +157,7 @@ async def get_stock_transactions(user: Token = Depends(verify_token)):
               409: {"model": ErrorResponse}
           }
           )
-async def create_stock(stock: StockName, token: Token = Depends(verify_token)):
+async def create_stock(stock: Stock, token: User = Depends(verify_token)):
     stock_name = stock.stock_name
     if not stock_name:
         raise HTTPException(status_code=400, detail="stock_name required")
