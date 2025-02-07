@@ -12,10 +12,11 @@ function Header({ darkMode, setDarkMode }: HeaderProps) {
   const location = useLocation();
 
   const handleLogout = () => {
-    // Add logout logic here
+    // Clear token from localStorage
+    localStorage.removeItem('token');
     console.log('Logging out');
     // Redirect to login page after logout
-    navigate('/');
+    navigate('/login');
   };
 
   return (
@@ -29,7 +30,7 @@ function Header({ darkMode, setDarkMode }: HeaderProps) {
     >
       <Toolbar>
         <Box sx={{ flexGrow: 1 }} />
-        {(location.pathname !== '/' && location.pathname !== '/register') && (
+        {(location.pathname !== '/login' && location.pathname !== '/register') && (
           <Button color="inherit" onClick={handleLogout}>
             Logout
           </Button>

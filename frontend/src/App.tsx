@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeProvider, CssBaseline, Toolbar } from '@mui/material';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
 import RegisterPage from './RegisterPage';
@@ -15,15 +15,33 @@ function App() {
     <ThemeProvider theme={theme(darkMode)}>
       <CssBaseline />
       <Router>
-        <Header darkMode={darkMode} setDarkMode={setDarkMode} />
-        <Toolbar />
-        <Routes>
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/home" element={<HomePage />} />
-          <Route path="/register" element={<RegisterPage />} />
-        </Routes>
+        <AppContent darkMode={darkMode} setDarkMode={setDarkMode} />
       </Router>
     </ThemeProvider>
+  );
+}
+
+function AppContent({ darkMode, setDarkMode }: { darkMode: boolean; setDarkMode: React.Dispatch<React.SetStateAction<boolean>> }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token && location.pathname !== '/register' && location.pathname !== '/login') {
+      navigate('/login');
+    }
+  }, [navigate, location.pathname]);
+
+  return (
+    <>
+      <Header darkMode={darkMode} setDarkMode={setDarkMode} />
+      <Toolbar />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/register" element={<RegisterPage />} />
+      </Routes>
+    </>
   );
 }
 

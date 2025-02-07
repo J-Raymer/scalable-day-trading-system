@@ -5,6 +5,7 @@ import os
 import sqlmodel
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from database import Users
 from schemas import *
@@ -21,11 +22,18 @@ url = f"postgresql://{username}:{password}@{HOST}:{PORT}/{db_name}"
 engine = sqlmodel.create_engine(url)
 app = FastAPI()
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Allows front end requests locally
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def home():
     return RedirectResponse(url="/docs", status_code=302)
-
 
 @app.post("/register",
           status_code=201,
@@ -56,7 +64,6 @@ async def register(user: User, res: Response):
         session.commit()
         res.status_code = 201
         return {"success": True, "data": None}
-
 
 @app.post("/login",
           responses={

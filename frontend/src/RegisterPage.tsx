@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,7 +10,8 @@ function RegisterPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleRegister = () => {
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!username) {
       setError('Username cannot be empty');
       return;
@@ -26,10 +28,22 @@ function RegisterPage() {
       setError('All fields must be filled out');
       return;
     }
-    // Add registration logic here
-    console.log('Registering with', { username, password, confirmPassword });
-    // Redirect to login page after registration
-    navigate('/');
+    try {
+      const response = await axios.post('http://localhost:8000/register', {
+        username,
+        password,
+      });
+      if (response.status === 201) {
+        console.log("User registered successfully");
+        navigate('/login');
+      }
+    } catch (err) {
+      if (err.response && err.response.status === 409) {
+        setError('Username already exists');
+      } else {
+        setError('Registration failed. Please try again.');
+      }
+    }
   };
 
   return (
@@ -37,7 +51,7 @@ function RegisterPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Register
       </Typography>
-      <form className="register-form" noValidate autoComplete="off">
+      <form className="register-form" noValidate autoComplete="off" onSubmit={handleRegister}>
         <TextField
           label="Username"
           variant="outlined"
@@ -70,7 +84,7 @@ function RegisterPage() {
           </Typography>
         )}
         <Box mt={2}>
-          <Button variant="contained" color="primary" onClick={handleRegister} fullWidth>
+          <Button variant="contained" color="primary" type="submit" fullWidth>
             Register
           </Button>
         </Box>
