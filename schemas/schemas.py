@@ -16,3 +16,6 @@ class LoginResponse(SuccessResponse):
 
 class ErrorResponse(BaseModel):
     message: str
+
+class StockName(BaseModel):
+    stock_name: str
