@@ -4,7 +4,7 @@ import jwt
 import os
 import sqlmodel
 from datetime import datetime, timedelta
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from database import Users
@@ -44,16 +44,14 @@ async def home():
           })
 async def register(user: User, res: Response):
     if not (user.username and user.password):
-        res.status_code = 400
-        return { "message": "Bad Request" }
+        raise HTTPException(status_code=400, detail="Username and password required")
 
     with sqlmodel.Session(engine) as session:
         query = sqlmodel.select(Users).where(Users.username == user.username)
         existing_user = session.exec(query).one_or_none()
 
         if existing_user:
-            res.status_code = 409
-            return {"message": "Username already exists"}
+            raise HTTPException(status_code=409, detail="Username already exists")
 
         salt = bcrypt.gensalt()
         new_user = Users(
@@ -73,15 +71,13 @@ async def register(user: User, res: Response):
           })
 async def login(user: User, res: Response,):
     if not (user.username and user.password):
-        res.status_code = 400
-        return {"message": "Username and password required"}
+        raise HTTPException(status_code=400, detail="Username and password required")
 
     with sqlmodel.Session(engine) as session:
         query = sqlmodel.select(Users).where(Users.username == user.username)
         result = session.exec(query).one_or_none()
         if not result:
-            res.status_code = 404
-            return { "message": "User not found" }
+            raise HTTPException(status_code=404, detail="User not found")
 
         hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), result.salt.encode('utf-8')).decode('utf-8')
         if hashed_password != result.password:
@@ -90,4 +86,4 @@ async def login(user: User, res: Response,):
 
     expiration = datetime.now() + timedelta(days=1)
     token = jwt.encode({ "username": user.username, "id": str(result.id), "exp": expiration }, secret, algorithm="HS256")
-    return {"success": "true", "data": { "token": token }}
+    return SuccessResponse(data={ "token": token })

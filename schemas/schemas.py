@@ -15,7 +15,7 @@ class LoginResponse(SuccessResponse):
     data: Token
 
 class ErrorResponse(BaseModel):
-    message: str
+    detail: str
 
 class StockName(BaseModel):
     stock_name: str
