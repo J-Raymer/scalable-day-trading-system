@@ -1,14 +1,15 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-
 from sqlmodel import SQLModel, Field
 from uuid import UUID
+
 
 class OrderStatus(str, Enum):
     IN_PROGRESS = 'IN_PROGRESS',
     PARTIALLY_COMPLETE = 'PARTIALLY_COMPLETE',
     COMPLETED = 'COMPLETED'
+
 
 class Users(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -33,20 +34,20 @@ class WalletTransactions(SQLModel, table=True):
 
 
 class Stocks(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+    stock_id: UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     stock_name: str = Field(unique=True, index=True)
     price: int
 
 
 class StockPortfolios(SQLModel, table=True):
     user_id: UUID = Field(primary_key=True, foreign_key="users.id")
-    stock_id: int = Field(primary_key=True, foreign_key="stocks.id")
+    stock_id: UUID = Field(primary_key=True, foreign_key="stocks.stock_id")
     quantity_owned: int
 
 
 class StockTransactions(SQLModel, table=True):
     stock_tx_id: int = Field(default=None, primary_key=True)
-    stock_id: int = Field(foreign_key="stocks.id")
+    stock_id: UUID = Field(foreign_key="stocks.stock_id")
     wallet_tx_id: int = Field(foreign_key="wallettransactions.wallet_tx_id")
     order_status: OrderStatus = Field(default=OrderStatus.IN_PROGRESS)
     is_buy: bool

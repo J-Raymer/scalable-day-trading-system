@@ -7,7 +7,7 @@ from uuid import UUID
 import os
 import dotenv
 from database import Wallets, WalletTransactions, Users, Stocks, StockPortfolios, StockTransactions
-from schemas import SuccessResponse, Stock, ErrorResponse, User, AddMoneyRequest
+from schemas import SuccessResponse, Stock, ErrorResponse, User, AddMoneyRequest, StockSetup
 
 
 dotenv.load_dotenv()
@@ -137,7 +137,7 @@ async def get_stock_portfolio(user: User = Depends(verify_token)):
             StockPortfolios.stock_id,
             Stocks.stock_name,
             StockPortfolios.quantity_owned
-        ).join(Stocks, StockPortfolios.stock_id == Stocks.id
+        ).join(Stocks, StockPortfolios.stock_id == Stocks.stock_id
                ).where(StockPortfolios.user_id == user.id)
         portfolios = session.exec(statement).all()
         return SuccessResponse(data=portfolios)
@@ -165,7 +165,7 @@ async def get_stock_transactions(user: User = Depends(verify_token)):
               409: {"model": ErrorResponse}
           }
           )
-async def create_stock(stock: Stock, token: User = Depends(verify_token)):
+async def create_stock(stock: Stock, user: User = Depends(verify_token)):
     stock_name = stock.stock_name
     if not stock_name:
         raise HTTPException(status_code=400, detail="stock_name required")
@@ -180,3 +180,21 @@ async def create_stock(stock: Stock, token: User = Depends(verify_token)):
         session.refresh(new_stock)
         return SuccessResponse(data={"stock_id": new_stock.id})
 
+@app.post("/addStockToUser",
+          responses={
+              201: {"model": SuccessResponse},
+              400: {"model": ErrorResponse},
+              401: {"model": ErrorResponse},
+              403: {"model": ErrorResponse},
+              409: {"model": ErrorResponse}
+          }
+          )
+async def add_stock_to_user(new_stock: StockSetup, user: User = Depends(verify_token)):
+    if not (new_stock.stock_id and new_stock.quantity):
+        raise HTTPException(status_code=400, detail="Stock ID and quantity required")
+
+    with sqlmodel.Session(engine) as session:
+        new_stock = StockPortfolios(user_id=user.id, stock_id=new_stock.stock_id, quantity_owned=new_stock.quantity)
+        session.add(new_stock)
+        session.refresh(new_stock)
+        return SuccessResponse(data={"stock": new_stock})
