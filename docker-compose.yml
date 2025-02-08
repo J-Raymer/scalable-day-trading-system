@@ -59,6 +59,21 @@ services:
       start_period: 30s
       timeout: 10s
 
+  matching-engine:
+    build:
+      context: .
+      dockerfile: ./matching-engine/Dockerfile
+    environment:
+      - USERNAME=${USERNAME}
+      - PASSWORD=${PASSWORD}
+      - HOST=${HOST}
+    ports:
+      - ${ME_PORT}:${DOCKER_PORT}
+    networks:
+        - day_trader_network
+
+
+
 volumes:
   db_data:
 
