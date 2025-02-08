@@ -19,7 +19,8 @@ DB_NAME = os.getenv("DB_NAME") or 'day_trader'
 
 
 app = FastAPI()
-url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@localhost:{DB_PORT}/{DB_NAME}"
+print(url)
 engine = sqlmodel.create_engine(url)
 
 
@@ -178,7 +179,7 @@ async def create_stock(stock: Stock, user: User = Depends(verify_token)):
         session.add(new_stock)
         session.commit()
         session.refresh(new_stock)
-        return SuccessResponse(data={"stock_id": new_stock.id})
+        return SuccessResponse(data={"stock_id": new_stock.stock_id})
 
 @app.post("/addStockToUser",
           responses={

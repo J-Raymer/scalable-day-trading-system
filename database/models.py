@@ -20,13 +20,13 @@ class Users(SQLModel, table=True):
 
 class Wallets(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
-    user_id: UUID = Field(foreign_key="users.id")
+    user_id: UUID = Field(foreign_key="users.id", unique=True, index=True)
     balance: int = Field(default=0)
 
 
 class WalletTransactions(SQLModel, table=True):
     wallet_tx_id: int = Field(default=None, primary_key=True)
-    user_id: UUID = Field(foreign_key="users.id")
+    user_id: UUID = Field(foreign_key="users.id", index=True)
     stock_tx_id: int = Field(foreign_key="stocktransactions.stock_tx_id")
     is_debit: bool
     amount: int
@@ -34,20 +34,20 @@ class WalletTransactions(SQLModel, table=True):
 
 
 class Stocks(SQLModel, table=True):
-    stock_id: UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    stock_id: int = Field(primary_key=True)
     stock_name: str = Field(unique=True, index=True)
-    price: int
+    price: int = Field(default=0)
 
 
 class StockPortfolios(SQLModel, table=True):
-    user_id: UUID = Field(primary_key=True, foreign_key="users.id")
-    stock_id: UUID = Field(primary_key=True, foreign_key="stocks.stock_id")
+    user_id: UUID = Field(primary_key=True, foreign_key="users.id", index=True)
+    stock_id: int = Field(primary_key=True, foreign_key="stocks.stock_id")
     quantity_owned: int
 
 
 class StockTransactions(SQLModel, table=True):
     stock_tx_id: int = Field(default=None, primary_key=True)
-    stock_id: UUID = Field(foreign_key="stocks.stock_id")
+    stock_id: int = Field(foreign_key="stocks.stock_id")
     wallet_tx_id: int = Field(foreign_key="wallettransactions.wallet_tx_id")
     order_status: OrderStatus = Field(default=OrderStatus.IN_PROGRESS)
     is_buy: bool
