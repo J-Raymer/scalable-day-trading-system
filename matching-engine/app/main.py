@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.core.engine import receiveOrder, getPrices, cancelOrder
+from app.core.engine import receiveOrder, getStockPrices, cancelOrder
 from app.schemas.Types import StockOrder,  UID
 
 app = FastAPI()
@@ -16,13 +16,11 @@ def placeStockOrder(order : StockOrder):
 
 @app.post("/transaction/getStockPrices")
 def getStockPrices():
-    return getPrices()
+    return getStockPrices()
 
 @app.post("/engine/cancelStockTransaction")
 def cancelStockTransaction(stockID : str):
     return cancelOrder()
-
-
 
 #DB calls
 @app.post("/transaction/addMoneyToWallet")
