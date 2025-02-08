@@ -4,3 +4,5 @@ sqlmodel
 PyJwt
 fastapi[standard]
 bcrypt
+pydantic
+

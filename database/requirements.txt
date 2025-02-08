@@ -1,3 +1,4 @@
 psycopg2
 sqlmodel
 python-dotenv
+pydantic

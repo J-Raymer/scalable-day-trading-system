@@ -18,6 +18,23 @@ services:
     networks:
       - day_trader_network
 
+  transactions:
+    build:
+      context: .
+      dockerfile: ./transactions/Dockerfile
+    depends_on:
+      - database
+    environment:
+      - USERNAME=${USERNAME}
+      - PASSWORD=${PASSWORD}
+      - HOST=${HOST}
+      - POSTGRES_PORT=${DOCKER_PORT}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+    ports:
+      - ${TRANSACTIONS_PORT}:${TRANSACTIONS_PORT}
+    networks:
+      - day_trader_network
 
   database:
     build:

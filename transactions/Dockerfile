@@ -3,10 +3,11 @@ FROM python:latest
 WORKDIR /app
 
 COPY transactions /app/transactions
-COPY database/models.py /app/transactions
+COPY database /app/database
+COPY schemas /app/schemas
 
 RUN pip install --no-cache-dir -r /app/transactions/requirements.txt
-#ENV PYTHONPATH=/app
+
 EXPOSE 8001
 
-CMD ["fastapi", "run", "./transactions/main.py", "--port", "8001"]
+CMD ["python3", "-m", "uvicorn", "transactions.main:app", "--host", "0.0.0.0", "--port", "8001"]

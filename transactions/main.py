@@ -1,17 +1,25 @@
 import jwt
 import sqlmodel
-from uuid import UUID
-
-from fastapi.openapi.utils import get_openapi
-from fastapi.security import OAuth2PasswordBearer
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordBearer
+from uuid import UUID
+import os
+import dotenv
 from database import Wallets, WalletTransactions, Users, Stocks, StockPortfolios, StockTransactions
 from schemas import SuccessResponse, Stock, ErrorResponse, User, AddMoneyRequest
 
 
+dotenv.load_dotenv()
+DB_USERNAME = os.getenv("USERNAME") or 'admin'
+DB_PASSWORD = os.getenv("PASSWORD") or 'isolated-dean-primal-starving'
+DB_HOST = os.getenv("HOST") or 'localhost'
+DB_PORT = os.getenv("POSTGRES_PORT") or '5433'
+DB_NAME = os.getenv("DB_NAME") or 'day_trader'
+
+
 app = FastAPI()
-url = f"postgresql://admin:isolated-dean-primal-starving@localhost:5433/day_trader"
+url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 
 
