@@ -27,7 +27,6 @@ class Wallets(SQLModel, table=True):
 class WalletTransactions(SQLModel, table=True):
     wallet_tx_id: int = Field(default=None, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", index=True)
-    stock_tx_id: int = Field(foreign_key="stocktransactions.stock_tx_id")
     is_debit: bool
     amount: int
     time_stamp: datetime = Field(default_factory=datetime.now)

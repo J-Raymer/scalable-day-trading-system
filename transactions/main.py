@@ -75,15 +75,19 @@ async def get_wallet_balance(user: User = Depends(verify_token)):
     403: {"model": ErrorResponse},
 })
 async def get_wallet_transactions(user: User = Depends(verify_token)):
-    with sqlmodel.Session(engine) as session:
+    with (sqlmodel.Session(engine) as session):
         # Overload issue need to pass params this way see here https://github.com/fastapi/sqlmodel/issues/92
         columns = [WalletTransactions.wallet_tx_id,
-                   WalletTransactions.stock_tx_id,
                    WalletTransactions.is_debit,
                    WalletTransactions.amount,
-                   WalletTransactions.time_stamp]
+                   WalletTransactions.time_stamp,
+                   StockTransactions.stock_tx_id
+                   ]
         statement = sqlmodel.select(
-            *columns).where(Users.id == WalletTransactions.user_id)
+            *columns
+        ).join(StockTransactions,
+               WalletTransactions.wallet_tx_id == StockTransactions.wallet_tx_id
+               ).where(Users.id == WalletTransactions.user_id)
         result = session.exec(statement).all()
         return result
 
