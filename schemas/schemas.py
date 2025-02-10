@@ -1,10 +1,14 @@
 from uuid import UUID
-
 from pydantic import BaseModel
 
+
 class LoginRequest(BaseModel):
-    username: str
+    user_name: str
     password: str
+
+
+class RegisterRequest(LoginRequest):
+    name: str
 
 
 class AddMoneyRequest(BaseModel):
@@ -36,7 +40,7 @@ class User(BaseModel):
     username: str
     id: str
 
+
 class StockSetup(BaseModel):
     stock_id: UUID
     quantity: int
-

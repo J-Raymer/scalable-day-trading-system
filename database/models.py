@@ -13,7 +13,8 @@ class OrderStatus(str, Enum):
 
 class Users(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    username: str = Field(index=True, unique=True)
+    user_name: str = Field(index=True, unique=True)
+    name: str
     password: str
     salt: str
 

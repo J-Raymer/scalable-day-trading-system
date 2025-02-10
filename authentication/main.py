@@ -11,13 +11,13 @@ from database import Users
 from schemas import *
 
 dotenv.load_dotenv()
-username = os.getenv("USERNAME")
-password = os.getenv("PASSWORD")
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
 HOST = os.getenv("HOST")
 PORT = os.getenv("POSTGRES_PORT")
-db_name = os.getenv("DB_NAME")
-secret = os.getenv("JWT_SECRET")
-url = f"postgresql://{username}:{password}@{HOST}:{PORT}/{db_name}"
+DB_NAME = os.getenv("DB_NAME")
+JWT_SECRET = os.getenv("JWT_SECRET")
+url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 
 engine = sqlmodel.create_engine(url)
 app = FastAPI()
@@ -42,12 +42,12 @@ async def home():
               400: {"model": ErrorResponse},
               409: {"model": ErrorResponse}
           })
-async def register(user: LoginRequest, res: Response):
-    if not (user.username and user.password):
+async def register(user: RegisterRequest, res: Response):
+    if not (user.user_name and user.password):
         raise HTTPException(status_code=400, detail="Username and password required")
 
     with sqlmodel.Session(engine) as session:
-        query = sqlmodel.select(Users).where(Users.username == user.username)
+        query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
         existing_user = session.exec(query).one_or_none()
 
         if existing_user:
@@ -55,13 +55,13 @@ async def register(user: LoginRequest, res: Response):
 
         salt = bcrypt.gensalt()
         new_user = Users(
-            username=user.username,
+            user_name=user.user_name,
             password=bcrypt.hashpw(user.password.encode('utf-8'), salt).decode('utf-8'),
+            name=user.name,
             salt=salt.decode('utf-8'))
         session.add(new_user)
         session.commit()
-        res.status_code = 201
-        return {"success": True, "data": None}
+        return SuccessResponse()
 
 @app.post("/login",
           responses={
@@ -70,11 +70,11 @@ async def register(user: LoginRequest, res: Response):
               404: {"model": ErrorResponse}
           })
 async def login(user: LoginRequest, res: Response, ):
-    if not (user.username and user.password):
+    if not (user.user_name and user.password):
         raise HTTPException(status_code=400, detail="Username and password required")
 
     with sqlmodel.Session(engine) as session:
-        query = sqlmodel.select(Users).where(Users.username == user.username)
+        query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
         result = session.exec(query).one_or_none()
         if not result:
             raise HTTPException(status_code=404, detail="User not found")
@@ -82,8 +82,8 @@ async def login(user: LoginRequest, res: Response, ):
         hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), result.salt.encode('utf-8')).decode('utf-8')
         if hashed_password != result.password:
             res.status_code = 401
-            return {"message": "Unauthorized"}
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
     expiration = datetime.now() + timedelta(days=1)
-    token = jwt.encode({ "username": user.username, "id": str(result.id), "exp": expiration }, secret, algorithm="HS256")
+    token = jwt.encode({ "username": user.user_name, "id": str(result.id), "exp": expiration}, JWT_SECRET, algorithm="HS256")
     return SuccessResponse(data={ "token": token })
