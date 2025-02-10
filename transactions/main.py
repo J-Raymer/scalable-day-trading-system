@@ -13,16 +13,15 @@ from schemas.setup import Stock, StockSetup
 
 
 dotenv.load_dotenv()
-DB_USERNAME = os.getenv("USERNAME") or 'admin'
-DB_PASSWORD = os.getenv("PASSWORD") or 'isolated-dean-primal-starving'
-DB_HOST = os.getenv("HOST") or 'localhost'
-DB_PORT = os.getenv("POSTGRES_PORT") or '5433'
-DB_NAME = os.getenv("DB_NAME") or 'day_trader'
+DB_USERNAME = os.getenv("USERNAME")
+DB_PASSWORD = os.getenv("PASSWORD")
+DB_HOST = os.getenv("HOST")
+DB_PORT = os.getenv("POSTGRES_PORT")
+DB_NAME = os.getenv("DB_NAME")
 
 
 app = FastAPI()
 url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@localhost:{DB_PORT}/{DB_NAME}"
-print(url)
 engine = sqlmodel.create_engine(url)
 
 
@@ -30,6 +29,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 SECRET_KEY = "secret123456"
 ALGORITHM = "HS256"
+
 
 async def verify_token(token: str = Depends(oauth2_scheme)):
     if not token:
@@ -78,7 +78,8 @@ async def get_wallet_balance(user: User = Depends(verify_token)):
 })
 async def get_wallet_transactions(user: User = Depends(verify_token)):
     with (sqlmodel.Session(engine) as session):
-        # Overload issue need to pass params this way see here https://github.com/fastapi/sqlmodel/issues/92
+        # Can't pass more than 4 params into select, so have to do it this way, see here
+        # https://github.com/fastapi/sqlmodel/issues/92
         columns = [WalletTransactions.wallet_tx_id,
                    WalletTransactions.is_debit,
                    WalletTransactions.amount,

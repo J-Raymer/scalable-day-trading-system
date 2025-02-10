@@ -42,7 +42,7 @@ async def home():
               400: {"model": ErrorResponse},
               409: {"model": ErrorResponse}
           })
-async def register(user: RegisterRequest, res: Response):
+async def register(user: RegisterRequest):
     if not (user.user_name and user.password):
         raise HTTPException(status_code=400, detail="Username and password required")
 

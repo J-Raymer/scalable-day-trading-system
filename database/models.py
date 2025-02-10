@@ -6,9 +6,13 @@ from uuid import UUID
 
 
 class OrderStatus(str, Enum):
-    IN_PROGRESS = 'IN_PROGRESS',
-    PARTIALLY_COMPLETE = 'PARTIALLY_COMPLETE',
-    COMPLETED = 'COMPLETED'
+    IN_PROGRESS = "IN_PROGRESS"
+    PARTIALLY_COMPLETE = "PARTIALLY_COMPLETE"
+    COMPLETED = "COMPLETED"
+
+class OrderType(str, Enum):
+    MARKET = "MARKET"
+    LIMIT = "LIMIT"
 
 
 class Users(SQLModel, table=True):
@@ -51,7 +55,7 @@ class StockTransactions(SQLModel, table=True):
     wallet_tx_id: int = Field(foreign_key="wallettransactions.wallet_tx_id")
     order_status: OrderStatus = Field(default=OrderStatus.IN_PROGRESS)
     is_buy: bool
-    order_type: str
+    order_type: OrderType
     stock_price: int
     quantity: int
     parent_tx_id: int | None = Field(foreign_key="stocktransactions.stock_tx_id")

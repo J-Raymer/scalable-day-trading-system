@@ -1,4 +1,3 @@
-from uuid import UUID
 from pydantic import BaseModel
 
 
@@ -26,8 +25,6 @@ class LoginResponse(SuccessResponse):
 
 class ErrorResponse(BaseModel):
     detail: str
-
-
 
 
 class User(BaseModel):
