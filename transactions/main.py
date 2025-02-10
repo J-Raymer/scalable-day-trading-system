@@ -7,7 +7,9 @@ from uuid import UUID
 import os
 import dotenv
 from database import Wallets, WalletTransactions, Users, Stocks, StockPortfolios, StockTransactions
-from schemas import SuccessResponse, Stock, ErrorResponse, User, AddMoneyRequest, StockSetup
+from schemas.common import SuccessResponse, ErrorResponse, User
+from schemas.transaction import AddMoneyRequest
+from schemas.setup import Stock, StockSetup
 
 
 dotenv.load_dotenv()

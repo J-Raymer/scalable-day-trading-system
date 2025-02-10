@@ -85,10 +85,9 @@ services:
       - PASSWORD=${PASSWORD}
       - HOST=${HOST}
     ports:
-      - ${ME_PORT}:${DOCKER_PORT}
+      - ${ME_PORT}:${ME_PORT}
     networks:
         - day_trader_network
-
 
 
 volumes:

@@ -11,10 +11,6 @@ class RegisterRequest(LoginRequest):
     name: str
 
 
-class AddMoneyRequest(BaseModel):
-    amount: float
-
-
 class Token(BaseModel):
     token: str
 
@@ -32,15 +28,9 @@ class ErrorResponse(BaseModel):
     detail: str
 
 
-class Stock(BaseModel):
-    stock_name: str
 
 
 class User(BaseModel):
     username: str
     id: str
 
-
-class StockSetup(BaseModel):
-    stock_id: UUID
-    quantity: int

@@ -8,7 +8,7 @@ from fastapi import FastAPI, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from database import Users
-from schemas import *
+from schemas.common import *
 
 dotenv.load_dotenv()
 USERNAME = os.getenv("USERNAME")

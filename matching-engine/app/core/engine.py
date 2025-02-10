@@ -1,4 +1,4 @@
-from app.schemas.Types import StockOrder, SellOrder, BuyOrder
+from schemas.engine import StockOrder, SellOrder, BuyOrder
 from collections import defaultdict
 from heapq import heapify, heappop, heappush
 
