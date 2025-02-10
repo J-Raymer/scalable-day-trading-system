@@ -1,31 +1,54 @@
-from app.schemas.OrderTypes import StockOrder, SellOrder, BuyOrder
+from app.schemas.Types import StockOrder, SellOrder, BuyOrder
 from collections import defaultdict
+from heapq import heapify, heappop, heappush
 
-#TODO: change these to better data structures
-sellTrees = defaultdict(list)
+# TODO: change these to better data structures
+sellTrees = []
 buyQueues = defaultdict(list)
 
-def receiveOrder(order : StockOrder):
+
+def receiveOrder(order: StockOrder):
     if order.is_buy:
-        processBuyOrder(BuyOrder(stock_id = order.stock_id, quantity = order.quantity))
-    else
-        processSellOrder(SellOrder(stock_id = order.stock_id, quantity = order.quantity, price = order.price))
-    return {"success": true, "data": null}
+        return {
+            "success": True,
+            "data": processBuyOrder(
+                BuyOrder(stock_id=order.stock_id, quantity=order.quantity)
+            ),
+        }
+    return {
+        "success": True,
+        "data": processSellOrder(
+            SellOrder(
+                stock_id=order.stock_id, quantity=order.quantity, price=order.price
+            )
+        ),
+    }
+
+
+def clearSellOrders():
+    global sellTrees
+    sellTrees = []
+    return {"message": "sell orders cleared"}
 
 
 def getStockPrices():
-    priceList = []
-    for key in sellTrees:
-        priceList.append(sellTrees[key][0])
-    return {"success": true, "data": priceList}
+    global sellTrees
 
-def processSellOrder(sellOrder : SellOrder):
-    sellTrees[sellOrder.stock_id].append(sellOrder)
-    sellTrees[sellOrder.stock_id].sort(key=lambda x: x.price)
+    stockPrices = [heappop(sellTrees) for i in range(len(sellTrees))]
 
-def processBuyOrder(buyOrder : BuyOrder):
-    buyOrders[buyOrder.stock_id].append(buyOrder)
+    sellTrees = stockPrices
+    return {"success": True, "data": sellTrees}
 
 
-def cancelOrder(stockID : str):
+def processSellOrder(sellOrder: SellOrder):
+    heappush(sellTrees, sellOrder)
+    return sellOrder
+
+
+def processBuyOrder(buyOrder: BuyOrder):
+    buyQueues[buyOrder.stock_id].append(buyOrder)
+    return buyOrder
+
+
+def cancelOrder(stockID: str):
     return {}
