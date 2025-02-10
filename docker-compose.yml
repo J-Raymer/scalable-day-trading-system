@@ -80,6 +80,8 @@ services:
     build:
       context: .
       dockerfile: ./matching-engine/Dockerfile
+    depends_on:
+      - database
     environment:
       - USERNAME=${USERNAME}
       - PASSWORD=${PASSWORD}
