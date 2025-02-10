@@ -11,15 +11,14 @@ from fastapi.responses import RedirectResponse
 from database import Users
 from schemas.common import *
 
-# dotenv.load_dotenv()
-# USERNAME = os.getenv("USERNAME")
-# PASSWORD = os.getenv("PASSWORD")
-# HOST = os.getenv("HOST")
-# PORT = os.getenv("POSTGRES_PORT")
-# DB_NAME = os.getenv("DB_NAME")
-JWT_SECRET =  'secret123456'
-# url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
-url = f"postgresql://admin:isolated-dean-primal-starving@localhost:5433/day_trader"
+dotenv.load_dotenv()
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
+HOST = os.getenv("HOST")
+PORT = os.getenv("POSTGRES_PORT")
+DB_NAME = os.getenv("DB_NAME")
+JWT_SECRET =  os.getenv("JWT_SECRET")
+url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 
 engine = sqlmodel.create_engine(url)
 app = FastAPI()
