@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 function RegisterPage() {
   const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -14,6 +15,10 @@ function RegisterPage() {
     e.preventDefault();
     if (!username) {
       setError('Username cannot be empty');
+      return;
+    }
+    if (!name) {
+      setError("Name cannot be empty")
       return;
     }
     if (/\s|[^a-zA-Z0-9]/.test(username)) {
@@ -30,12 +35,15 @@ function RegisterPage() {
     }
     try {
       const response = await axios.post('http://localhost:8000/register', {
-        username,
+        user_name: username,
+        name,
         password,
       });
       if (response.status === 201) {
         console.log("User registered successfully");
-        navigate('/login');
+        const token = response.data.data.token;
+        localStorage.setItem('token', token);
+        navigate('/');
       }
     } catch (err) {
       if (err.response && err.response.status === 409) {
@@ -56,15 +64,25 @@ function RegisterPage() {
           label="Username"
           variant="outlined"
           fullWidth
+          required
           margin="normal"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
         <TextField
+            label="Name"
+            fullWidth
+            required
+            margin="normal"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        <TextField
           label="Password"
           type="password"
           variant="outlined"
           fullWidth
+          required
           margin="normal"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -74,6 +92,7 @@ function RegisterPage() {
           type="password"
           variant="outlined"
           fullWidth
+          required
           margin="normal"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
