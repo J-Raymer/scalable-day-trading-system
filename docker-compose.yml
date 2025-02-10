@@ -18,10 +18,10 @@ services:
     networks:
       - day_trader_network
 
-  transactions:
+  transaction:
     build:
       context: .
-      dockerfile: ./transactions/Dockerfile
+      dockerfile: transaction/Dockerfile
     depends_on:
       - database
     environment:
@@ -32,7 +32,7 @@ services:
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
     ports:
-      - ${TRANSACTIONS_PORT}:${TRANSACTIONS_PORT}
+      - ${TRANSACTION_PORT}:${TRANSACTION_PORT}
     networks:
       - day_trader_network
 
