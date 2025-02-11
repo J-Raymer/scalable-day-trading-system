@@ -13,6 +13,7 @@ services:
       - POSTGRES_PORT=${DOCKER_PORT}
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
 #    ports:
 #      - ${AUTH_PORT}:${AUTH_PORT}
     networks:
@@ -31,6 +32,7 @@ services:
       - POSTGRES_PORT=${DOCKER_PORT}
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
 #    ports:
 #      - ${TRANSACTION_PORT}:${TRANSACTION_PORT}
     networks:

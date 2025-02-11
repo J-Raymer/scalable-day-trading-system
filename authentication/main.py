@@ -19,6 +19,7 @@ HOST = os.getenv("HOST")
 PORT = os.getenv("POSTGRES_PORT")
 DB_NAME = os.getenv("DB_NAME")
 JWT_SECRET =  os.getenv("JWT_SECRET")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 
 engine = sqlmodel.create_engine(url)
@@ -43,7 +44,7 @@ def generate_token(user: Users):
                          "id": str(user.id),
                          "exp": expiration},
                        JWT_SECRET,
-                       algorithm="HS256")
+                       algorithm=JWT_ALGORITHM)
     return token
 
 

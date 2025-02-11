@@ -19,7 +19,7 @@ DB_HOST = os.getenv("HOST")
 DB_PORT = os.getenv("POSTGRES_PORT")
 DB_NAME = os.getenv("DB_NAME")
 JWT_SECRET = os.getenv("JWT_SECRET")
-ALGORITHM = "HS256"
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
 app = FastAPI(
     root_path="/transaction"
@@ -35,7 +35,7 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")
     try:
-        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM], options={"require": ["exp", "id", "username"]})
+        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"require": ["exp", "id", "username"]})
         return User(username=decoded_token["username"], id=decoded_token["id"])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Expired Token")
