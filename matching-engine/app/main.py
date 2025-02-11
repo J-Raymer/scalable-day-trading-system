@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from app.core.engine import receiveOrder, getStockPrices, cancelOrder, clearSellOrders
-from app.schemas.Types import StockOrder, UID
+from .core import receiveOrder, getStockPrices, cancelOrder, clearSellOrders
+from schemas.engine import StockOrder, UID
 
 app = FastAPI()
 

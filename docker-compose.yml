@@ -18,6 +18,23 @@ services:
     networks:
       - day_trader_network
 
+  transaction:
+    build:
+      context: .
+      dockerfile: transaction/Dockerfile
+    depends_on:
+      - database
+    environment:
+      - USERNAME=${USERNAME}
+      - PASSWORD=${PASSWORD}
+      - HOST=${HOST}
+      - POSTGRES_PORT=${DOCKER_PORT}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+    ports:
+      - ${TRANSACTION_PORT}:${TRANSACTION_PORT}
+    networks:
+      - day_trader_network
 
   database:
     build:
@@ -63,15 +80,16 @@ services:
     build:
       context: .
       dockerfile: ./matching-engine/Dockerfile
+    depends_on:
+      - database
     environment:
       - USERNAME=${USERNAME}
       - PASSWORD=${PASSWORD}
       - HOST=${HOST}
     ports:
-      - ${ME_PORT}:${DOCKER_PORT}
+      - ${ME_PORT}:${ME_PORT}
     networks:
         - day_trader_network
-
 
 
 volumes:

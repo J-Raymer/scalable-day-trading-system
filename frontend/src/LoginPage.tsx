@@ -17,7 +17,7 @@ function LoginPage() {
     }
     try {
       const response = await axios.post('http://localhost:8000/login', {
-        username,
+        user_name: username,
         password,
       });
       if (response.status === 200) {
