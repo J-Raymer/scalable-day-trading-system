@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from uuid import UUID
 
 class StockSetup(BaseModel):
-    stock_id: UUID
+    stock_id: int
     quantity: int
 
 

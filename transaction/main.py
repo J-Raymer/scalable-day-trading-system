@@ -8,7 +8,7 @@ import os
 import dotenv
 from database import Wallets, WalletTransactions, Users, Stocks, StockPortfolios, StockTransactions
 from schemas.common import SuccessResponse, ErrorResponse, User
-from schemas.transaction import AddMoneyRequest
+from schemas.transaction import AddMoneyRequest, WalletTxResult, PortfolioResult
 from schemas.setup import Stock, StockSetup
 
 
@@ -21,7 +21,7 @@ DB_NAME = os.getenv("DB_NAME")
 
 
 app = FastAPI()
-url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@localhost:{DB_PORT}/{DB_NAME}"
+url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 
 
@@ -92,12 +92,19 @@ async def get_wallet_transactions(user: User = Depends(verify_token)):
                WalletTransactions.wallet_tx_id == StockTransactions.wallet_tx_id
                ).where(Users.id == WalletTransactions.user_id)
         result = session.exec(statement).all()
-        return result
+        wallet_transactions = list(map(lambda tx: WalletTxResult(
+            wallet_tx_id=tx[0],
+            is_debit=tx[1],
+            amount=tx[2],
+            time_stamp=tx[3],
+            stock_tx_id=tx[4]),
+            result))
+        return SuccessResponse(data=wallet_transactions)
 
 
 @app.post("/addMoneyToWallet",
           responses={
-              201: {"model": SuccessResponse},
+              200: {"model": SuccessResponse},
               400: {"model": ErrorResponse},
               401: {"model": ErrorResponse},
               403: {"model": ErrorResponse},
@@ -147,8 +154,9 @@ async def get_stock_portfolio(user: User = Depends(verify_token)):
             StockPortfolios.quantity_owned
         ).join(Stocks, StockPortfolios.stock_id == Stocks.stock_id
                ).where(StockPortfolios.user_id == user.id)
-        portfolios = session.exec(statement).all()
-        return SuccessResponse(data=portfolios)
+        result = session.exec(statement).all()
+        portfolio = list(map(lambda stock: PortfolioResult(stock_id=stock[0], stock_name=stock[1], quantity_owned=stock[2]), result))
+        return SuccessResponse(data=portfolio)
 
 
 @app.get("/getStockTransactions",
@@ -161,10 +169,11 @@ async def get_stock_portfolio(user: User = Depends(verify_token)):
 async def get_stock_transactions(user: User = Depends(verify_token)):
     with sqlmodel.Session(engine) as session:
         statement = sqlmodel.select(StockTransactions).where(StockTransactions.user_id == user.id)
-    portfolios = session.exec(statement).all()
-    return SuccessResponse(data=portfolios)
+    result = session.exec(statement).all()
+    return SuccessResponse(data=result)
 
 @app.post("/createStock",
+          status_code=201,
           responses={
               201: {"model": SuccessResponse},
               400: {"model": ErrorResponse},
@@ -189,11 +198,13 @@ async def create_stock(stock: Stock, user: User = Depends(verify_token)):
         return SuccessResponse(data={"stock_id": new_stock.stock_id})
 
 @app.post("/addStockToUser",
+          status_code=201,
           responses={
               201: {"model": SuccessResponse},
               400: {"model": ErrorResponse},
               401: {"model": ErrorResponse},
               403: {"model": ErrorResponse},
+              404: {"model": ErrorResponse},
               409: {"model": ErrorResponse}
           }
           )
@@ -202,7 +213,13 @@ async def add_stock_to_user(new_stock: StockSetup, user: User = Depends(verify_t
         raise HTTPException(status_code=400, detail="Stock ID and quantity required")
 
     with sqlmodel.Session(engine) as session:
+        query = session.query(Stocks).where(Stocks.stock_id == new_stock.stock_id)
+        stock_exists = session.exec(query).one_or_none()
+        if not stock_exists:
+            raise HTTPException(status_code=404, detail="Stock not found")
+
         new_stock = StockPortfolios(user_id=user.id, stock_id=new_stock.stock_id, quantity_owned=new_stock.quantity)
         session.add(new_stock)
+        session.commit()
         session.refresh(new_stock)
         return SuccessResponse(data={"stock": new_stock})
