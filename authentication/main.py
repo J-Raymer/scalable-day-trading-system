@@ -11,6 +11,7 @@ from fastapi.responses import RedirectResponse
 from database import Users
 from schemas.common import *
 
+
 dotenv.load_dotenv()
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
@@ -21,7 +22,9 @@ JWT_SECRET =  os.getenv("JWT_SECRET")
 url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 
 engine = sqlmodel.create_engine(url)
-app = FastAPI()
+app = FastAPI(
+    root_path="/authentication"
+)
 
 # Add CORS middleware
 app.add_middleware(
@@ -31,6 +34,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 def generate_token(user: Users):
     expiration = datetime.now() + timedelta(days=1)
@@ -45,7 +49,8 @@ def generate_token(user: Users):
 
 @app.get("/")
 async def home():
-    return RedirectResponse(url="/docs", status_code=302)
+    return RedirectResponse(url="/authentication/docs", status_code=302)
+
 
 @app.post("/register",
           status_code=201,

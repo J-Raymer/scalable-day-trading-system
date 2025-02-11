@@ -21,14 +21,14 @@ DB_NAME = os.getenv("DB_NAME")
 JWT_SECRET = os.getenv("JWT_SECRET")
 ALGORITHM = "HS256"
 
-app = FastAPI()
+app = FastAPI(
+    root_path="/transaction"
+)
 url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
-
-
 
 
 async def verify_token(token: str = Depends(oauth2_scheme)):
@@ -49,7 +49,8 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
 
 @app.get("/")
 async def home():
-    return RedirectResponse(url="/docs", status_code=302)
+    return RedirectResponse(url="/transaction/docs", status_code=302)
+
 
 @app.get("/getWalletBalance", responses={
     200: {"model": SuccessResponse},
@@ -172,6 +173,7 @@ async def get_stock_transactions(user: User = Depends(verify_token)):
     result = session.exec(statement).all()
     return SuccessResponse(data=result)
 
+
 @app.post("/createStock",
           status_code=201,
           responses={
@@ -196,6 +198,7 @@ async def create_stock(stock: Stock, user: User = Depends(verify_token)):
         session.commit()
         session.refresh(new_stock)
         return SuccessResponse(data={"stock_id": new_stock.stock_id})
+
 
 @app.post("/addStockToUser",
           status_code=201,
