@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from uuid import UUID
+
 
 class StockSetup(BaseModel):
     stock_id: int
