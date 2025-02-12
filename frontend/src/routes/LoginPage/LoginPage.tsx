@@ -1,13 +1,21 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
+import { useLogin } from '@/api/login';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const login = useLogin({
+    mutationConfig: {
+      onSuccess: (data) => {
+        localStorage.setItem('token', data.token);
+        navigate('/');
+      },
+    },
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,28 +25,9 @@ export function LoginPage() {
     }
 
     try {
-      const response = await axios.post('http://localhost:3001/authentication/login', {
-        user_name: username,
-        password,
-      });
-      if (response.status === 200) {
-        console.log("User logged in successfully, token saved in local storage");
-        const token = response.data.data.token;
-        localStorage.setItem('token', token);
-        navigate('/');
-      }
+      await login.mutateAsync({ username, password });
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.response && err.response.status === 404) {
-          setError('User not found');
-        } else if (err.response && err.response.status === 401) {
-          setError('Unauthorized');
-        } else {
-          setError('Login failed. Please try again.');
-        }
-      } else {
-        setError('An unexpected error occurred.');
-      }
+      setError(err.response.data.detail);
     }
   };
 
@@ -47,7 +36,12 @@ export function LoginPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Login
       </Typography>
-      <form className="login-form" noValidate autoComplete="off" onSubmit={handleLogin}>
+      <form
+        className="login-form"
+        noValidate
+        autoComplete="off"
+        onSubmit={handleLogin}
+      >
         <TextField
           label="Username"
           variant="outlined"
@@ -84,4 +78,3 @@ export function LoginPage() {
     </Container>
   );
 }
-

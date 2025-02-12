@@ -4,13 +4,12 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-interface UseRegisterProps {
+interface UseLoginProps {
   username: string;
   password: string;
-  name: string;
 }
 
-interface RegisterResult {
+interface LoginResult {
   token: string;
 }
 
@@ -18,27 +17,24 @@ interface RegisterResult {
 async function register({
   username,
   password,
-  name,
-}: UseRegisterProps): Promise<RegisterResult> {
-  const response = await axios.post(`${API_URL}/authentication/register`, {
+}: UseLoginProps): Promise<LoginResult> {
+  const response = await axios.post(`${API_URL}/authentication/login`, {
     user_name: username,
-    name,
     password,
   });
   return response.data.data;
 }
 
-type UseRegisterOptions = {
+type useLoginOptions = {
   mutationConfig?: MutationConfig<typeof register>;
 };
 
-export const useRegister = ({ mutationConfig }: UseRegisterOptions) => {
+export const useLogin = ({ mutationConfig }: useLoginOptions) => {
   const { onSuccess } = mutationConfig ?? {};
   return useMutation({
-    mutationFn: ({ username, password, name }: UseRegisterProps) =>
-      register({ username, name, password }),
+    mutationFn: ({ username, password }: UseLoginProps) =>
+      register({ username, password }),
     onSuccess: (data, variables, context) => {
-      // This is where you would do something like invalidate a query if say, updating stocks.
       onSuccess?.(data, variables, context);
     },
   });

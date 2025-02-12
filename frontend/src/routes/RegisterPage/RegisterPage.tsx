@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { useRegister } from '@/api/register.ts';
+import { useRegister } from '@/api/register';
 
 export function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -13,8 +13,7 @@ export function RegisterPage() {
   const register = useRegister({
     mutationConfig: {
       onSuccess: (data) => {
-        const token = data.data.token;
-        localStorage.setItem('token', token);
+        localStorage.setItem('token', data.token);
         navigate('/');
       },
     },
@@ -48,11 +47,7 @@ export function RegisterPage() {
     try {
       await register.mutateAsync({ username, password, name });
     } catch (err) {
-      if (err.response && err.response.status === 409) {
-        setError('Username already exists');
-      } else {
-        setError('Registration failed. Please try again.');
-      }
+      setError(err.response.data.detail);
     }
   };
 

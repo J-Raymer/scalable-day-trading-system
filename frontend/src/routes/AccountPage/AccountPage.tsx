@@ -1,6 +1,6 @@
 import { Container, Typography } from '@mui/material';
 
-function AccountPage() {
+export function AccountPage() {
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -9,5 +9,3 @@ function AccountPage() {
     </Container>
   );
 }
-
-export default AccountPage;

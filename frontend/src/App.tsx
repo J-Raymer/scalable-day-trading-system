@@ -9,12 +9,12 @@ import {
 } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import AccountPage from './AccountPage';
-import TradePage from './TradePage';
+import TradePage from './routes/TradePage/TradePage.tsx';
 import theme from './theme';
 import { HistoryPage } from '@/routes/HistoryPage';
+import { AccountPage } from '@/routes/AccountPage/AccountPage.tsx';
 import { HomePage } from '@/routes/HomePage';
-import {LoginPage} from '@/routes/LoginPage';
+import { LoginPage } from '@/routes/LoginPage';
 import { RegisterPage } from '@/routes/RegisterPage';
 import { StocksPage } from '@/routes/StocksPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
