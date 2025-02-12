@@ -1,6 +1,7 @@
 import { AppBar, Toolbar, IconButton, Button, Box } from '@mui/material';
 import { Brightness4, Brightness7, Menu } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import './Header.scss';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -8,7 +9,7 @@ interface HeaderProps {
   handleDrawerToggle: () => void;
 }
 
-function Header({ darkMode, setDarkMode, handleDrawerToggle }: HeaderProps) {
+export function Header({ darkMode, setDarkMode, handleDrawerToggle }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -56,4 +57,3 @@ function Header({ darkMode, setDarkMode, handleDrawerToggle }: HeaderProps) {
   );
 }
 
-export default Header;

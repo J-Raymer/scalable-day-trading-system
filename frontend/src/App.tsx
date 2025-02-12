@@ -7,7 +7,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
-import Header from './Header';
+import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/SideBar';
 import theme from './theme';
 import { AccountPage } from '@/routes/AccountPage';
