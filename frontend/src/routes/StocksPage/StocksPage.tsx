@@ -31,7 +31,7 @@ export const StocksPage = () => {
       <Typography variant="h2">Stocks</Typography>
       <DataGrid
         sx={{ width: 800 }}
-        rows={stocks.data?.stocks ?? []}
+        rows={stocks.data?? []}
         columns={columns}
         getRowId={(row) => row.stock_id}
         disableRowSelectionOnClick

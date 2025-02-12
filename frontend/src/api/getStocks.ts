@@ -12,11 +12,8 @@ export interface Stock {
   price: number;
 }
 
-interface StockQueryResult {
-  stocks: Stock[];
-}
 
-async function getStocks(): Promise<StockQueryResult> {
+async function getStocks(): Promise<Stock[]> {
   const response = await axios.get(`${API_URL}/transaction/getStockPrices`, {
     headers,
   });
