@@ -45,8 +45,6 @@ function Sidebar({ mobileOpen, handleDrawerToggle }: SidebarProps) {
         ].map(({ text, icon, path }) => (
           <ListItem
             key={path}
-            component="div"
-            selected={selectedIndex === path}
             onClick={() => handleListItemClick(path)}
             sx={{
               cursor: 'pointer',

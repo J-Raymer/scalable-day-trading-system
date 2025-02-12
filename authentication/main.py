@@ -11,7 +11,6 @@ from fastapi.responses import RedirectResponse
 from database import Users
 from schemas.common import *
 
-
 dotenv.load_dotenv()
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
@@ -36,7 +35,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 def generate_token(user: Users):
     expiration = datetime.now() + timedelta(days=1)
     token = jwt.encode({ "username": user.user_name,
@@ -47,11 +45,9 @@ def generate_token(user: Users):
                        algorithm=JWT_ALGORITHM)
     return token
 
-
 @app.get("/")
 async def home():
     return RedirectResponse(url="/authentication/docs", status_code=302)
-
 
 @app.post("/register",
           status_code=201,
