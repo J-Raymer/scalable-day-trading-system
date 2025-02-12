@@ -15,8 +15,17 @@ function LoginPage() {
       setError('All fields must be filled out');
       return;
     }
+
+    // Bypass for login for testing purposes
+    if (username === 'test' && password === 'test') {
+      const fakeToken = 'fake-jwt-token';
+      localStorage.setItem('token', fakeToken);
+      navigate('/');
+      return;
+    }
+
     try {
-      const response = await axios.post('http://localhost:8000/login', {
+      const response = await axios.post('http://localhost:3001/authentication/login', {
         user_name: username,
         password,
       });

@@ -34,7 +34,7 @@ function RegisterPage() {
       return;
     }
     try {
-      const response = await axios.post('http://localhost:8000/register', {
+      const response = await axios.post('http://localhost:3001/authentication/register', {
         user_name: username,
         name,
         password,
