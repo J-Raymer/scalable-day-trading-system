@@ -89,7 +89,7 @@ async def register(user: RegisterRequest):
               400: {"model": ErrorResponse},
               404: {"model": ErrorResponse}
           })
-async def login(user: LoginRequest, res: Response, ):
+async def login(user: LoginRequest):
     if not (user.user_name and user.password):
         raise HTTPException(status_code=400, detail="Username and password required")
 
@@ -101,7 +101,6 @@ async def login(user: LoginRequest, res: Response, ):
 
         hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), result.salt.encode('utf-8')).decode('utf-8')
         if hashed_password != result.password:
-            res.status_code = 401
             raise HTTPException(status_code=401, detail="Unauthorized")
     token = generate_token(result)
     return SuccessResponse(data={ "token": token })
