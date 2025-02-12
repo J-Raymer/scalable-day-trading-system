@@ -14,7 +14,7 @@ interface LoginResult {
 }
 
 // Register function to handle the actual API request
-async function register({
+async function login({
   username,
   password,
 }: UseLoginProps): Promise<LoginResult> {
@@ -26,16 +26,16 @@ async function register({
 }
 
 type useLoginOptions = {
-  mutationConfig?: MutationConfig<typeof register>;
+  mutationConfig?: MutationConfig<typeof login>;
 };
 
 export const useLogin = ({ mutationConfig }: useLoginOptions) => {
-  const { onSuccess } = mutationConfig ?? {};
+  const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
-    mutationFn: ({ username, password }: UseLoginProps) =>
-      register({ username, password }),
+    mutationFn: login,
     onSuccess: (data, variables, context) => {
       onSuccess?.(data, variables, context);
     },
+    ...restConfig,
   });
 };

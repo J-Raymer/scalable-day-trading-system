@@ -33,13 +33,13 @@ type UseRegisterOptions = {
 };
 
 export const useRegister = ({ mutationConfig }: UseRegisterOptions) => {
-  const { onSuccess } = mutationConfig ?? {};
+  const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
-    mutationFn: ({ username, password, name }: UseRegisterProps) =>
-      register({ username, name, password }),
+    mutationFn: register,
     onSuccess: (data, variables, context) => {
       // This is where you would do something like invalidate a query if say, updating stocks.
       onSuccess?.(data, variables, context);
     },
+    ...restConfig,
   });
 };
