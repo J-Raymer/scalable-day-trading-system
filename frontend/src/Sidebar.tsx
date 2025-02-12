@@ -51,16 +51,16 @@ function Sidebar({ mobileOpen, handleDrawerToggle }: SidebarProps) {
               backgroundColor: selectedIndex === path ? theme.palette.primary.light : 'inherit',
               color: selectedIndex === path ? theme.palette.primary.contrastText : 'inherit',
               '&:hover': {
-                boxShadow: theme.palette.mode === 'dark' ? '0px 4px 12px rgba(255, 255, 255, 0.3)' : '0px 4px 12px rgba(0, 0, 0, 0.3)',
-                border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)'}`,
+                boxShadow: theme.palette.mode === 'dark' ? '0px 2px 4px rgba(255, 255, 255, 0.2)' : '0px 2px 4px rgba(0, 0, 0, 0.2)',
+                border: `2px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}`,
               },
               '&.Mui-selected': {
                 backgroundColor: theme.palette.primary.light,
                 color: theme.palette.primary.contrastText,
                 '&:hover': {
                   backgroundColor: theme.palette.primary.main,
-                  boxShadow: theme.palette.mode === 'dark' ? '0px 4px 12px rgba(255, 255, 255, 0.3)' : '0px 4px 12px rgba(0, 0, 0, 0.3)',
-                  border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)'}`,
+                  boxShadow: theme.palette.mode === 'dark' ? '0px 2px 4px rgba(255, 255, 255, 0.2)' : '0px 2px 4px rgba(0, 0, 0, 0.2)',
+                  border: `2px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}`,
                 },
               },
             }}
