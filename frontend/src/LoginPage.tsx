@@ -17,12 +17,12 @@ function LoginPage() {
     }
 
     // Bypass for login for testing purposes
-    if (username === 'test' && password === 'test') {
-      const fakeToken = 'fake-jwt-token';
-      localStorage.setItem('token', fakeToken);
-      navigate('/');
-      return;
-    }
+    // if (username === 'test' && password === 'test') {
+    //   const fakeToken = 'fake-jwt-token';
+    //   localStorage.setItem('token', fakeToken);
+    //   navigate('/');
+    //   return;
+    // }
 
     try {
       const response = await axios.post('http://localhost:3001/authentication/login', {
