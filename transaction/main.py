@@ -10,7 +10,7 @@ from database import Wallets, WalletTransactions, Users, Stocks, StockPortfolios
 from schemas.common import SuccessResponse, ErrorResponse, User
 from schemas.transaction import AddMoneyRequest, WalletTxResult, PortfolioResult
 from schemas.setup import Stock, StockSetup
-
+from fastapi.middleware.cors import CORSMiddleware
 
 dotenv.load_dotenv()
 DB_USERNAME = os.getenv("USERNAME")
@@ -24,6 +24,15 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 app = FastAPI(
     root_path="/transaction"
 )
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Allows front end requests locally
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 

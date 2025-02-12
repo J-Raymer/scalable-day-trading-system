@@ -1,0 +1,40 @@
+import React from 'react';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { useGetStocks, Stock } from './api/getStocks';
+import { Button, Typography } from '@mui/material';
+
+export const StocksPage = () => {
+  const stocks = useGetStocks();
+
+  const columns: GridColDef<Stock>[] = [
+    { field: 'stock_id', headerName: 'id' },
+    { field: 'stock_name', headerName: 'Name', flex: 60 },
+    { field: 'price', headerName: 'Price' },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      flex: 15,
+      renderCell: (params) => (
+        <Button
+          onClick={() => console.log(params.row.stock_id)}
+          variant="contained"
+        >
+          Purchase
+        </Button>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <Typography variant="h2">Stocks</Typography>
+      <DataGrid
+        sx={{ width: 800 }}
+        rows={stocks.data?.data ?? []}
+        columns={columns}
+        getRowId={(row) => row.stock_id}
+        disableRowSelectionOnClick
+      />
+    </>
+  );
+};

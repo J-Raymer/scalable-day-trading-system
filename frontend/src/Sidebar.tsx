@@ -1,6 +1,24 @@
 import { useEffect, useState } from 'react';
-import { Drawer, List, ListItem, ListItemIcon, ListItemText, Toolbar, IconButton, Box, useMediaQuery, useTheme } from '@mui/material';
-import { Dashboard, AccountCircle, SwapHoriz, History, Close } from '@mui/icons-material';
+import {
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  IconButton,
+  Box,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import {
+  Dashboard,
+  AccountCircle,
+  SwapHoriz,
+  History,
+  Close,
+  ShowChart
+} from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const drawerWidth = 240;
@@ -32,7 +50,10 @@ function Sidebar({ mobileOpen, handleDrawerToggle }: SidebarProps) {
   const drawer = (
     <div>
       <Toolbar>
-        <IconButton onClick={handleDrawerToggle} sx={{ display: { xs: 'block', sm: 'none' } }}>
+        <IconButton
+          onClick={handleDrawerToggle}
+          sx={{ display: { xs: 'block', sm: 'none' } }}
+        >
           <Close />
         </IconButton>
       </Toolbar>
@@ -42,16 +63,26 @@ function Sidebar({ mobileOpen, handleDrawerToggle }: SidebarProps) {
           { text: 'Account', icon: <AccountCircle />, path: '/account' },
           { text: 'Trade', icon: <SwapHoriz />, path: '/trade' },
           { text: 'History', icon: <History />, path: '/history' },
+          { text: 'Stocks', icon: <ShowChart />, path: '/stocks' },
         ].map(({ text, icon, path }) => (
           <ListItem
             key={path}
             onClick={() => handleListItemClick(path)}
             sx={{
               cursor: 'pointer',
-              backgroundColor: selectedIndex === path ? theme.palette.primary.light : 'inherit',
-              color: selectedIndex === path ? theme.palette.primary.contrastText : 'inherit',
+              backgroundColor:
+                selectedIndex === path
+                  ? theme.palette.primary.light
+                  : 'inherit',
+              color:
+                selectedIndex === path
+                  ? theme.palette.primary.contrastText
+                  : 'inherit',
               '&:hover': {
-                boxShadow: theme.palette.mode === 'dark' ? '0px 2px 4px rgba(255, 255, 255, 0.2)' : '0px 2px 4px rgba(0, 0, 0, 0.2)',
+                boxShadow:
+                  theme.palette.mode === 'dark'
+                    ? '0px 2px 4px rgba(255, 255, 255, 0.2)'
+                    : '0px 2px 4px rgba(0, 0, 0, 0.2)',
                 border: `2px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}`,
               },
               '&.Mui-selected': {
@@ -59,13 +90,23 @@ function Sidebar({ mobileOpen, handleDrawerToggle }: SidebarProps) {
                 color: theme.palette.primary.contrastText,
                 '&:hover': {
                   backgroundColor: theme.palette.primary.main,
-                  boxShadow: theme.palette.mode === 'dark' ? '0px 2px 4px rgba(255, 255, 255, 0.2)' : '0px 2px 4px rgba(0, 0, 0, 0.2)',
+                  boxShadow:
+                    theme.palette.mode === 'dark'
+                      ? '0px 2px 4px rgba(255, 255, 255, 0.2)'
+                      : '0px 2px 4px rgba(0, 0, 0, 0.2)',
                   border: `2px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}`,
                 },
               },
             }}
           >
-            <ListItemIcon sx={{ color: selectedIndex === path ? theme.palette.primary.contrastText : 'inherit' }}>
+            <ListItemIcon
+              sx={{
+                color:
+                  selectedIndex === path
+                    ? theme.palette.primary.contrastText
+                    : 'inherit',
+              }}
+            >
               {icon}
             </ListItemIcon>
             <ListItemText primary={text} />
@@ -76,7 +117,10 @@ function Sidebar({ mobileOpen, handleDrawerToggle }: SidebarProps) {
   );
 
   return (
-    <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
+    <Box
+      component="nav"
+      sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+    >
       <Drawer
         variant="temporary"
         open={mobileOpen}

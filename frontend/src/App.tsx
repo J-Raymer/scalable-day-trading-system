@@ -11,6 +11,11 @@ import TradePage from './TradePage';
 import HistoryPage from './HistoryPage';
 import theme from './theme';
 import './App.css';
+import { StocksPage } from './StocksPage.tsx';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
+
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -19,14 +24,15 @@ function App() {
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-
   return (
-    <ThemeProvider theme={theme(darkMode)}>
-      <CssBaseline />
-      <Router>
-        <AppContent darkMode={darkMode} setDarkMode={setDarkMode} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
-      </Router>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={theme(darkMode)}>
+        <CssBaseline />
+        <Router>
+          <AppContent darkMode={darkMode} setDarkMode={setDarkMode} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
+        </Router>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
@@ -58,6 +64,7 @@ function AppContent({ darkMode, setDarkMode, mobileOpen, handleDrawerToggle }: {
           <Route path="/account" element={<AccountPage />} />
           <Route path="/trade" element={<TradePage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/stocks" element={<StocksPage/>}/>
         </Routes>
       </Box>
     </Box>
