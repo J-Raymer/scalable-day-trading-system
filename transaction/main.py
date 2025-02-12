@@ -19,9 +19,11 @@ DB_HOST = os.getenv("HOST")
 DB_PORT = os.getenv("POSTGRES_PORT")
 DB_NAME = os.getenv("DB_NAME")
 JWT_SECRET = os.getenv("JWT_SECRET")
-ALGORITHM = "HS256"
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
-app = FastAPI()
+app = FastAPI(
+    root_path="/transaction"
+)
 url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 
@@ -29,13 +31,11 @@ engine = sqlmodel.create_engine(url)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 
-
-
 async def verify_token(token: str = Depends(oauth2_scheme)):
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")
     try:
-        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM], options={"require": ["exp", "id", "username"]})
+        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"require": ["exp", "id", "username"]})
         return User(username=decoded_token["username"], id=decoded_token["id"])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Expired Token")
@@ -49,7 +49,8 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
 
 @app.get("/")
 async def home():
-    return RedirectResponse(url="/docs", status_code=302)
+    return RedirectResponse(url="/transaction/docs", status_code=302)
+
 
 @app.get("/getWalletBalance", responses={
     200: {"model": SuccessResponse},
@@ -172,6 +173,7 @@ async def get_stock_transactions(user: User = Depends(verify_token)):
     result = session.exec(statement).all()
     return SuccessResponse(data=result)
 
+
 @app.post("/createStock",
           status_code=201,
           responses={
@@ -196,6 +198,7 @@ async def create_stock(stock: Stock, user: User = Depends(verify_token)):
         session.commit()
         session.refresh(new_stock)
         return SuccessResponse(data={"stock_id": new_stock.stock_id})
+
 
 @app.post("/addStockToUser",
           status_code=201,

@@ -11,6 +11,7 @@ from fastapi.responses import RedirectResponse
 from database import Users
 from schemas.common import *
 
+
 dotenv.load_dotenv()
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
@@ -18,10 +19,13 @@ HOST = os.getenv("HOST")
 PORT = os.getenv("POSTGRES_PORT")
 DB_NAME = os.getenv("DB_NAME")
 JWT_SECRET =  os.getenv("JWT_SECRET")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 
 engine = sqlmodel.create_engine(url)
-app = FastAPI()
+app = FastAPI(
+    root_path="/authentication"
+)
 
 # Add CORS middleware
 app.add_middleware(
@@ -32,6 +36,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 def generate_token(user: Users):
     expiration = datetime.now() + timedelta(days=1)
     token = jwt.encode({ "username": user.user_name,
@@ -39,13 +44,14 @@ def generate_token(user: Users):
                          "id": str(user.id),
                          "exp": expiration},
                        JWT_SECRET,
-                       algorithm="HS256")
+                       algorithm=JWT_ALGORITHM)
     return token
 
 
 @app.get("/")
 async def home():
-    return RedirectResponse(url="/docs", status_code=302)
+    return RedirectResponse(url="/authentication/docs", status_code=302)
+
 
 @app.post("/register",
           status_code=201,
@@ -83,7 +89,7 @@ async def register(user: RegisterRequest):
               400: {"model": ErrorResponse},
               404: {"model": ErrorResponse}
           })
-async def login(user: LoginRequest, res: Response, ):
+async def login(user: LoginRequest):
     if not (user.user_name and user.password):
         raise HTTPException(status_code=400, detail="Username and password required")
 
@@ -95,7 +101,6 @@ async def login(user: LoginRequest, res: Response, ):
 
         hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), result.salt.encode('utf-8')).decode('utf-8')
         if hashed_password != result.password:
-            res.status_code = 401
             raise HTTPException(status_code=401, detail="Unauthorized")
     token = generate_token(result)
     return SuccessResponse(data={ "token": token })

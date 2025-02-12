@@ -1,57 +1,36 @@
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from .core import receiveOrder, getStockPrices, cancelOrder, clearSellOrders
 from schemas.engine import StockOrder, UID
 
-app = FastAPI()
+app = FastAPI(
+    root_path="/engine"
+)
 
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello, FastAPI!"}
+    return RedirectResponse(url="/engine/docs", status_code=302)
 
 
 # engine calls
-@app.post("/engine/placeStockOrder")
+@app.post("/placeStockOrder")
 def placeStockOrder(order: StockOrder):
     return receiveOrder(order)
 
 
-@app.get("/transaction/getStockPrices")
-def getPrices():
-    return getStockPrices()
-
-
-@app.post("/engine/cancelStockTransaction")
+@app.post("/cancelStockTransaction")
 def cancelStockTransaction(stockID: str):
     return cancelOrder()
 
 
-@app.get("/engine/clearSellOrders")
-def clearOrders():
-    return clearSellOrders()
-
-
 # DB calls
-@app.post("/transaction/addMoneyToWallet")
-def addMoneyToWallet(amount: int):
-    return addMoney(amount)
 
 
-@app.post("/transaction/getWalletBalance")
-def getWalletBalance(id: UID):
-    return getBalance(id)
 
 
-@app.post("/transaction/getStockPortfolio")
-def getStockPortfolio(id: UID):
-    return getPortfolio(id)
 
 
-@app.post("/transaction/getWalletTransactions")
-def getWalletTransactions(id: UID):
-    return getWalletLog(id)
 
 
-@app.post("/transaction/getStockTransactions")
-def getStockTransactions(id: UID):
-    return getTransactionsLog(id)
+

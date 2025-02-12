@@ -13,8 +13,7 @@ services:
       - POSTGRES_PORT=${DOCKER_PORT}
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
-    ports:
-      - ${AUTH_PORT}:${AUTH_PORT}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
     networks:
       - day_trader_network
 
@@ -31,8 +30,7 @@ services:
       - POSTGRES_PORT=${DOCKER_PORT}
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
-    ports:
-      - ${TRANSACTION_PORT}:${TRANSACTION_PORT}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
     networks:
       - day_trader_network
 
@@ -63,8 +61,6 @@ services:
       - POSTGRES_PASSWORD=${PASSWORD}
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_PORT=${DOCKER_PORT}
-    ports:
-      - ${HOST_PORT}:${DOCKER_PORT}
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -86,11 +82,20 @@ services:
       - USERNAME=${USERNAME}
       - PASSWORD=${PASSWORD}
       - HOST=${HOST}
-    ports:
-      - ${ME_PORT}:${ME_PORT}
     networks:
         - day_trader_network
 
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    depends_on:
+      - auth
+      - transaction
+      - matching-engine
+    ports:
+      - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
+    networks:
+      - day_trader_network
 
 volumes:
   db_data:
