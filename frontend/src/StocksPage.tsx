@@ -1,6 +1,6 @@
 import React from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { useGetStocks, Stock } from './api/getStocks';
+import { useGetStocks, Stock } from '@/api/getStocks';
 import { Button, Typography } from '@mui/material';
 
 export const StocksPage = () => {
