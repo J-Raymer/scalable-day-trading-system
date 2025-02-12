@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLogin } from '@/api/login';
+import './LoginPage.scss';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
@@ -32,7 +33,7 @@ export function LoginPage() {
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="sm" className="login-page">
       <Typography variant="h4" component="h1" gutterBottom>
         Login
       </Typography>
@@ -77,4 +78,4 @@ export function LoginPage() {
       </form>
     </Container>
   );
-}
+};

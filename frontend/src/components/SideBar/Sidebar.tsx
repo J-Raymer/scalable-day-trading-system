@@ -17,9 +17,10 @@ import {
   SwapHoriz,
   History,
   Close,
-  ShowChart
+  ShowChart,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import './SideBar.scss';
 
 const drawerWidth = 240;
 
@@ -28,7 +29,7 @@ interface SidebarProps {
   handleDrawerToggle: () => void;
 }
 
-function Sidebar({ mobileOpen, handleDrawerToggle }: SidebarProps) {
+export function Sidebar({ mobileOpen, handleDrawerToggle }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -48,7 +49,7 @@ function Sidebar({ mobileOpen, handleDrawerToggle }: SidebarProps) {
   };
 
   const drawer = (
-    <div>
+    <div className="side-bar">
       <Toolbar>
         <IconButton
           onClick={handleDrawerToggle}
@@ -145,6 +146,4 @@ function Sidebar({ mobileOpen, handleDrawerToggle }: SidebarProps) {
       </Drawer>
     </Box>
   );
-}
-
-export default Sidebar;
+};

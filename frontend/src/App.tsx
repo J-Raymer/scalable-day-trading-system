@@ -8,15 +8,15 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import Header from './Header';
-import Sidebar from './Sidebar';
-import TradePage from './routes/TradePage/TradePage.tsx';
+import { Sidebar } from '@/components/SideBar';
 import theme from './theme';
+import { AccountPage } from '@/routes/AccountPage';
 import { HistoryPage } from '@/routes/HistoryPage';
-import { AccountPage } from '@/routes/AccountPage/AccountPage.tsx';
 import { HomePage } from '@/routes/HomePage';
 import { LoginPage } from '@/routes/LoginPage';
 import { RegisterPage } from '@/routes/RegisterPage';
 import { StocksPage } from '@/routes/StocksPage';
+import { TradePage } from '@/routes/TradePage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './App.css';
 

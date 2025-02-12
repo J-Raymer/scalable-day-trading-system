@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useRegister } from '@/api/register';
+import './RegisterPage.scss';
 
 export function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -52,7 +53,7 @@ export function RegisterPage() {
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="sm" className="register-page">
       <Typography variant="h4" component="h1" gutterBottom>
         Register
       </Typography>
