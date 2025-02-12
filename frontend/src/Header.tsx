@@ -1,13 +1,14 @@
 import { AppBar, Toolbar, IconButton, Button, Box } from '@mui/material';
-import { Brightness4, Brightness7 } from '@mui/icons-material';
+import { Brightness4, Brightness7, Menu } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface HeaderProps {
   darkMode: boolean;
   setDarkMode: (mode: boolean) => void;
+  handleDrawerToggle: () => void;
 }
 
-function Header({ darkMode, setDarkMode }: HeaderProps) {
+function Header({ darkMode, setDarkMode, handleDrawerToggle }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,6 +30,15 @@ function Header({ darkMode, setDarkMode }: HeaderProps) {
       }}
     >
       <Toolbar>
+        <IconButton
+          color="inherit"
+          aria-label="open drawer"
+          edge="start"
+          onClick={handleDrawerToggle}
+          sx={{ display: { sm: 'none' }, mr: 2 }}
+        >
+          <Menu />
+        </IconButton>
         <Box sx={{ flexGrow: 1 }} />
         {(location.pathname !== '/login' && location.pathname !== '/register') && (
           <Button color="inherit" onClick={handleLogout}>
