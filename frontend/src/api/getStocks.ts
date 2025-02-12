@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { QueryConfig } from '@/lib/react-query.ts';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const token = localStorage.getItem('token');
@@ -24,11 +25,9 @@ async function getStocks(): Promise<StockQueryResult> {
 }
 
 type UseGetStocksOptions = {
-  queryConfig?: UseQueryOptions<StockQueryResult, Error>;
+  queryConfig?: QueryConfig<typeof getStocks>;
 };
 
-export const useGetStocks = ({
-  queryConfig = {},
-}: UseGetStocksOptions = {}) => {
+export const useGetStocks = ({ queryConfig }: UseGetStocksOptions = {}) => {
   return useQuery({ queryKey: ['stocks'], queryFn: getStocks, ...queryConfig });
 };

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
 
-function LoginPage() {
+export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,14 +15,6 @@ function LoginPage() {
       setError('All fields must be filled out');
       return;
     }
-
-    // Bypass for login for testing purposes
-    // if (username === 'test' && password === 'test') {
-    //   const fakeToken = 'fake-jwt-token';
-    //   localStorage.setItem('token', fakeToken);
-    //   navigate('/');
-    //   return;
-    // }
 
     try {
       const response = await axios.post('http://localhost:3001/authentication/login', {
@@ -93,4 +85,3 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;

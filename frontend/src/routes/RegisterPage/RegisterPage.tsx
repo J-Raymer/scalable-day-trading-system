@@ -2,15 +2,27 @@ import { useState } from 'react';
 import axios from 'axios';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useRegister } from '@/api/register.ts';
 
-function RegisterPage() {
+export function RegisterPage() {
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
+  const register = useRegister({
+    mutationConfig: {
+      onSuccess: (data) => {
+        const token = data.token;
+        localStorage.setItem('token', token);
+      },
+    },
+  });
+  /*React Hook Form with zod is really good when working with a lot of fields
+   * https://react-hook-form.com/
+   * https://zod.dev/
+   * */
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username) {
@@ -18,7 +30,7 @@ function RegisterPage() {
       return;
     }
     if (!name) {
-      setError("Name cannot be empty")
+      setError('Name cannot be empty');
       return;
     }
     if (/\s|[^a-zA-Z0-9]/.test(username)) {
@@ -34,17 +46,21 @@ function RegisterPage() {
       return;
     }
     try {
-      const response = await axios.post('http://localhost:3001/authentication/register', {
-        user_name: username,
-        name,
-        password,
-      });
-      if (response.status === 201) {
-        console.log("User registered successfully");
-        const token = response.data.data.token;
-        localStorage.setItem('token', token);
-        navigate('/');
-      }
+      const res = register.mutateAsync({ username, password, name });
+      // const response = await axios.post(
+      //   'http://localhost:3001/authentication/register',
+      //   {
+      //     user_name: username,
+      //     name,
+      //     password,
+      //   },
+      // );
+      // if (response.status === 201) {
+      //   console.log('User registered successfully');
+      //   const token = response.data.data.token;
+      //   localStorage.setItem('token', token);
+      //   navigate('/');
+      // }
     } catch (err) {
       if (err.response && err.response.status === 409) {
         setError('Username already exists');
@@ -59,7 +75,12 @@ function RegisterPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Register
       </Typography>
-      <form className="register-form" noValidate autoComplete="off" onSubmit={handleRegister}>
+      <form
+        className="register-form"
+        noValidate
+        autoComplete="off"
+        onSubmit={handleRegister}
+      >
         <TextField
           label="Username"
           variant="outlined"
@@ -70,13 +91,13 @@ function RegisterPage() {
           onChange={(e) => setUsername(e.target.value)}
         />
         <TextField
-            label="Name"
-            fullWidth
-            required
-            margin="normal"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+          label="Name"
+          fullWidth
+          required
+          margin="normal"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
         <TextField
           label="Password"
           type="password"
@@ -111,5 +132,3 @@ function RegisterPage() {
     </Container>
   );
 }
-
-export default RegisterPage;

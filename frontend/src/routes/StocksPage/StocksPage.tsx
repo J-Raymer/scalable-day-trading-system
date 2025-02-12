@@ -1,7 +1,8 @@
 import React from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { useGetStocks, Stock } from '@/api/getStocks';
+import { useGetStocks, Stock } from '@/api/getStocks.ts';
 import { Button, Typography } from '@mui/material';
+import './StocksPage.scss';
 
 export const StocksPage = () => {
   const stocks = useGetStocks();
@@ -26,7 +27,7 @@ export const StocksPage = () => {
   ];
 
   return (
-    <>
+    <div className="stocks-page">
       <Typography variant="h2">Stocks</Typography>
       <DataGrid
         sx={{ width: 800 }}
@@ -35,6 +36,6 @@ export const StocksPage = () => {
         getRowId={(row) => row.stock_id}
         disableRowSelectionOnClick
       />
-    </>
+    </div>
   );
 };
