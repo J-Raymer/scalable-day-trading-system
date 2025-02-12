@@ -13,7 +13,7 @@ export interface Stock {
 }
 
 
-async function getStocks(): Promise<Stock[]> {
+async function getStockPrices(): Promise<Stock[]> {
   const response = await axios.get(`${API_URL}/transaction/getStockPrices`, {
     headers,
   });
@@ -21,9 +21,9 @@ async function getStocks(): Promise<Stock[]> {
 }
 
 type UseGetStocksOptions = {
-  queryConfig?: QueryConfig<typeof getStocks>;
+  queryConfig?: QueryConfig<typeof getStockPrices>;
 };
 
-export const useGetStocks = ({ queryConfig }: UseGetStocksOptions = {}) => {
-  return useQuery({ queryKey: ['stocks'], queryFn: getStocks, ...queryConfig });
+export const useStockPrices = ({ queryConfig }: UseGetStocksOptions = {}) => {
+  return useQuery({ queryKey: ['stocks'], queryFn: getStockPrices, ...queryConfig });
 };

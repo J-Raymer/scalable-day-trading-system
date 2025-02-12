@@ -1,11 +1,11 @@
 import React from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { useGetStocks, Stock } from '@/api/getStocks.ts';
+import { useStockPrices, Stock } from '@/api/getStockPrices.ts';
 import { Button, Typography } from '@mui/material';
 import './StocksPage.scss';
 
 export const StocksPage = () => {
-  const stocks = useGetStocks();
+  const stocks = useStockPrices();
 
   const columns: GridColDef<Stock>[] = [
     { field: 'stock_id', headerName: 'id' },
