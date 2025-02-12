@@ -14,8 +14,6 @@ services:
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
-#    ports:
-#      - ${AUTH_PORT}:${AUTH_PORT}
     networks:
       - day_trader_network
 
@@ -33,8 +31,6 @@ services:
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
-#    ports:
-#      - ${TRANSACTION_PORT}:${TRANSACTION_PORT}
     networks:
       - day_trader_network
 
@@ -65,8 +61,6 @@ services:
       - POSTGRES_PASSWORD=${PASSWORD}
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_PORT=${DOCKER_PORT}
-#    ports:
-#      - ${HOST_PORT}:${DOCKER_PORT}
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -88,8 +82,6 @@ services:
       - USERNAME=${USERNAME}
       - PASSWORD=${PASSWORD}
       - HOST=${HOST}
-#    ports:
-#      - ${ME_PORT}:${ME_PORT}
     networks:
         - day_trader_network
 
