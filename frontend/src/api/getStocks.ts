@@ -13,15 +13,14 @@ export interface Stock {
 }
 
 interface StockQueryResult {
-  success: boolean;
-  data: Stock[];
+  stocks: Stock[];
 }
 
 async function getStocks(): Promise<StockQueryResult> {
   const response = await axios.get(`${API_URL}/transaction/getStockPrices`, {
     headers,
   });
-  return response.data;
+  return response.data.data;
 }
 
 type UseGetStocksOptions = {
