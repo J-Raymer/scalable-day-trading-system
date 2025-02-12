@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
-from .core import receiveOrder, getStockPrices, cancelOrder, clearSellOrders
+from core import receiveOrder, cancelOrder, clearSellOrders
 from schemas.engine import StockOrder, UID
 
 app = FastAPI(
