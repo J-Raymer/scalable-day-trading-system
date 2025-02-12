@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useRegister } from '@/api/register.ts';
@@ -14,8 +13,9 @@ export function RegisterPage() {
   const register = useRegister({
     mutationConfig: {
       onSuccess: (data) => {
-        const token = data.token;
+        const token = data.data.token;
         localStorage.setItem('token', token);
+        navigate('/');
       },
     },
   });
@@ -46,21 +46,7 @@ export function RegisterPage() {
       return;
     }
     try {
-      const res = register.mutateAsync({ username, password, name });
-      // const response = await axios.post(
-      //   'http://localhost:3001/authentication/register',
-      //   {
-      //     user_name: username,
-      //     name,
-      //     password,
-      //   },
-      // );
-      // if (response.status === 201) {
-      //   console.log('User registered successfully');
-      //   const token = response.data.data.token;
-      //   localStorage.setItem('token', token);
-      //   navigate('/');
-      // }
+      await register.mutateAsync({ username, password, name });
     } catch (err) {
       if (err.response && err.response.status === 409) {
         setError('Username already exists');

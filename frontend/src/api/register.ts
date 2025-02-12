@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { MutationConfig } from '@/lib/react-query.ts';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface UseRegisterProps {
   username: string;
@@ -12,19 +12,20 @@ interface UseRegisterProps {
 
 interface RegisterResult {
   success: boolean;
-  data: {token: string}
+  data: { token: string };
 }
 
 // Register function to handle the actual API request
-async function register(username: string, name: string, password: string): Promise<RegisterResult> {
-  const response = await axios.post(
-    `${API_URL}/register`,
-    {
-      user_name: username,
-      name,
-      password,
-    },
-  );
+async function register({
+  username,
+  password,
+  name,
+}: UseRegisterProps): Promise<RegisterResult> {
+  const response = await axios.post(`${API_URL}/authentication/register`, {
+    user_name: username,
+    name,
+    password,
+  });
   return response.data;
 }
 
@@ -36,9 +37,8 @@ export const useRegister = ({ mutationConfig }: UseRegisterOptions) => {
   const { onSuccess } = mutationConfig ?? {};
   return useMutation({
     mutationFn: ({ username, password, name }: UseRegisterProps) =>
-      register(username, name, password),
+      register({ username, name, password }),
     onSuccess: (data, variables, context) => {
-      // Access mutationConfig from variables and call onSuccess if defined
       onSuccess?.(data, variables, context);
     },
   });
