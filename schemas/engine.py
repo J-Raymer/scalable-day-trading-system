@@ -16,6 +16,7 @@ class StockOrder(BaseModel):
 
 @dataclass()
 class SellOrder:
+    user_id: int
     stock_id: str
     quantity: int
     price: int
@@ -31,10 +32,8 @@ class SellOrder:
 
 
 class BuyOrder(BaseModel):
+    user_id: int
     stock_id: str
     quantity: int
     timestamp: datetime
 
-
-class UID(BaseModel):
-    id: str

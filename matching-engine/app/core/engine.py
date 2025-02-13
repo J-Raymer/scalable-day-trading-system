@@ -1,38 +1,27 @@
+from fastapi import FastAPI
+from uuid import UUID
 from schemas.engine import StockOrder, SellOrder, BuyOrder
-from schemas.common import User
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from schemas.common import SuccessResponse, ErrorResponse, User
 from datetime import datetime 
-from collections import defaultdict
+from collections import defaultdict, deque
 from heapq import heapify, heappop, heappush
 
-# TODO: change these to better data structures
 sellTrees = defaultdict(list)
-buyQueues = defaultdict(list)
+buyQueues = defaultdict(deque)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
-
-async def verify_token(token: str = Depends(oauth2_scheme)):
-    if not token:
-        raise HTTPException(status_code=400, detail="Token is required")
-    try:
-        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"require": ["exp", "id", "username"]})
-        return User(username=decoded_token["username"], id=decoded_token["id"])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Expired Token")
-    except jwt.InvalidSignatureError:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-    except jwt.MissingRequiredClaimError:
-        raise HTTPException(status_code=400, detail="Missing required claim")
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Unauthorized")
 
  
-def receiveOrder(order: StockOrder):
+def receiveOrder(order: StockOrder, user: User):
+    # grab the details only we know
     time = datetime.now()
+    uid = user.id
+
     if order.is_buy:
         processBuyOrder(
-            BuyOrder(stock_id=order.stock_id, quantity=order.quantity, timestamp=time)
+            BuyOrder(user_id=uid,
+                     stock_id=order.stock_id,
+                     quantity=order.quantity,
+                     timestamp=time)
         )
         return {
             "success": True,
@@ -41,7 +30,11 @@ def receiveOrder(order: StockOrder):
     else:
         processSellOrder(
             SellOrder(
-                stock_id=order.stock_id, quantity=order.quantity, price=order.price, timestamp=time
+                user_id=uid,
+                stock_id=order.stock_id,
+                quantity=order.quantity,
+                price=order.price,
+                timestamp=time
             )
         )
         return {
@@ -54,7 +47,8 @@ def checkMatch():
 
     for stock_id in sellTrees:
         if (sellTrees[stock_id]) and (buyQueues[stock_id]):
-            pass
+            print('match found')
+            
             
 
 
@@ -77,10 +71,15 @@ def getStockPrices():
 
 def processSellOrder(sellOrder: SellOrder):
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
+    print(sellTrees[sellOrder.stock_id])
+    checkMatch()
+
 
 
 def processBuyOrder(buyOrder: BuyOrder):
     buyQueues[buyOrder.stock_id].append(buyOrder)
+    print(buyQueues[buyOrder.stock_id])
+    checkMatch()
 
 
 def cancelOrder(stockID: str):
