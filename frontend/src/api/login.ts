@@ -23,11 +23,11 @@ async function login({
   return response.data.data;
 }
 
-type useLoginOptions = {
+type UseLoginOptions = {
   mutationConfig?: MutationConfig<typeof login>;
 };
 
-export const useLogin = ({ mutationConfig }: useLoginOptions) => {
+export const useLogin = ({ mutationConfig }: UseLoginOptions) => {
   const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
     mutationFn: login,
