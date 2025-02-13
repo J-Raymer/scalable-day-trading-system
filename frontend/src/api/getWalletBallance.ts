@@ -9,7 +9,7 @@ export interface Wallet {
   balance: number;
 }
 
-async function getWalletBalance(): Promise<Wallet[]> {
+async function getWalletBalance(): Promise<Wallet> {
   const response = await axios.get(`${API_URL}/transaction/getWalletBalance`, {
     headers,
   });
