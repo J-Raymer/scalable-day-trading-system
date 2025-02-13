@@ -1,8 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
-import { MutationConfig } from '@/lib/react-query.ts';
+import { API_URL, MutationConfig } from '@/lib/react-query.ts';
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 interface UseRegisterProps {
   username: string;
