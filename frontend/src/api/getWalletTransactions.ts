@@ -32,7 +32,7 @@ export const useWalletTransactions = ({
   queryConfig,
 }: UseWalletTransactionOptions = {}) => {
   return useQuery({
-    queryKey: ['wallet'],
+    queryKey: ['wallet_tx'],
     queryFn: getWalletTransactions,
     ...queryConfig,
   });
