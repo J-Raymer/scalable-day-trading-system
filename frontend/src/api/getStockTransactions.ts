@@ -1,20 +1,10 @@
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
-import { API_URL, QueryConfig } from '@/lib/react-query.ts';
+import { API_URL, QueryConfig } from '@/lib/react-query';
+import { OrderStatus, OrderType } from '@/lib/enums';
 
 const token = localStorage.getItem('token');
 const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-enum OrderStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  PARTIALLY_COMPLETE = 'PARTIALLY_COMPLETE',
-  COMPLETED = 'COMPLETED',
-}
-
-enum OrderType {
-  MARKET = 'MARKET',
-  LIMIT = 'LIMIT',
-}
 
 export interface StockTransactions {
   stock_tx_id: number;
