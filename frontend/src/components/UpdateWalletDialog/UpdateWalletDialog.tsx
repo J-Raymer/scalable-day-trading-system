@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import './UpdateWalletDialog.scss';
-import { Button, Dialog, TextField } from '@mui/material';
+import { Dialog, DialogContent, TextField, Typography } from '@mui/material';
 import { useUpdateWallet } from '@/api/updateWallet.ts';
 import { DialogHeader } from '../DialogHeader';
 import { DialogFooter } from '@/components/DialogFooter';
+import './UpdateWalletDialog.scss';
 
 interface UpdateWalletDialogProps {
   isOpen: boolean;
@@ -14,12 +14,18 @@ export const UpdateWalletDialog = ({
   isOpen,
   setIsOpen,
 }: UpdateWalletDialogProps) => {
-  const updateWallet = useUpdateWallet();
+  const updateWallet = useUpdateWallet({
+    mutationConfig: {
+      onSuccess: () => {
+        setIsOpen(false);
+      },
+    },
+  });
   const [amount, setAmount] = useState('');
 
   const handleSubmit = async () => {
     try {
-      // await updateWallet.mutateAsync({ amount });
+      await updateWallet.mutateAsync({ amount: Number(amount) });
     } catch (e) {}
   };
 
@@ -28,14 +34,19 @@ export const UpdateWalletDialog = ({
       open={isOpen}
       slotProps={{ paper: { className: 'update-wallet-dialog' } }}
     >
-      <DialogHeader title={'Add Wallet Balance'}></DialogHeader>
-      <TextField
-        className="content"
-        // label="Amount to add"
-        type="number"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-      />
+      <DialogHeader title={'Add money to wallet'}></DialogHeader>
+      <DialogContent className="content">
+        <Typography>
+          Enter the amount you would like to add to your current balance.
+        </Typography>
+        <TextField
+          label="Amount to add"
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
+      </DialogContent>
+
       <DialogFooter onSubmit={handleSubmit} onCancel={() => setIsOpen(false)} />
     </Dialog>
   );

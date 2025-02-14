@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useMutation } from '@tanstack/react-query';
-import { API_URL, MutationConfig } from '@/lib/react-query';
+import { API_URL, MutationConfig, queryClient } from '@/lib/react-query';
 import { OrderType } from '@/lib/enums';
 
 interface UseBuyStockProps {
@@ -41,11 +41,13 @@ type UseBuyStockOptions = {
   mutationConfig?: MutationConfig<typeof buyStock>;
 };
 
+// TODO: When do we add wallet transactions? Is that on buy stock? Determine for invalidation
 export const useBuyStock = ({ mutationConfig }: UseBuyStockOptions) => {
   const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
     mutationFn: buyStock,
     onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries(['portfolio', 'wallet_tx']);
       onSuccess?.(data, variables, context);
     },
     ...restConfig,

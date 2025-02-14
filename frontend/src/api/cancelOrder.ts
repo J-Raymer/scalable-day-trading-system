@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useMutation } from '@tanstack/react-query';
-import { API_URL, MutationConfig } from '@/lib/react-query';
+import { API_URL, MutationConfig, queryClient } from '@/lib/react-query';
 
 interface UseCancelOrderProps {
   stockTxId: string;
@@ -31,6 +31,7 @@ export const useCancelOrder = ({ mutationConfig }: UseCancelOrderOptions) => {
   return useMutation({
     mutationFn: cancelOrder,
     onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries(['stock_tx']);
       onSuccess?.(data, variables, context);
     },
     ...restConfig,

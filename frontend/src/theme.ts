@@ -39,6 +39,13 @@ const theme = (darkMode: boolean) =>
           },
         },
       },
+      MuiDialogContent: {
+        styleOverrides: {
+          root: {
+            padding: '0 16px 0 16px'
+          }
+        }
+      }
     },
   });
 

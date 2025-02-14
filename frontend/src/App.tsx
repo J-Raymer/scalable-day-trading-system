@@ -18,10 +18,9 @@ import { RegisterPage } from '@/routes/RegisterPage';
 import { StocksPage } from '@/routes/StocksPage';
 import { TradePage } from '@/routes/TradePage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/react-query.ts';
 import setupAxiosInterceptors from './axiosSetup';
 import './App.css';
-
-const queryClient = new QueryClient();
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
