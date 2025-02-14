@@ -18,7 +18,7 @@ To start up the webserver locally:
 
 ### API Documentation
 
-1. Transaction Service: `localhost:3001/transaction/docs`
-2. Authentication Service: `localhost:3001/authentication/docs`
-3. Matching Engine Service: `localhost:3001/engine/docs`
-4. Setup Service: `localhost:3001/setup/docs`
+1. [Transaction Service](http://localhost:3001/transaction/docs)
+2. [Authentication Service](http://localhost:3001/authentication/docs)
+3. [Matching Engine Service](http://localhost:3001/engine/docs)
+4. [Setup Service](http://localhost:3001/setup/docs)
