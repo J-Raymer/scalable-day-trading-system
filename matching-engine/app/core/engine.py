@@ -49,12 +49,6 @@ def checkMatch():
     for stock_id in sellTrees:
         if (sellTrees[stock_id]) and (buyQueues[stock_id]):
             print('match found')
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            
-=======
-=======
->>>>>>> Stashed changes
             buy_order  = buyQueues[stock_id][0]
             sell_order = sellTrees[stock_id][0]
             
@@ -82,13 +76,6 @@ def checkMatch():
                     pass
 
 
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-            
-
-
 
 def clearSellOrders():
     global sellTrees
@@ -103,30 +90,14 @@ def getStockPrices():
 
 def processSellOrder(sellOrder: SellOrder):
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    print(sellTrees[sellOrder.stock_id])
-=======
     print(sellTrees[sellOrder.stock_id]) #REMOVE AFTER TESTING
->>>>>>> Stashed changes
-=======
-    print(sellTrees[sellOrder.stock_id]) #REMOVE AFTER TESTING
->>>>>>> Stashed changes
     checkMatch()
 
 
 
 def processBuyOrder(buyOrder: BuyOrder):
     buyQueues[buyOrder.stock_id].append(buyOrder)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-    print(buyQueues[buyOrder.stock_id])
-=======
     print(buyQueues[buyOrder.stock_id]) #REMOVE AFTER TESTING
->>>>>>> Stashed changes
-=======
-    print(buyQueues[buyOrder.stock_id]) #REMOVE AFTER TESTING
->>>>>>> Stashed changes
     checkMatch()
 
 
