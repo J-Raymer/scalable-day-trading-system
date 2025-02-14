@@ -5,7 +5,6 @@ import { OrderType } from '@/lib/enums';
 
 interface UseBuyStockProps {
   stockId: number;
-  isBuy: boolean;
   orderType: OrderType;
   quantity: number;
   price: number;
@@ -16,7 +15,6 @@ const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
 async function buyStock({
   stockId,
-  isBuy,
   orderType,
   quantity,
   price,
@@ -25,7 +23,7 @@ async function buyStock({
     `${API_URL}/engine/placeStockOrder`,
     {
       stock_id: stockId,
-      is_buy: isBuy,
+      is_buy: true,
       order_type: orderType,
       quantity,
       price,

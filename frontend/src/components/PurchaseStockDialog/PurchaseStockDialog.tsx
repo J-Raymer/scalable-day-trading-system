@@ -3,14 +3,15 @@ import {
   Checkbox,
   Dialog,
   DialogContent,
+  FormControlLabel,
   TextField,
   Typography,
 } from '@mui/material';
 import { DialogHeader } from '@/components/DialogHeader';
 import { DialogFooter } from '@/components/DialogFooter';
 import { useBuyStock } from '@/api/buyStock.ts';
-import './PurchaseStockDialog.scss';
 import { OrderType } from '@/lib/enums.ts';
+import './PurchaseStockDialog.scss';
 
 interface PurchaseStockDialogProps {
   isOpen: boolean;
@@ -28,17 +29,15 @@ export const PurchaseStockDialog = ({
   price,
 }: PurchaseStockDialogProps) => {
   const buyStock = useBuyStock();
-  const [isBuy, setIsBut] = useState(false);
-  const [orderType, setOrderType] = useState<OrderType>(OrderType.MARKET);
-  const [quantity, setQuantity] = useState(0);
+  const [quantity, setQuantity] = useState('');
+  const [isLimit, setIsLimit] = useState(false);
 
   const handleSubmit = async () => {
     try {
       await buyStock.mutateAsync({
         stockId,
-        isBuy,
-        orderType,
-        quantity,
+        orderType: isLimit ? OrderType.LIMIT : OrderType.MARKET,
+        quantity: Number(quantity),
         price,
       });
     } catch (e) {}
@@ -51,13 +50,20 @@ export const PurchaseStockDialog = ({
     >
       <DialogHeader title="Purchase stock" />
       <DialogContent>
-        <div>
-          <Checkbox></Checkbox>
-        </div>
-
         <Typography variant="subtitle2">{`Stock: ${stockName}`}</Typography>
-        {orderType == OrderType.LIMIT && <TextField label="Price"></TextField>}
-        <TextField label="Quantity"></TextField>
+        <FormControlLabel
+          control={
+            <Checkbox checked={isLimit} onChange={() => setIsLimit(!isLimit)} />
+          }
+          label="Limit order?"
+        />
+        {isLimit && <TextField label="Price"></TextField>}
+        <TextField
+          label="Quantity"
+          type="number"
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+        ></TextField>
       </DialogContent>
       <DialogFooter onSubmit={() => {}} onCancel={() => setIsOpen(false)} />
     </Dialog>
