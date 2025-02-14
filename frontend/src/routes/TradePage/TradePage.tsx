@@ -4,17 +4,9 @@ import { useStockPortfolio } from '@/api/getStockPortfolio';
 import './TradePage.scss';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Stock, useStockPrices } from '@/api/getStockPrices';
+import { SlideTransition } from '@/components/SlideTransition';
 
-interface SlideTransitionProps {
-  children: React.ReactElement;
-  in: boolean;
-  onEnter?: () => void;
-  onExited?: () => void;
-}
 
-function SlideTransition(props: SlideTransitionProps) {
-  return <Slide {...props} direction="up" />;
-}
 
 
 export function TradePage() {
@@ -32,13 +24,7 @@ export function TradePage() {
   };
   
 
-  const stocks = useStockPrices({
-    queryConfig: {
-      onError: (error) => {
-        handleError(error.message);
-      },
-    },
-  });
+  const stocks = useStockPrices();
   // uncomment this after user has been setup to have stocks
   // const stocks = useStockPortfolio();
   const columns: GridColDef<Stock>[] = [

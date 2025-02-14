@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Container, TextField, Button, Typography, Box, Snackbar, Alert, Slide } from '@mui/material';
+import {
+  Container,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Snackbar,
+  Alert,
+  Slide,
+} from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
+import { SlideTransition } from '@/components/SlideTransition';
 import './RegisterPage.scss';
-
-function SlideTransition(props) {
-  return <Slide {...props} direction="up" />;
-}
 
 export function RegisterPage() {
   const [name, setName] = useState('');
@@ -32,13 +38,16 @@ export function RegisterPage() {
     }
 
     try {
-      const response = await axios.post('http://localhost:3001/authentication/register', {
-        name,
-        user_name: username,
-        password,
-      });
+      const response = await axios.post(
+        'http://localhost:3001/authentication/register',
+        {
+          name,
+          user_name: username,
+          password,
+        },
+      );
       if (response.status === 201) {
-        console.log("User registered successfully");
+        console.log('User registered successfully');
         navigate('/login', { state: { registered: true } });
       }
     } catch (err) {
@@ -64,7 +73,12 @@ export function RegisterPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Register
       </Typography>
-      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+      <Snackbar
+        open={open}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        TransitionComponent={SlideTransition}
+      >
         <Alert onClose={handleClose} variant="filled" severity="error">
           {error}
         </Alert>

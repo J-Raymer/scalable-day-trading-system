@@ -30,6 +30,7 @@ export const PurchaseStockDialog = ({
 }: PurchaseStockDialogProps) => {
   const buyStock = useBuyStock();
   const [quantity, setQuantity] = useState('');
+  const [limit, setLimit] = useState('');
   const [isLimit, setIsLimit] = useState(false);
 
   const handleSubmit = async () => {
@@ -38,9 +39,10 @@ export const PurchaseStockDialog = ({
         stockId,
         orderType: isLimit ? OrderType.LIMIT : OrderType.MARKET,
         quantity: Number(quantity),
-        price,
+        price: isLimit ? Number(limit) : price,
       });
-    } catch (e) {}
+    } catch (e) {
+    }
   };
 
   return (
@@ -51,19 +53,35 @@ export const PurchaseStockDialog = ({
       <DialogHeader title="Purchase stock" />
       <DialogContent>
         <Typography variant="subtitle2">{`Stock: ${stockName}`}</Typography>
+        <Typography variant="subtitle2">{`Current best Price: ${price}`}</Typography>
+        <Typography>
+          If this is a limit order enter the price you would like to purchase
+          the stock at, otherwise the current best prices will be used.
+        </Typography>
         <FormControlLabel
           control={
-            <Checkbox checked={isLimit} onChange={() => setIsLimit(!isLimit)} />
+            <Checkbox
+              className="checkbox"
+              checked={isLimit}
+              onChange={() => setIsLimit(!isLimit)}
+            />
           }
-          label="Limit order?"
+          label="Limit order"
         />
-        {isLimit && <TextField label="Price"></TextField>}
+        {isLimit && (
+          <TextField
+            label="Price"
+            type="number"
+            value={limit}
+            onChange={(e) => setLimit(e.target.value)}
+          />
+        )}
         <TextField
           label="Quantity"
           type="number"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
-        ></TextField>
+        />
       </DialogContent>
       <DialogFooter onSubmit={() => {}} onCancel={() => setIsOpen(false)} />
     </Dialog>

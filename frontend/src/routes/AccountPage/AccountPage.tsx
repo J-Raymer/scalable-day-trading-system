@@ -1,17 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Typography, Snackbar, Alert, Slide } from '@mui/material';
+import { SlideTransition } from '@/components/SlideTransition';
 import './AccountPage.scss';
-
-interface SlideTransitionProps {
-  children: React.ReactElement;
-  in: boolean;
-  onEnter?: () => void;
-  onExited?: () => void;
-}
-
-function SlideTransition(props: SlideTransitionProps) {
-  return <Slide {...props} direction="up" />;
-}
 
 export function AccountPage() {
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +17,12 @@ export function AccountPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Account Page
       </Typography>
-      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+      <Snackbar
+        open={open}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        TransitionComponent={SlideTransition}
+      >
         <Alert onClose={handleClose} variant="filled" severity="error">
           {error}
         </Alert>

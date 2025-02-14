@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, TextField, Button, Typography, Box, Snackbar, Alert, Slide } from '@mui/material';
+import {
+  Container,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Snackbar,
+  Alert,
+  Slide,
+} from '@mui/material';
+import { SlideTransition } from '@/components/SlideTransition';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import './LoginPage.scss';
-
-interface SlideTransitionProps {
-  children: React.ReactElement;
-  in: boolean;
-  onEnter?: () => void;
-  onExited?: () => void;
-}
-
-function SlideTransition(props: SlideTransitionProps) {
-  return <Slide {...props} direction="up" />;
-}
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
@@ -40,12 +39,17 @@ export function LoginPage() {
     }
 
     try {
-      const response = await axios.post('http://localhost:3001/authentication/login', {
-        user_name: username,
-        password,
-      });
+      const response = await axios.post(
+        'http://localhost:3001/authentication/login',
+        {
+          user_name: username,
+          password,
+        },
+      );
       if (response.status === 200) {
-        console.log("User logged in successfully, token saved in local storage");
+        console.log(
+          'User logged in successfully, token saved in local storage',
+        );
         const token = response.data.data.token;
         localStorage.setItem('token', token);
         navigate('/');
@@ -76,17 +80,32 @@ export function LoginPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Login
       </Typography>
-      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+      <Snackbar
+        open={open}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        TransitionComponent={SlideTransition}
+      >
         <Alert onClose={handleClose} variant="filled" severity="error">
           {error}
         </Alert>
       </Snackbar>
-      <Snackbar open={success} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+      <Snackbar
+        open={success}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        TransitionComponent={SlideTransition}
+      >
         <Alert onClose={handleClose} variant="filled" severity="success">
           Registered successfully, please login
         </Alert>
       </Snackbar>
-      <form className="login-form" noValidate autoComplete="off" onSubmit={handleLogin}>
+      <form
+        className="login-form"
+        noValidate
+        autoComplete="off"
+        onSubmit={handleLogin}
+      >
         <TextField
           label="Username"
           variant="outlined"

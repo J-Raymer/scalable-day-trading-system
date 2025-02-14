@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
 import React, { useState } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { useStockPrices, Stock } from '@/api/getStockPrices.ts';
 import { Button, Typography, Snackbar, Alert, Slide } from '@mui/material';
-import { Button, Typography } from '@mui/material';
+import { SlideTransition } from '@/components/SlideTransition';
 import { PurchaseStockDialog } from '@/components/PurchaseStockDialog';
 import './StocksPage.scss';
 
-interface SlideTransitionProps {
-  children: React.ReactElement;
-  in: boolean;
-  onEnter?: () => void;
-  onExited?: () => void;
-}
-
-function SlideTransition(props: SlideTransitionProps) {
-  return <Slide {...props} direction="up" />;
-}
-
 export const StocksPage = () => {
+  const stocks = useStockPrices();
+
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [currentStockName, setCurrentStockName] = useState<string | undefined>(
+    undefined,
+  );
+  const [currentStockId, setCurrentStockId] = useState<number | undefined>(
+    undefined,
+  );
+  const [currentPrice, setCurrentPrice] = useState<number | undefined>(
+    undefined,
+  );
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleError = (message: string) => {
     setError(message);
@@ -32,22 +32,14 @@ export const StocksPage = () => {
     setError(null);
   };
 
-  const stocks = useStockPrices({
-    queryConfig: {
-      onError: (error) => {
-        handleError(error.message);
-      },
-    },
-  });
-  const [currentStockName, setCurrentStockName] = useState<string | undefined>(
-    undefined,
-  );
-  const [stockId, setStockId] = useState<number | undefined>(undefined);
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const handleOpenDialog = (stockId: number, stockName: string) => {
+  const handleOpenDialog = (
+    stockId: number,
+    stockName: string,
+    price: number,
+  ) => {
     setCurrentStockName(stockName);
-    setStockId(stockId);
+    setCurrentStockId(stockId);
+    setCurrentPrice(price);
     setDialogOpen(true);
   };
 
@@ -62,7 +54,11 @@ export const StocksPage = () => {
       renderCell: (params) => (
         <Button
           onClick={() =>
-            handleOpenDialog(params.row.stock_id, params.row.stock_name)
+            handleOpenDialog(
+              params.row.stock_id,
+              params.row.stock_name,
+              params.row.price,
+            )
           }
           variant="contained"
         >
@@ -75,7 +71,12 @@ export const StocksPage = () => {
   return (
     <div className="stocks-page">
       <Typography variant="h2">Stocks</Typography>
-      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+      <Snackbar
+        open={open}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        TransitionComponent={SlideTransition}
+      >
         <Alert onClose={handleClose} variant="filled" severity="error">
           {error}
         </Alert>
@@ -83,8 +84,9 @@ export const StocksPage = () => {
       <PurchaseStockDialog
         isOpen={dialogOpen}
         setIsOpen={setDialogOpen}
-        stockId={stockId}
-        stockName={currentStockName}
+        stockId={currentStockId ?? 0}
+        stockName={currentStockName ?? ''}
+        price={currentPrice ?? 0}
       />
       <DataGrid
         sx={{ width: 800 }}
