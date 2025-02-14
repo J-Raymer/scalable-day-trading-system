@@ -121,6 +121,9 @@ async def get_wallet_transactions(user: User = Depends(verify_token)):
               409: {"model": ErrorResponse}
           })
 async def add_money_to_wallet(req: AddMoneyRequest, user: User = Depends(verify_token)):
+    if req.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
+    
     with sqlmodel.Session(engine) as session:
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == user.id)
         wallet = session.exec(statement).one_or_none()
