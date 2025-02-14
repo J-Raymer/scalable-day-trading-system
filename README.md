@@ -1,15 +1,11 @@
 # scalable-day-trading-system
 
-### Initial architecture / tech stack
-
-### Running with Docker
-
-#### Backend
+#### Backend (Docker)
 
 To start up the docker containers from the root directory type `docker compose up --build -d` and it will
 build and run all the micro-services.
 
-#### Frontend
+#### Frontend (Local)
 
 To start up the webserver locally:
 
