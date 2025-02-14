@@ -1,4 +1,16 @@
-import { UseMutationOptions, DefaultOptions, QueryClient } from '@tanstack/react-query';
+import {
+  UseMutationOptions,
+  DefaultOptions,
+  QueryClient,
+} from '@tanstack/react-query';
+import '@tanstack/react-query';
+// import { AxiosError } from 'axios';
+//
+// declare module '@tanstack/react-query' {
+//   interface Register {
+//     defaultError: AxiosError;
+//   }
+// }
 
 export const queryConfig = {
   queries: {
