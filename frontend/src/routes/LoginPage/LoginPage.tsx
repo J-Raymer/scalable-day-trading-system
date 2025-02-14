@@ -4,7 +4,14 @@ import { Container, TextField, Button, Typography, Box, Snackbar, Alert, Slide }
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import './LoginPage.scss';
 
-function SlideTransition(props) {
+interface SlideTransitionProps {
+  children: React.ReactElement;
+  in: boolean;
+  onEnter?: () => void;
+  onExited?: () => void;
+}
+
+function SlideTransition(props: SlideTransitionProps) {
   return <Slide {...props} direction="up" />;
 }
 

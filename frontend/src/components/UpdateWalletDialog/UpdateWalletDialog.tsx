@@ -8,16 +8,21 @@ import './UpdateWalletDialog.scss';
 interface UpdateWalletDialogProps {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  onError: (message: string) => void;
 }
 
 export const UpdateWalletDialog = ({
   isOpen,
   setIsOpen,
+  onError,
 }: UpdateWalletDialogProps) => {
   const updateWallet = useUpdateWallet({
     mutationConfig: {
       onSuccess: () => {
         setIsOpen(false);
+      },
+      onError: (error) => {
+        onError(error.message);
       },
     },
   });
@@ -26,7 +31,13 @@ export const UpdateWalletDialog = ({
   const handleSubmit = async () => {
     try {
       await updateWallet.mutateAsync({ amount: Number(amount) });
-    } catch (e) {}
+    } catch (e) {
+      if (e instanceof Error) {
+        onError(e.message);
+      } else {
+        onError('An unknown error occurred');
+      }
+    }
   };
 
   return (
