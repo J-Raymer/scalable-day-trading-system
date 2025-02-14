@@ -35,7 +35,7 @@ export const UpdateWalletDialog = ({
       slotProps={{ paper: { className: 'update-wallet-dialog' } }}
     >
       <DialogHeader title={'Add money to wallet'}></DialogHeader>
-      <DialogContent className="content">
+      <DialogContent>
         <Typography>
           Enter the amount you would like to add to your current balance.
         </Typography>
