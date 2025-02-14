@@ -7,12 +7,13 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from uuid import UUID
-import os
-import dotenv
+#import os
+#import dotenv
 from schemas.common import SuccessResponse, ErrorResponse, User
 from schemas.engine import StockOrder
 from .core import receiveOrder, cancelOrder, clearSellOrders
 
+'''
 dotenv.load_dotenv()
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
@@ -33,7 +34,7 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=400, detail="Missing required claim")
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Unauthorized")
-
+'''
 
 app = FastAPI(
     root_path="/engine"

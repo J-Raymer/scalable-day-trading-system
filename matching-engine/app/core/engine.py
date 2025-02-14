@@ -9,8 +9,6 @@ import requests
 
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
-
-
  
 def receiveOrder(order: StockOrder, user: User):
     # grab the details only we know
@@ -57,7 +55,6 @@ def checkMatch():
            
             #happy path
             if buy_order.user_id != sell_order.user_id:
-
                 #happy path
                 if buy_order.quantity == sell_order.quantity:
 

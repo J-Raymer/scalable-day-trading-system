@@ -49,6 +49,30 @@ def generate_token(user: Users):
 async def home():
     return RedirectResponse(url="/authentication/docs", status_code=302)
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
+
+@app.get("/validate_token",
+        responses={
+            200: {"model": SuccessResponse},
+            401: {"model": ErrorResponse},
+            401: {"model": ErrorResponse},
+            403: {"model": ErrorResponse},
+        })
+async def validate_token(token: str = Depends(oauth2_scheme)):
+    if not token:
+        raise HTTPException(status_code=400, detail="Token is required")
+    try:
+        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"require": ["exp", "id", "username"]})
+        return {"username": decoded_token["username"], "id": decoded_token["id"]}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Expired Token")
+    except jwt.InvalidSignatureError:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    except jwt.MissingRequiredClaimError:
+        raise HTTPException(status_code=400, detail="Missing required claim")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
 @app.post("/register",
           status_code=201,
           responses={

@@ -28,9 +28,9 @@ url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
+#oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
-
+'''
 async def verify_token(token: str = Depends(oauth2_scheme)):
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")
@@ -45,7 +45,7 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=400, detail="Missing required claim")
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Unauthorized")
-
+'''
 
 @app.get("/")
 async def home():
@@ -59,12 +59,16 @@ async def home():
     403: {"model": ErrorResponse},
     404: {"model": ErrorResponse},
 })
-async def get_wallet_balance(user: User = Depends(verify_token)):
+async def get_wallet_balance(x_user_data : str = Header(None)):
+    if not x_user_data:
+        raise HTTPException(status_code=400, detail="User data is missing in headers")
+    username, user_id = x_user_data.split("|")
+
     with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(Wallets.balance).where(Wallets.user_id == user.id)
+        statement = sqlmodel.select(Wallets.balance).where(Wallets.user_id == user_id)
         balance = session.exec(statement).one_or_none()
         if not balance:
-            new_wallet = Wallets(user_id=user.id)
+            new_wallet = Wallets(user_id=user_id)
             session.add(new_wallet)
             session.commit()
             return SuccessResponse(data={"balance": 0})
@@ -77,7 +81,11 @@ async def get_wallet_balance(user: User = Depends(verify_token)):
     401: {"model": ErrorResponse},
     403: {"model": ErrorResponse},
 })
-async def get_wallet_transactions(user: User = Depends(verify_token)):
+async def get_wallet_transactions( x_user_data : str = Header(None)):
+    if not x_user_data:
+        raise HTTPException(status_code=400, detail="User data is missing in headers")
+    username, user_id = x_user_data.split("|")
+    
     with (sqlmodel.Session(engine) as session):
         # Can't pass more than 4 params into select, so have to do it this way, see here
         # https://github.com/fastapi/sqlmodel/issues/92
@@ -87,11 +95,11 @@ async def get_wallet_transactions(user: User = Depends(verify_token)):
                    WalletTransactions.time_stamp,
                    StockTransactions.stock_tx_id
                    ]
-        statement = sqlmodel.select(
-            *columns
-        ).join(StockTransactions,
-               WalletTransactions.wallet_tx_id == StockTransactions.wallet_tx_id
-               ).where(Users.id == WalletTransactions.user_id)
+        statement = (
+            sqlmodel.select(*columns)
+            .join(StockTransactions, WalletTransactions.wallet_tx_id == StockTransactions.wallet_tx_id)
+            .where(WalletTransactions.user_id == user_id)
+        )
         result = session.exec(statement).all()
         wallet_transactions = list(map(lambda tx: WalletTxResult(
             wallet_tx_id=tx[0],
@@ -111,12 +119,16 @@ async def get_wallet_transactions(user: User = Depends(verify_token)):
               403: {"model": ErrorResponse},
               409: {"model": ErrorResponse}
           })
-async def add_money_to_wallet(req: AddMoneyRequest, user: User = Depends(verify_token)):
+async def add_money_to_wallet(req: AddMoneyRequest, x_user_data : str = Header(None)):
+    if not x_user_data:
+        raise HTTPException(status_code=400, detail="User data is missing in headers")
+    username, user_id = x_user_data.split("|")
+
     with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(Wallets).where(Wallets.user_id == user.id)
+        statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
         wallet = session.exec(statement).one_or_none()
         if not wallet:
-            new_wallet = Wallets(user_id=UUID(user.id), balance=req.amount)
+            new_wallet = Wallets(user_id=UUID(user_id), balance=req.amount)
             session.add(new_wallet)
             session.commit()
             return SuccessResponse()
@@ -125,7 +137,7 @@ async def add_money_to_wallet(req: AddMoneyRequest, user: User = Depends(verify_
         session.commit()
     return SuccessResponse()
 
-
+'''
 @app.get("/getStockPrices",
          responses={
              200: {"model": SuccessResponse},
@@ -133,12 +145,15 @@ async def add_money_to_wallet(req: AddMoneyRequest, user: User = Depends(verify_
              401: {"model": ErrorResponse},
              409: {"model": ErrorResponse}
          })
-async def get_stock_prices(user: User = Depends(verify_token)):
+async def get_stock_prices(x_user_data : str = Header(None)):
+    if not x_user_data:
+        raise HTTPException(status_code=400, detail="User data is missing in headers")
+    username, user_id = x_user_data.split("|")
     with sqlmodel.Session(engine) as session:
         statement = sqlmodel.select(Stocks)
         stocks = session.exec(statement).all()
         return SuccessResponse(data=stocks)
-
+'''
 
 @app.get("/getStockPortfolio",
          responses={
@@ -147,14 +162,17 @@ async def get_stock_prices(user: User = Depends(verify_token)):
              401: {"model": ErrorResponse},
              409: {"model": ErrorResponse}
          })
-async def get_stock_portfolio(user: User = Depends(verify_token)):
+async def get_stock_portfolio(x_user_data : str = Header(None)):
+    if not x_user_data:
+        raise HTTPException(status_code=400, detail="User data is missing in headers")
+    username, user_id = x_user_data.split("|")
     with sqlmodel.Session(engine) as session:
         statement = sqlmodel.select(
             StockPortfolios.stock_id,
             Stocks.stock_name,
             StockPortfolios.quantity_owned
         ).join(Stocks, StockPortfolios.stock_id == Stocks.stock_id
-               ).where(StockPortfolios.user_id == user.id)
+               ).where(StockPortfolios.user_id == user_id)
         result = session.exec(statement).all()
         portfolio = list(map(lambda stock: PortfolioResult(stock_id=stock[0], stock_name=stock[1], quantity_owned=stock[2]), result))
         return SuccessResponse(data=portfolio)
@@ -167,9 +185,12 @@ async def get_stock_portfolio(user: User = Depends(verify_token)):
              401: {"model": ErrorResponse},
              409: {"model": ErrorResponse}
          })
-async def get_stock_transactions(user: User = Depends(verify_token)):
+async def get_stock_transactions(x_user_data : str = Header(None)):
+    if not x_user_data:
+        raise HTTPException(status_code=400, detail="User data is missing in headers")
+    username, user_id = x_user_data.split("|")
     with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(StockTransactions).where(StockTransactions.user_id == user.id)
+        statement = sqlmodel.select(StockTransactions).where(StockTransactions.user_id == user_id)
     result = session.exec(statement).all()
     return SuccessResponse(data=result)
 
@@ -184,7 +205,10 @@ async def get_stock_transactions(user: User = Depends(verify_token)):
               409: {"model": ErrorResponse}
           }
           )
-async def create_stock(stock: Stock, user: User = Depends(verify_token)):
+async def create_stock(stock: Stock):
+    if not x_user_data:
+        raise HTTPException(status_code=400, detail="User data is missing in headers")
+    username, user_id = x_user_data.split("|")
     stock_name = stock.stock_name
     if not stock_name:
         raise HTTPException(status_code=400, detail="stock_name required")
@@ -211,7 +235,10 @@ async def create_stock(stock: Stock, user: User = Depends(verify_token)):
               409: {"model": ErrorResponse}
           }
           )
-async def add_stock_to_user(new_stock: StockSetup, user: User = Depends(verify_token)):
+async def add_stock_to_user(new_stock: StockSetup, x_user_data : str = Header(None)):
+    if not x_user_data:
+        raise HTTPException(status_code=400, detail="User data is missing in headers")
+    username, user_id = x_user_data.split("|")
     if not (new_stock.stock_id and new_stock.quantity):
         raise HTTPException(status_code=400, detail="Stock ID and quantity required")
 
@@ -221,8 +248,9 @@ async def add_stock_to_user(new_stock: StockSetup, user: User = Depends(verify_t
         if not stock_exists:
             raise HTTPException(status_code=404, detail="Stock not found")
 
-        new_stock = StockPortfolios(user_id=user.id, stock_id=new_stock.stock_id, quantity_owned=new_stock.quantity)
+        new_stock = StockPortfolios(user_id=user_id, stock_id=new_stock.stock_id, quantity_owned=new_stock.quantity)
         session.add(new_stock)
         session.commit()
         session.refresh(new_stock)
         return SuccessResponse(data={"stock": new_stock})
+
