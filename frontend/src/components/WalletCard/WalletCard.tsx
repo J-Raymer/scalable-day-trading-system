@@ -27,7 +27,7 @@ export const WalletCard = () => {
           size={'small'}
           onClick={() => setOpen(true)}
         >
-          Update Balance
+          Add Balance
         </Button>
     </DashboardCard>
   );

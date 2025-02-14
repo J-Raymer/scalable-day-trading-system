@@ -28,7 +28,7 @@ export const UpdateWalletDialog = ({
       open={isOpen}
       slotProps={{ paper: { className: 'update-wallet-dialog' } }}
     >
-      <DialogHeader title={'Update Wallet Balance'}></DialogHeader>
+      <DialogHeader title={'Add Wallet Balance'}></DialogHeader>
       <TextField
         className="content"
         // label="Amount to add"
