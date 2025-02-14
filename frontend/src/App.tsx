@@ -18,6 +18,7 @@ import { RegisterPage } from '@/routes/RegisterPage';
 import { StocksPage } from '@/routes/StocksPage';
 import { TradePage } from '@/routes/TradePage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import setupAxiosInterceptors from './axiosSetup';
 import './App.css';
 
 const queryClient = new QueryClient();
@@ -59,6 +60,10 @@ function AppContent({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    setupAxiosInterceptors(navigate);
+  }, [navigate]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
