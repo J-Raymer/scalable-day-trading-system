@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
-import { useLogin } from '@/api/login';
 import './LoginPage.scss';
 
 export function LoginPage() {
@@ -9,14 +9,6 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const login = useLogin({
-    mutationConfig: {
-      onSuccess: (data) => {
-        localStorage.setItem('token', data.token);
-        navigate('/');
-      },
-    },
-  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +18,28 @@ export function LoginPage() {
     }
 
     try {
-      await login.mutateAsync({ username, password });
+      const response = await axios.post('http://localhost:3001/authentication/login', {
+        user_name: username,
+        password,
+      });
+      if (response.status === 200) {
+        console.log("User logged in successfully, token saved in local storage");
+        const token = response.data.data.token;
+        localStorage.setItem('token', token);
+        navigate('/');
+      }
     } catch (err) {
-      setError(err.response.data.detail);
+      if (axios.isAxiosError(err)) {
+        if (err.response && err.response.status === 404) {
+          setError('User not found');
+        } else if (err.response && err.response.status === 401) {
+          setError('Unauthorized');
+        } else {
+          setError('Login failed. Please try again.');
+        }
+      } else {
+        setError('An unexpected error occurred.');
+      }
     }
   };
 
@@ -78,4 +89,6 @@ export function LoginPage() {
       </form>
     </Container>
   );
-};
+}
+
+export default LoginPage;

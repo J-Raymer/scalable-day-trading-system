@@ -30,6 +30,7 @@ function App() {
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme(darkMode)}>
