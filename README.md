@@ -1,36 +1,20 @@
 # scalable-day-trading-system
 
-### Initial architecture / tech stack
+#### Backend (Docker)
 
-
-### Running with Docker 
 To start up the docker containers from the root directory type `docker compose up --build -d` and it will
 build and run all the micro-services.
 
-#### Front End
+#### Frontend (Local)
 
-- ReactJS
+To start up the webserver locally:
 
-#### Reverse Proxy
+1. Install packages `npm i`
+2. Start server `npm start`
 
-- NGINX
+### API Documentation
 
-#### Matching Engine
-
-- FastAPI
-
-#### Database
-
-- PostgresDB
-
-> Docker and Kubernetes
-
-### Architecture Flow
-
-Front End <--> Reverse Proxy <--> Matching Engine <--> Database
-
-### Simplified flow for first deliverable
-
-Front end container <--> Matching engine container <--> Database container
-
-> Decouple services from the `Matching engine` container, and add the container managment + reverse proxy for a later deliverable
+1. [Transaction Service](http://localhost:3001/transaction/docs)
+2. [Authentication Service](http://localhost:3001/authentication/docs)
+3. [Matching Engine Service](http://localhost:3001/engine/docs)
+4. [Setup Service](http://localhost:3001/setup/docs)

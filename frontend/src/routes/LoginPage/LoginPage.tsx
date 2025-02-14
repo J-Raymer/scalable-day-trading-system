@@ -1,28 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, TextField, Button, Typography, Box } from '@mui/material';
-import { useNavigate, Link } from 'react-router-dom';
+import { Container, TextField, Button, Typography, Box, Snackbar, Alert, Slide } from '@mui/material';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import './LoginPage.scss';
 
-function LoginPage() {
+interface SlideTransitionProps {
+  children: React.ReactElement;
+  in: boolean;
+  onEnter?: () => void;
+  onExited?: () => void;
+}
+
+function SlideTransition(props: SlideTransitionProps) {
+  return <Slide {...props} direction="up" />;
+}
+
+export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.registered) {
+      setSuccess(true);
+      setOpen(true);
+    }
+  }, [location]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
       setError('All fields must be filled out');
+      setOpen(true);
       return;
     }
-
-    // Bypass for login for testing purposes
-    // if (username === 'test' && password === 'test') {
-    //   const fakeToken = 'fake-jwt-token';
-    //   localStorage.setItem('token', fakeToken);
-    //   navigate('/');
-    //   return;
-    // }
 
     try {
       const response = await axios.post('http://localhost:3001/authentication/login', {
@@ -47,14 +62,30 @@ function LoginPage() {
       } else {
         setError('An unexpected error occurred.');
       }
+      setOpen(true);
     }
   };
 
+  const handleClose = () => {
+    setOpen(false);
+    setSuccess(false);
+  };
+
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="sm" className="login-page">
       <Typography variant="h4" component="h1" gutterBottom>
         Login
       </Typography>
+      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+        <Alert onClose={handleClose} variant="filled" severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
+      <Snackbar open={success} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+        <Alert onClose={handleClose} variant="filled" severity="success">
+          Registered successfully, please login
+        </Alert>
+      </Snackbar>
       <form className="login-form" noValidate autoComplete="off" onSubmit={handleLogin}>
         <TextField
           label="Username"
@@ -73,11 +104,6 @@ function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        {error && (
-          <Typography color="error" variant="body2">
-            {error}
-          </Typography>
-        )}
         <Box mt={2}>
           <Button variant="contained" color="primary" type="submit" fullWidth>
             Login
