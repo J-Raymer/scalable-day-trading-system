@@ -1,11 +1,44 @@
-import { Container, Typography, Card, CardContent, Button } from '@mui/material';
+import { useState } from 'react';
+import { Container, Typography, Card, CardContent, Button, Snackbar, Alert, Slide } from '@mui/material';
 import { useStockPortfolio } from '@/api/getStockPortfolio';
 import './TradePage.scss';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Stock, useStockPrices } from '@/api/getStockPrices';
 
+interface SlideTransitionProps {
+  children: React.ReactElement;
+  in: boolean;
+  onEnter?: () => void;
+  onExited?: () => void;
+}
+
+function SlideTransition(props: SlideTransitionProps) {
+  return <Slide {...props} direction="up" />;
+}
+
+
 export function TradePage() {
-  const stocks = useStockPrices();
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const handleError = (message: string) => {
+    setError(message);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setError(null);
+  };
+  
+
+  const stocks = useStockPrices({
+    queryConfig: {
+      onError: (error) => {
+        handleError(error.message);
+      },
+    },
+  });
   // uncomment this after user has been setup to have stocks
   // const stocks = useStockPortfolio();
   const columns: GridColDef<Stock>[] = [
@@ -30,9 +63,14 @@ export function TradePage() {
   return (
     <div className="trade-page">
       <Typography variant="h2">My Stocks</Typography>
+      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+        <Alert onClose={handleClose} variant="filled" severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
       <DataGrid
         sx={{ width: 800 }}
-        rows={stocks.data?? []}
+        rows={stocks.data ?? []}
         columns={columns}
         getRowId={(row) => row.stock_id}
         disableRowSelectionOnClick
@@ -44,12 +82,12 @@ export function TradePage() {
             Pending Transactions
           </Typography>
           <DataGrid
-        sx={{ width: 800 }}
-        rows={stocks.data?? []}
-        columns={columns}
-        getRowId={(row) => row.stock_id}
-        disableRowSelectionOnClick
-      />
+            sx={{ width: 800 }}
+            rows={stocks.data ?? []}
+            columns={columns}
+            getRowId={(row) => row.stock_id}
+            disableRowSelectionOnClick
+          />
         </CardContent>
       </Card>
     </div>
