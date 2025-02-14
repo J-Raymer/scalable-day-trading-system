@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Container, TextField, Button, Typography, Box, Snackbar, Alert, Slide } from '@mui/material';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import './LoginPage.scss';
 
 function SlideTransition(props) {
@@ -12,8 +12,17 @@ export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.registered) {
+      setSuccess(true);
+      setOpen(true);
+    }
+  }, [location]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +61,7 @@ export function LoginPage() {
 
   const handleClose = () => {
     setOpen(false);
+    setSuccess(false);
   };
 
   return (
@@ -64,12 +74,12 @@ export function LoginPage() {
           {error}
         </Alert>
       </Snackbar>
-      <form
-        className="login-form"
-        noValidate
-        autoComplete="off"
-        onSubmit={handleLogin}
-      >
+      <Snackbar open={success} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+        <Alert onClose={handleClose} variant="filled" severity="success">
+          Registered successfully, please login
+        </Alert>
+      </Snackbar>
+      <form className="login-form" noValidate autoComplete="off" onSubmit={handleLogin}>
         <TextField
           label="Username"
           variant="outlined"

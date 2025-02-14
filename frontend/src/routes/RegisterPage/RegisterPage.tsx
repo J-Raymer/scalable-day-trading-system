@@ -39,7 +39,7 @@ export function RegisterPage() {
       });
       if (response.status === 201) {
         console.log("User registered successfully");
-        navigate('/login');
+        navigate('/login', { state: { registered: true } });
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
