@@ -70,14 +70,14 @@ async def home():
 })
 async def get_wallet_balance(user: User = Depends(verify_token)):
     with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(Wallets.balance).where(Wallets.user_id == user.id)
-        balance = session.exec(statement).one_or_none()
-        if not balance:
+        statement = sqlmodel.select(Wallets).where(Wallets.user_id == user.id)
+        wallet = session.exec(statement).one_or_none()
+        if not wallet:
             new_wallet = Wallets(user_id=user.id)
             session.add(new_wallet)
             session.commit()
             return SuccessResponse(data={"balance": 0})
-        return SuccessResponse(data={"balance": balance})
+        return SuccessResponse(data={"balance": wallet.balance})
 
 
 @app.get("/getWalletTransactions", responses={
