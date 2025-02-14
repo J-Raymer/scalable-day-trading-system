@@ -1,55 +1,62 @@
 import { useState } from 'react';
-import { Container, TextField, Button, Typography, Box } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { useRegister } from '@/api/register';
+import axios from 'axios';
+import { Container, TextField, Button, Typography, Box, Snackbar, Alert, Slide } from '@mui/material';
+import { useNavigate, Link } from 'react-router-dom';
 import './RegisterPage.scss';
 
+function SlideTransition(props) {
+  return <Slide {...props} direction="up" />;
+}
+
 export function RegisterPage() {
-  const [username, setUsername] = useState('');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const register = useRegister({
-    mutationConfig: {
-      onSuccess: (data) => {
-        localStorage.setItem('token', data.token);
-        navigate('/');
-      },
-    },
-  });
-  /*React Hook Form with zod is really good when working with a lot of fields
-   * https://react-hook-form.com/
-   * https://zod.dev/
-   * */
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username) {
-      setError('Username cannot be empty');
+    if (!name || !username || !password || !confirmPassword) {
+      setError('All fields must be filled out');
+      setOpen(true);
       return;
     }
-    if (!name) {
-      setError('Name cannot be empty');
-      return;
-    }
-    if (/\s|[^a-zA-Z0-9]/.test(username)) {
-      setError('Username cannot contain spaces or special characters');
-      return;
-    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      setOpen(true);
       return;
     }
-    if (!password || !confirmPassword) {
-      setError('All fields must be filled out');
-      return;
-    }
+
     try {
-      await register.mutateAsync({ username, password, name });
+      const response = await axios.post('http://localhost:3001/authentication/register', {
+        name,
+        user_name: username,
+        password,
+      });
+      if (response.status === 201) {
+        console.log("User registered successfully");
+        navigate('/login');
+      }
     } catch (err) {
-      setError(err.response.data.detail);
+      if (axios.isAxiosError(err)) {
+        if (err.response && err.response.status === 409) {
+          setError('User already exists');
+        } else {
+          setError('Registration failed. Please try again.');
+        }
+      } else {
+        setError('An unexpected error occurred.');
+      }
+      setOpen(true);
     }
+  };
+
+  const handleClose = () => {
+    setOpen(false);
   };
 
   return (
@@ -57,6 +64,11 @@ export function RegisterPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Register
       </Typography>
+      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+        <Alert onClose={handleClose} variant="filled" severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
       <form
         className="register-form"
         noValidate
@@ -64,28 +76,26 @@ export function RegisterPage() {
         onSubmit={handleRegister}
       >
         <TextField
-          label="Username"
+          label="Name"
           variant="outlined"
           fullWidth
-          required
-          margin="normal"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <TextField
-          label="Name"
-          fullWidth
-          required
           margin="normal"
           value={name}
           onChange={(e) => setName(e.target.value)}
+        />
+        <TextField
+          label="Username"
+          variant="outlined"
+          fullWidth
+          margin="normal"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
         />
         <TextField
           label="Password"
           type="password"
           variant="outlined"
           fullWidth
-          required
           margin="normal"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -95,22 +105,23 @@ export function RegisterPage() {
           type="password"
           variant="outlined"
           fullWidth
-          required
           margin="normal"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
-        {error && (
-          <Typography color="error" variant="body2">
-            {error}
-          </Typography>
-        )}
         <Box mt={2}>
           <Button variant="contained" color="primary" type="submit" fullWidth>
             Register
           </Button>
         </Box>
+        <Box mt={2}>
+          <Typography variant="body2">
+            Already have an account? <Link to="/login">Login</Link>
+          </Typography>
+        </Box>
       </form>
     </Container>
   );
 }
+
+export default RegisterPage;

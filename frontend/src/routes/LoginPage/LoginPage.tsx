@@ -1,19 +1,25 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Container, TextField, Button, Typography, Box } from '@mui/material';
+import { Container, TextField, Button, Typography, Box, Snackbar, Alert, Slide } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
 import './LoginPage.scss';
+
+function SlideTransition(props) {
+  return <Slide {...props} direction="up" />;
+}
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
       setError('All fields must be filled out');
+      setOpen(true);
       return;
     }
 
@@ -40,7 +46,12 @@ export function LoginPage() {
       } else {
         setError('An unexpected error occurred.');
       }
+      setOpen(true);
     }
+  };
+
+  const handleClose = () => {
+    setOpen(false);
   };
 
   return (
@@ -48,6 +59,11 @@ export function LoginPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Login
       </Typography>
+      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+        <Alert onClose={handleClose} variant="filled" severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
       <form
         className="login-form"
         noValidate
@@ -71,11 +87,6 @@ export function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        {error && (
-          <Typography color="error" variant="body2">
-            {error}
-          </Typography>
-        )}
         <Box mt={2}>
           <Button variant="contained" color="primary" type="submit" fullWidth>
             Login
