@@ -82,6 +82,8 @@ services:
       - USERNAME=${USERNAME}
       - PASSWORD=${PASSWORD}
       - HOST=${HOST}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
     networks:
         - day_trader_network
 
