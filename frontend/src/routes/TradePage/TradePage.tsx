@@ -37,6 +37,21 @@ export function TradePage() {
         getRowId={(row) => row.stock_id}
         disableRowSelectionOnClick
       />
+      <Card sx={{ mt: 2 }}>
+        <CardContent>
+          {/* placeholder for pending transactions, we will need to be able to see the status of sell limit orders and cancell them here */}
+          <Typography variant="h5" component="h2">
+            Pending Transactions
+          </Typography>
+          <DataGrid
+        sx={{ width: 800 }}
+        rows={stocks.data?? []}
+        columns={columns}
+        getRowId={(row) => row.stock_id}
+        disableRowSelectionOnClick
+      />
+        </CardContent>
+      </Card>
     </div>
   );
 };
