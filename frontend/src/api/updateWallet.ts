@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { API_URL, MutationConfig } from '@/lib/react-query.ts';
+import { API_URL, MutationConfig, queryClient } from '@/lib/react-query.ts';
 import axios from 'axios';
 
 interface UseUpdateWalletProps {
@@ -24,7 +24,7 @@ export const useUpdateWallet = ({
   return useMutation({
     mutationFn: updateWallet,
     onSuccess: (data, variables, context) => {
-      // This is where you would do something like invalidate a query if say, updating stocks.
+      queryClient.invalidateQueries(['wallet_balance']);
       onSuccess?.(data, variables, context);
     },
     ...restConfig,

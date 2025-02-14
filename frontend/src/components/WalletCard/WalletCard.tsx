@@ -21,14 +21,14 @@ export const WalletCard = () => {
         </Typography>
       </div>
 
-        <Button
-          fullWidth
-          variant="contained"
-          size={'small'}
-          onClick={() => setOpen(true)}
-        >
-          Add Balance
-        </Button>
+      <Button
+        fullWidth
+        variant="contained"
+        size={'small'}
+        onClick={() => setOpen(true)}
+      >
+        Add money to wallet
+      </Button>
     </DashboardCard>
   );
 };
