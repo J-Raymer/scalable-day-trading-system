@@ -1,12 +1,44 @@
+import React, { useState, useEffect } from 'react';
 import React, { useState } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { useStockPrices, Stock } from '@/api/getStockPrices.ts';
+import { Button, Typography, Snackbar, Alert, Slide } from '@mui/material';
 import { Button, Typography } from '@mui/material';
 import { PurchaseStockDialog } from '@/components/PurchaseStockDialog';
 import './StocksPage.scss';
 
+interface SlideTransitionProps {
+  children: React.ReactElement;
+  in: boolean;
+  onEnter?: () => void;
+  onExited?: () => void;
+}
+
+function SlideTransition(props: SlideTransitionProps) {
+  return <Slide {...props} direction="up" />;
+}
+
 export const StocksPage = () => {
-  const stocks = useStockPrices();
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const handleError = (message: string) => {
+    setError(message);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setError(null);
+  };
+
+  const stocks = useStockPrices({
+    queryConfig: {
+      onError: (error) => {
+        handleError(error.message);
+      },
+    },
+  });
   const [currentStockName, setCurrentStockName] = useState<string | undefined>(
     undefined,
   );
@@ -43,6 +75,11 @@ export const StocksPage = () => {
   return (
     <div className="stocks-page">
       <Typography variant="h2">Stocks</Typography>
+      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+        <Alert onClose={handleClose} variant="filled" severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
       <PurchaseStockDialog
         isOpen={dialogOpen}
         setIsOpen={setDialogOpen}

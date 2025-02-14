@@ -1,16 +1,42 @@
-import { Container, Typography, Grid2, Card, CardContent } from '@mui/material';
+import { useState } from 'react';
+import { Container, Typography, Grid2, Card, CardContent, Snackbar, Alert, Slide } from '@mui/material';
 import './HomePage.scss';
 import { WalletCard } from '@/components/WalletCard';
+import { SlideProps } from '@mui/material/Slide';
+
+interface SlideTransitionProps extends SlideProps {}
+
+function SlideTransition(props: SlideTransitionProps) {
+  return <Slide {...props} direction="up" />;
+}
 
 export function HomePage() {
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const handleError = (message: string) => {
+    setError(message);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setError(null);
+  };
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }} className="home-page">
       <Typography variant="h4" component="h1" gutterBottom>
         Dashboard
       </Typography>
+      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+        <Alert onClose={handleClose} variant="filled" severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
       <Grid2 container spacing={3}>
         <Grid2 size={{ xs: 12, md: 6 }}>
-          <WalletCard/>
+          <WalletCard onError={handleError} />
         </Grid2>
         <Grid2 size={{ xs: 12, md: 6 }}>
           <Card>
