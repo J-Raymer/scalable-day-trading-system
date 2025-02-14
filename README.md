@@ -2,35 +2,23 @@
 
 ### Initial architecture / tech stack
 
+### Running with Docker
 
-### Running with Docker 
+#### Backend
+
 To start up the docker containers from the root directory type `docker compose up --build -d` and it will
 build and run all the micro-services.
 
-#### Front End
+#### Frontend
 
-- ReactJS
+To start up the webserver locally:
 
-#### Reverse Proxy
+1. Install packages `npm i`
+2. Start server `npm start`
 
-- NGINX
+### API Documentation
 
-#### Matching Engine
-
-- FastAPI
-
-#### Database
-
-- PostgresDB
-
-> Docker and Kubernetes
-
-### Architecture Flow
-
-Front End <--> Reverse Proxy <--> Matching Engine <--> Database
-
-### Simplified flow for first deliverable
-
-Front end container <--> Matching engine container <--> Database container
-
-> Decouple services from the `Matching engine` container, and add the container managment + reverse proxy for a later deliverable
+1. Transaction Service: `localhost:3001/transaction/docs`
+2. Authentication Service: `localhost:3001/authentication/docs`
+3. Matching Engine Service: `localhost:3001/engine/docs`
+4. Setup Service: `localhost:3001/setup/docs`
