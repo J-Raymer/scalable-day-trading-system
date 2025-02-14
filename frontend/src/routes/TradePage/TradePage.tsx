@@ -5,8 +5,9 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Stock, useStockPrices } from '@/api/getStockPrices';
 
 export function TradePage() {
-  // const stocks = useStockPrices();
-  const stocks = useStockPortfolio();
+  const stocks = useStockPrices();
+  // uncomment this after user has been setup to have stocks
+  // const stocks = useStockPortfolio();
   const columns: GridColDef<Stock>[] = [
     { field: 'stock_id', headerName: 'id' },
     { field: 'stock_name', headerName: 'Name', flex: 60 },
@@ -20,15 +21,15 @@ export function TradePage() {
           onClick={() => console.log(params.row.stock_id)}
           variant="contained"
         >
-          Purchase
+          View Stock
         </Button>
       ),
     },
   ];
 
   return (
-    <div className="stocks-page">
-      <Typography variant="h2">Stocks</Typography>
+    <div className="trade-page">
+      <Typography variant="h2">My Stocks</Typography>
       <DataGrid
         sx={{ width: 800 }}
         rows={stocks.data?? []}
