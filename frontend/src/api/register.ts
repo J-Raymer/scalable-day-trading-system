@@ -30,7 +30,7 @@ type UseRegisterOptions = {
   mutationConfig?: MutationConfig<typeof register>;
 };
 
-export const useRegister = ({ mutationConfig }: UseRegisterOptions) => {
+export const useRegister = ({ mutationConfig }: UseRegisterOptions = {}) => {
   const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
     mutationFn: register,

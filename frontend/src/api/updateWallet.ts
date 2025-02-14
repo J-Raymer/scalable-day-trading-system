@@ -17,7 +17,9 @@ type UseUpdateWalletOptions = {
   mutationConfig?: MutationConfig<typeof updateWallet>;
 };
 
-export const useUpdateWallet = ({ mutationConfig }: UseUpdateWalletOptions) => {
+export const useUpdateWallet = ({
+  mutationConfig,
+}: UseUpdateWalletOptions = {}) => {
   const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
     mutationFn: updateWallet,
