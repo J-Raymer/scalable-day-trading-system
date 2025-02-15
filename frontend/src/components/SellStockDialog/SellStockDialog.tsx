@@ -134,7 +134,6 @@ export const SellStockDialog = ({
         <DialogFooter
           onSubmit={handleSubmit}
           onCancel={handleCancel}
-          color={ButtonColor.ERROR}
         />
       </Dialog>
       <Snackbar
