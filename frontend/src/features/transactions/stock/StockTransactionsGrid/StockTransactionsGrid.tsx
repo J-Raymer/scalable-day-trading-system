@@ -7,7 +7,7 @@ import {
 } from '@/api/getStockTransactions.ts';
 import { ButtonColor, OrderStatus, OrderType } from '@/lib/enums.ts';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { CancelOrderDialog } from '@/components/CancelOrderDialog';
+import { CancelOrderDialog } from '@/features/transactions/stock/CancelOrderDialog';
 
 export const StockTransactionsGrid = () => {
   const transactions = useStockTransactions();
