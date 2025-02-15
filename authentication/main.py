@@ -5,9 +5,10 @@ import os
 import sqlmodel
 from sqlmodel import func
 from datetime import datetime, timedelta
-from fastapi import FastAPI, Response, HTTPException
+from fastapi import FastAPI, Response, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordBearer
 from database import Users
 from schemas.common import *
 
