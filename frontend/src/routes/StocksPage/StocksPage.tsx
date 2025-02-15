@@ -3,7 +3,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { useStockPrices, Stock } from '@/api/getStockPrices.ts';
 import { Button, Typography, Snackbar, Alert, Slide } from '@mui/material';
 import { SlideTransition } from '@/components/SlideTransition';
-import { PurchaseStockDialog } from '@/components/PurchaseStockDialog';
+import { PurchaseStockDialog } from '@/features/transactions/stock/PurchaseStockDialog';
 import './StocksPage.scss';
 
 export const StocksPage = () => {
