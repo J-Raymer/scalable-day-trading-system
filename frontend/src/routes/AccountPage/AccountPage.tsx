@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Container, Typography, Snackbar, Alert, Slide } from '@mui/material';
 import { SlideTransition } from '@/components/SlideTransition';
 import './AccountPage.scss';

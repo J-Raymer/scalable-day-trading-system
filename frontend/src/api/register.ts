@@ -1,6 +1,5 @@
-import { useMutation, UseMutationResult } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { API_URL, MutationConfig } from '@/lib/react-query.ts';
-import { AxiosError } from 'axios';
 import axios from 'axios';
 
 interface UseRegisterProps {
@@ -31,9 +30,7 @@ type UseRegisterOptions = {
   mutationConfig?: MutationConfig<typeof register>;
 };
 
-export const useRegister = ({
-  mutationConfig,
-}: UseRegisterOptions = {}) => {
+export const useRegister = ({ mutationConfig }: UseRegisterOptions = {}) => {
   const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
     mutationFn: register,

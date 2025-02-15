@@ -9,10 +9,9 @@ import {
   Alert,
 } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
-import { SlideTransition } from '@/components/SlideTransition';
 import { useRegister } from '@/api/register.ts';
+import { SlideTransition } from '@/components/SlideTransition';
 import './RegisterPage.scss';
-import { AxiosError } from 'axios';
 
 export function RegisterPage() {
   const [name, setName] = useState('');
@@ -29,8 +28,8 @@ export function RegisterPage() {
         navigate('/');
       },
       onError: (error) => {
-        // setError(error.response?.data.detail);
-        // setOpen(true);
+        setError(error.response?.data.detail ?? '');
+        setOpen(true);
       },
     },
   });
@@ -46,11 +45,9 @@ export function RegisterPage() {
       setOpen(true);
       return;
     }
-    await register.mutateAsync({ username, name, password });
-  };
-
-  const handleClose = () => {
-    setOpen(false);
+    try {
+      await register.mutateAsync({ username, name, password });
+    } catch (error) {}
   };
 
   return (
@@ -92,11 +89,6 @@ export function RegisterPage() {
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
       />
-      {error && (
-        <Typography color="error" variant="body2">
-          {error}
-        </Typography>
-      )}
       <Box mt={2}>
         <Button
           variant="contained"
@@ -113,6 +105,16 @@ export function RegisterPage() {
           Already have an account? <Link to="/login">Login</Link>
         </Typography>
       </Box>
+      <Snackbar
+        open={open}
+        autoHideDuration={6000}
+        onClose={() => setOpen(false)}
+        TransitionComponent={SlideTransition}
+      >
+        <Alert onClose={() => setOpen(false)} variant="filled" severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

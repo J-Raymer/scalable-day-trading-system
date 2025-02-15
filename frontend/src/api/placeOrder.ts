@@ -13,7 +13,7 @@ interface UseBuyStockProps {
 const token = localStorage.getItem('token');
 const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-async function buyStock({
+async function placeOrder({
   stockId,
   orderType,
   quantity,
@@ -36,14 +36,14 @@ async function buyStock({
 }
 
 type UseBuyStockOptions = {
-  mutationConfig?: MutationConfig<typeof buyStock>;
+  mutationConfig?: MutationConfig<typeof placeOrder>;
 };
 
 // TODO: When do we add wallet transactions? Is that on buy stock? Determine for invalidation
-export const useBuyStock = ({ mutationConfig }: UseBuyStockOptions = {}) => {
+export const usePlaceOrder = ({ mutationConfig }: UseBuyStockOptions = {}) => {
   const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
-    mutationFn: buyStock,
+    mutationFn: placeOrder,
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries(['portfolio', 'wallet_tx']);
       onSuccess?.(data, variables, context);

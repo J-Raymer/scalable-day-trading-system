@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Container, Typography, Card, CardContent, Button, Snackbar, Alert, Slide } from '@mui/material';
+import { Typography, Card, CardContent, Button, Snackbar, Alert } from '@mui/material';
 import { useStockPortfolio } from '@/api/getStockPortfolio';
 import './TradePage.scss';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -22,7 +22,7 @@ export function TradePage() {
     setOpen(false);
     setError(null);
   };
-  
+
 
   const stocks = useStockPrices();
   // uncomment this after user has been setup to have stocks

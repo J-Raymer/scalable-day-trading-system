@@ -6,12 +6,15 @@ import {
   FormControlLabel,
   TextField,
   Typography,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { DialogHeader } from '@/components/DialogHeader';
 import { DialogFooter } from '@/components/DialogFooter';
-import { useBuyStock } from '@/api/buyStock.ts';
+import { usePlaceOrder } from '@/api/placeOrder.ts';
 import { OrderType } from '@/lib/enums.ts';
 import './PurchaseStockDialog.scss';
+import { SlideTransition } from '@/components/SlideTransition';
 
 interface PurchaseStockDialogProps {
   isOpen: boolean;
@@ -21,6 +24,11 @@ interface PurchaseStockDialogProps {
   price: number;
 }
 
+interface FormErrors {
+  limit: string | undefined;
+  quantity: string | undefined;
+}
+
 export const PurchaseStockDialog = ({
   isOpen,
   setIsOpen,
@@ -28,12 +36,37 @@ export const PurchaseStockDialog = ({
   stockName,
   price,
 }: PurchaseStockDialogProps) => {
-  const buyStock = useBuyStock();
   const [quantity, setQuantity] = useState('');
   const [limit, setLimit] = useState('');
   const [isLimit, setIsLimit] = useState(false);
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [formErrors, setFormErrors] = useState<FormErrors>({
+    limit: undefined,
+    quantity: undefined,
+  });
+
+  const buyStock = usePlaceOrder({
+    mutationConfig: {
+      onSuccess: () => {
+        setIsOpen(false);
+      },
+      onError: (error) => {
+        setError(error.response?.data.detail ?? 'An unknown error occurred');
+        setShowSnackbar(true);
+      },
+    },
+  });
 
   const handleSubmit = async () => {
+    const quantityAsNum = Number(quantity);
+    const limitAsNum = isLimit ? Number(limit) : 1;
+    if (quantityAsNum <= 0) {
+      setFormErrors({ ...formErrors, quantity: 'Must be greater than 0' });
+      return;
+    }
+
+
     try {
       await buyStock.mutateAsync({
         stockId,
@@ -41,8 +74,12 @@ export const PurchaseStockDialog = ({
         quantity: Number(quantity),
         price: isLimit ? Number(limit) : price,
       });
-    } catch (e) {
-    }
+    } catch (e) {}
+  };
+
+  const handleClose = () => {
+    setFormErrors({ quantity: undefined, limit: undefined });
+    setIsOpen(false);
   };
 
   return (
@@ -80,10 +117,26 @@ export const PurchaseStockDialog = ({
           label="Quantity"
           type="number"
           value={quantity}
+          error={formErrors['quantity'] !== undefined}
+          helperText={formErrors['quantity']}
           onChange={(e) => setQuantity(e.target.value)}
         />
       </DialogContent>
-      <DialogFooter onSubmit={() => {}} onCancel={() => setIsOpen(false)} />
+      <DialogFooter onSubmit={handleSubmit} onCancel={handleClose} />
+      <Snackbar
+        open={showSnackbar}
+        autoHideDuration={6000}
+        onClose={() => setShowSnackbar(false)}
+        TransitionComponent={SlideTransition}
+      >
+        <Alert
+          onClose={() => setShowSnackbar(false)}
+          variant="filled"
+          severity="error"
+        >
+          {error}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };
