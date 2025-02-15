@@ -58,14 +58,31 @@ export const PurchaseStockDialog = ({
     },
   });
 
-  const handleSubmit = async () => {
-    const quantityAsNum = Number(quantity);
-    const limitAsNum = isLimit ? Number(limit) : 1;
-    if (quantityAsNum <= 0) {
-      setFormErrors({ ...formErrors, quantity: 'Must be greater than 0' });
-      return;
+  const handleValidate = (quantity: number, limit: number) => {
+    let error = false;
+    // Use a separate variable to update state properly
+    const newFormErrors: FormErrors = { ...formErrors };
+
+    if (quantity <= 0) {
+      newFormErrors.quantity = 'Must be greater than 0';
+      error = true;
+    }
+    if (isLimit && limit <= 0) {
+      newFormErrors.limit = 'Limit must be greater than 0';
+      error = true;
     }
 
+    setFormErrors(newFormErrors);
+    return error;
+  };
+
+  const handleSubmit = async () => {
+    const quantityAsNum = Number(quantity);
+    const limitAsNum = Number(limit);
+    const error = handleValidate(quantityAsNum, limitAsNum);
+    if (error) {
+      return;
+    }
 
     try {
       await buyStock.mutateAsync({
@@ -93,7 +110,8 @@ export const PurchaseStockDialog = ({
         <Typography variant="subtitle2">{`Current best Price: ${price}`}</Typography>
         <Typography>
           If this is a limit order enter the price you would like to purchase
-          the stock at, otherwise the current best prices will be used.
+          the stock at, otherwise the current best prices will be used. If
+          there is insufficient quantity at the best price, the next best price will be used.
         </Typography>
         <FormControlLabel
           control={
@@ -110,6 +128,8 @@ export const PurchaseStockDialog = ({
             label="Price"
             type="number"
             value={limit}
+            error={formErrors['limit'] !== undefined}
+            helperText={formErrors['limit']}
             onChange={(e) => setLimit(e.target.value)}
           />
         )}
