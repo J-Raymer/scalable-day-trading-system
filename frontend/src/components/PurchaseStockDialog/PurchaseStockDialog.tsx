@@ -19,9 +19,9 @@ import { SlideTransition } from '@/components/SlideTransition';
 interface PurchaseStockDialogProps {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  stockId: number;
+  stockId: number | undefined;
   stockName: string;
-  price: number;
+  price: number | undefined;
 }
 
 interface FormErrors {
@@ -81,6 +81,15 @@ export const PurchaseStockDialog = ({
     const limitAsNum = Number(limit);
     const error = handleValidate(quantityAsNum, limitAsNum);
     if (error) {
+      return;
+    }
+    if (stockId === undefined) {
+      setError('Error, missing stock Id');
+      setShowSnackbar(true);
+      return;
+    }
+    if (price === undefined) {
+      setError('Error, missing price');
       return;
     }
 

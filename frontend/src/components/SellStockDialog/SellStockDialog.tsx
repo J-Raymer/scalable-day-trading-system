@@ -76,6 +76,8 @@ export const SellStockDialog = ({
 
     const error = handleValidate(Number(price), Number(quantity));
     if (error) {
+      setError('Error, missing stock id');
+      setShowError(true);
       return;
     }
 
