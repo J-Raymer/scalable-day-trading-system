@@ -9,7 +9,7 @@ import { ButtonColor, OrderStatus, OrderType } from '@/lib/enums.ts';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { CancelOrderDialog } from '@/components/CancelOrderDialog';
 
-export const TransactionsGrid = () => {
+export const StockTransactionsGrid = () => {
   const transactions = useStockTransactions();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentTxId, setCurrentTxId] = useState<number | undefined>();
