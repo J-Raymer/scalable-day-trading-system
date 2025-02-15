@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, TextField, Typography } from '@mui/material';
 import { useUpdateWallet } from '@/api/updateWallet.ts';
-import { DialogHeader } from '../DialogHeader';
+import { DialogHeader } from '@/components/DialogHeader';
 import { DialogFooter } from '@/components/DialogFooter';
 import './UpdateWalletDialog.scss';
 
@@ -20,24 +20,31 @@ export const UpdateWalletDialog = ({
     mutationConfig: {
       onSuccess: () => {
         setIsOpen(false);
+        setError(undefined);
       },
       onError: (error) => {
-        onError(error.message);
+        onError(error.response?.data.detail ?? 'An unknown error occurred');
       },
     },
   });
   const [amount, setAmount] = useState('');
+  const [error, setError] = useState<undefined | string>(undefined);
 
   const handleSubmit = async () => {
-    try {
-      await updateWallet.mutateAsync({ amount: Number(amount) });
-    } catch (e) {
-      if (e instanceof Error) {
-        onError(e.message);
-      } else {
-        onError('An unknown error occurred');
-      }
+    const amountAsNum = Number(amount);
+    if (amountAsNum <= 0) {
+      setError('Amount must be greater than 0');
+      return;
     }
+    try {
+      await updateWallet.mutateAsync({ amount: amountAsNum });
+    } catch (e) {}
+  };
+
+  const handleClose = () => {
+    setError(undefined);
+    setIsOpen(false);
+    setAmount('');
   };
 
   return (
@@ -46,7 +53,7 @@ export const UpdateWalletDialog = ({
       slotProps={{ paper: { className: 'update-wallet-dialog' } }}
     >
       <DialogHeader title={'Add money to wallet'}></DialogHeader>
-      <DialogContent className="content">
+      <DialogContent>
         <Typography>
           Enter the amount you would like to add to your current balance.
         </Typography>
@@ -54,11 +61,12 @@ export const UpdateWalletDialog = ({
           label="Amount to add"
           type="number"
           value={amount}
+          error={error !== undefined}
+          helperText={error ?? ''}
           onChange={(e) => setAmount(e.target.value)}
         />
       </DialogContent>
-
-      <DialogFooter onSubmit={handleSubmit} onCancel={() => setIsOpen(false)} />
+      <DialogFooter onSubmit={handleSubmit} onCancel={handleClose} />
     </Dialog>
   );
 };

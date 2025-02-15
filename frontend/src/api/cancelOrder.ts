@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { API_URL, MutationConfig, queryClient } from '@/lib/react-query';
 
 interface UseCancelOrderProps {
-  stockTxId: string;
+  stockTxId: number;
 }
 
 const token = localStorage.getItem('token');
@@ -26,7 +26,9 @@ type UseCancelOrderOptions = {
   mutationConfig?: MutationConfig<typeof cancelOrder>;
 };
 
-export const useCancelOrder = ({ mutationConfig }: UseCancelOrderOptions) => {
+export const useCancelOrder = ({
+  mutationConfig,
+}: UseCancelOrderOptions = {}) => {
   const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
     mutationFn: cancelOrder,

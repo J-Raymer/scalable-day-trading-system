@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { Container, Typography, Grid2, Card, CardContent, Snackbar, Alert, Slide } from '@mui/material';
+import {
+  Container,
+  Typography,
+  Grid2,
+  Card,
+  CardContent,
+  Snackbar,
+  Alert,
+  Slide,
+} from '@mui/material';
 import './HomePage.scss';
-import { WalletCard } from '@/components/WalletCard';
-import { SlideProps } from '@mui/material/Slide';
-
-interface SlideTransitionProps extends SlideProps {}
-
-function SlideTransition(props: SlideTransitionProps) {
-  return <Slide {...props} direction="up" />;
-}
+import { WalletCard } from '@/features/wallet/WalletCard';
+import { SlideTransition } from '@/components/SlideTransition';
 
 export function HomePage() {
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +32,12 @@ export function HomePage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Dashboard
       </Typography>
-      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+      <Snackbar
+        open={open}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        TransitionComponent={SlideTransition}
+      >
         <Alert onClose={handleClose} variant="filled" severity="error">
           {error}
         </Alert>
