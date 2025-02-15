@@ -19,7 +19,11 @@ export const DialogFooter = ({
       <Button variant="outlined" onClick={onCancel}>
         Cancel
       </Button>
-      <Button variant="contained" onClick={onSubmit} color={color ?? 'primary'}>
+      <Button
+        variant="contained"
+        onClick={onSubmit}
+        color={color ?? ButtonColor.PRIMARY}
+      >
         Submit
       </Button>
     </div>
