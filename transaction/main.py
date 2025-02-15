@@ -1,6 +1,6 @@
 import jwt
 import sqlmodel
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from uuid import UUID
