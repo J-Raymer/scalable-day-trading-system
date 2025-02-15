@@ -10,7 +10,7 @@ import {
   Slide,
 } from '@mui/material';
 import './HomePage.scss';
-import { WalletCard } from '@/components/WalletCard';
+import { WalletCard } from '@/features/wallet/WalletCard';
 import { SlideTransition } from '@/components/SlideTransition';
 
 export function HomePage() {

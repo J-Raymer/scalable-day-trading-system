@@ -3,7 +3,7 @@ import { Typography, Button } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import React, { useState } from 'react';
 import { PortfolioItem, useStockPortfolio } from '@/api/getStockPortfolio.ts';
-import { SellStockDialog } from '@/components/SellStockDialog';
+import { SellStockDialog } from '@/features/transactions/stock/SellStockDialog';
 
 export const PortfolioGrid = () => {
   const portolio = useStockPortfolio();

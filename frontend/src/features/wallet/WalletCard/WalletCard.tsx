@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { DashboardCard } from '@/components/DashboardCard/DashboardCard.tsx';
 import { useWalletBalance } from '@/api/getWalletBallance.ts';
 import { Button, Typography } from '@mui/material';
-import { UpdateWalletDialog } from '@/components/UpdateWalletDialog';
+import { UpdateWalletDialog } from '@/features/wallet/UpdateWalletDialog';
 import './WalletCard.scss';
 
 interface WalletCardProps {
