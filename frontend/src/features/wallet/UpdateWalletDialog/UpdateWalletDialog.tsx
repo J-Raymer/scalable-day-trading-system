@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, TextField, Typography } from '@mui/material';
 import { useUpdateWallet } from '@/api/updateWallet.ts';
-import { DialogHeader } from '../DialogHeader';
+import { DialogHeader } from '@/components/DialogHeader';
 import { DialogFooter } from '@/components/DialogFooter';
 import './UpdateWalletDialog.scss';
 
