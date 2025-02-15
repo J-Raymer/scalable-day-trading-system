@@ -1,4 +1,14 @@
-import { UseMutationOptions, DefaultOptions, QueryClient } from '@tanstack/react-query';
+import {
+  UseMutationOptions,
+  DefaultOptions,
+  QueryClient,
+} from '@tanstack/react-query';
+import '@tanstack/react-query';
+import { AxiosError } from 'axios';
+
+export interface ErrorDetails {
+  detail: string;
+}
 
 export const queryConfig = {
   queries: {
@@ -21,7 +31,7 @@ export type MutationConfig<
   MutationFnType extends (...args: any) => Promise<any>,
 > = UseMutationOptions<
   ApiFnReturnType<MutationFnType>,
-  Error,
+  AxiosError<ErrorDetails>,
   Parameters<MutationFnType>[0]
 >;
 

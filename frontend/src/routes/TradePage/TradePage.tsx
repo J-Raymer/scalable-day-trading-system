@@ -1,20 +1,12 @@
 import { useState } from 'react';
-import { Container, Typography, Card, CardContent, Button, Snackbar, Alert, Slide } from '@mui/material';
+import { Typography, Card, CardContent, Button, Snackbar, Alert } from '@mui/material';
 import { useStockPortfolio } from '@/api/getStockPortfolio';
 import './TradePage.scss';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Stock, useStockPrices } from '@/api/getStockPrices';
+import { SlideTransition } from '@/components/SlideTransition';
 
-interface SlideTransitionProps {
-  children: React.ReactElement;
-  in: boolean;
-  onEnter?: () => void;
-  onExited?: () => void;
-}
 
-function SlideTransition(props: SlideTransitionProps) {
-  return <Slide {...props} direction="up" />;
-}
 
 
 export function TradePage() {
@@ -30,15 +22,9 @@ export function TradePage() {
     setOpen(false);
     setError(null);
   };
-  
 
-  const stocks = useStockPrices({
-    queryConfig: {
-      onError: (error) => {
-        handleError(error.message);
-      },
-    },
-  });
+
+  const stocks = useStockPrices();
   // uncomment this after user has been setup to have stocks
   // const stocks = useStockPortfolio();
   const columns: GridColDef<Stock>[] = [

@@ -1,17 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Container, Typography, Card, CardContent, Snackbar, Alert, Slide } from '@mui/material';
+import { useState } from 'react';
+import {
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  Snackbar,
+  Alert,
+} from '@mui/material';
+import { SlideTransition } from '@/components/SlideTransition';
 import './HistoryPage.scss';
-
-interface SlideTransitionProps {
-  children: React.ReactElement;
-  in: boolean;
-  onEnter?: () => void;
-  onExited?: () => void;
-}
-
-function SlideTransition(props: SlideTransitionProps) {
-  return <Slide {...props} direction="up" />;
-}
 
 export function HistoryPage() {
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +29,12 @@ export function HistoryPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         History
       </Typography>
-      <Snackbar open={open} autoHideDuration={6000} onClose={handleClose} TransitionComponent={SlideTransition}>
+      <Snackbar
+        open={open}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        TransitionComponent={SlideTransition}
+      >
         <Alert onClose={handleClose} variant="filled" severity="error">
           {error}
         </Alert>

@@ -42,7 +42,10 @@ const theme = (darkMode: boolean) =>
       MuiDialogContent: {
         styleOverrides: {
           root: {
-            padding: '0 16px 0 16px'
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            padding: '16px 16px 16px 16px'
           }
         }
       }
