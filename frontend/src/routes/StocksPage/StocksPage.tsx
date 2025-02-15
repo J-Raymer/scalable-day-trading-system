@@ -84,9 +84,9 @@ export const StocksPage = () => {
       <PurchaseStockDialog
         isOpen={dialogOpen}
         setIsOpen={setDialogOpen}
-        stockId={currentStockId ?? 0}
+        stockId={currentStockId}
         stockName={currentStockName ?? ''}
-        price={currentPrice ?? 0}
+        price={currentPrice}
       />
       <DataGrid
         sx={{ width: 800 }}
