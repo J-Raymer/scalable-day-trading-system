@@ -32,7 +32,8 @@ export const TransactionsGrid = () => {
       flex: 10,
       renderCell: (params) => {
         return (
-          params.row.order_status !== OrderStatus.COMPLETED && (
+          params.row.order_status !== OrderStatus.COMPLETED &&
+          params.row.order_type == OrderType.LIMIT && (
             <Button
               variant="contained"
               color={ButtonColor.ERROR}

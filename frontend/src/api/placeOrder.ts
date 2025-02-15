@@ -8,6 +8,7 @@ interface UseBuyStockProps {
   orderType: OrderType;
   quantity: number;
   price: number;
+  isBuy: boolean;
 }
 
 const token = localStorage.getItem('token');
@@ -18,12 +19,13 @@ async function placeOrder({
   orderType,
   quantity,
   price,
+  isBuy,
 }: UseBuyStockProps): Promise<void> {
   const response = await axios.post(
     `${API_URL}/engine/placeStockOrder`,
     {
       stock_id: stockId,
-      is_buy: true,
+      is_buy: isBuy,
       order_type: orderType,
       quantity,
       price,
