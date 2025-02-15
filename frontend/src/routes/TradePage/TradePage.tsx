@@ -1,6 +1,6 @@
 import React from 'react';
 import { Typography, Button, Snackbar, Alert } from '@mui/material';
-import { PortfolioGrid } from '@/components/PortfolioGrid';
+import { PortfolioGrid } from '@/features/portfolio/PortfolioGrid';
 import { TransactionsGrid } from '@/components/TransactionsGrid';
 import './TradePage.scss';
 
