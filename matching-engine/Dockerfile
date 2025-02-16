@@ -10,4 +10,4 @@ COPY database /app/database
 COPY schemas /app/schemas
 
 
-CMD ["python3", "-m", "uvicorn", "matching-engine.app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["python3", "-m", "uvicorn", "matching-engine.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--proxy-headers"]

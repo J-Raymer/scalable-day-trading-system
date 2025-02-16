@@ -9,7 +9,6 @@ import {
 
 export const WalletTransactionsGrid = () => {
   const transactions = useWalletTransactions();
-  console.log(transactions.data);
 
   const columns: GridColDef<WalletTransaction>[] = [
     { field: 'stock_tx_id', headerName: 'Stock Tx Id', flex: 10 },
