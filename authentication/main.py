@@ -56,7 +56,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
         responses={
             200: {"model": SuccessResponse},
             401: {"model": ErrorResponse},
-            401: {"model": ErrorResponse},
             403: {"model": ErrorResponse},
         })
 async def validate_token(token: str = Depends(oauth2_scheme)):
