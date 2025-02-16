@@ -10,7 +10,7 @@ from database import Wallets, WalletTransactions, Users, Stocks, StockPortfolios
 from schemas.common import SuccessResponse, ErrorResponse, User
 from schemas.transaction import AddMoneyRequest, WalletTxResult, PortfolioResult
 from schemas.setup import Stock, StockSetup
-
+from fastapi.middleware.cors import CORSMiddleware
 
 dotenv.load_dotenv()
 DB_USERNAME = os.getenv("USERNAME")
@@ -24,6 +24,15 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 app = FastAPI(
     root_path="/transaction"
 )
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Allows front end requests locally
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 
@@ -65,14 +74,15 @@ async def get_wallet_balance(x_user_data : str = Header(None)):
     username, user_id = x_user_data.split("|")
 
     with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(Wallets.balance).where(Wallets.user_id == user_id)
-        balance = session.exec(statement).one_or_none()
-        if not balance:
-            new_wallet = Wallets(user_id=user_id)
+
+        statement = sqlmodel.select(Wallets).where(Wallets.user_id == user.id)
+        wallet = session.exec(statement).one_or_none()
+        if not wallet:
+            new_wallet = Wallets(user_id=user.id)
             session.add(new_wallet)
             session.commit()
             return SuccessResponse(data={"balance": 0})
-        return SuccessResponse(data={"balance": balance})
+        return SuccessResponse(data={"balance": wallet.balance})
 
 
 @app.get("/getWalletTransactions", responses={
@@ -119,10 +129,14 @@ async def get_wallet_transactions( x_user_data : str = Header(None)):
               403: {"model": ErrorResponse},
               409: {"model": ErrorResponse}
           })
+
 async def add_money_to_wallet(req: AddMoneyRequest, x_user_data : str = Header(None)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
+
+    if req.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
 
     with sqlmodel.Session(engine) as session:
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)

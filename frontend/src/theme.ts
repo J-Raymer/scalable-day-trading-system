@@ -39,6 +39,16 @@ const theme = (darkMode: boolean) =>
           },
         },
       },
+      MuiDialogContent: {
+        styleOverrides: {
+          root: {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            padding: '16px 16px 16px 16px'
+          }
+        }
+      }
     },
   });
 
