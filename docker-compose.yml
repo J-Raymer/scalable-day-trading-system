@@ -36,8 +36,8 @@ services:
 
   database:
     build:
-      context: database
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./database/Dockerfile
     depends_on:
       db:
         condition: service_healthy
@@ -50,7 +50,6 @@ services:
     volumes:
       - ./:/app
     working_dir: /app
-    command: python3 -m database.app
     networks:
       - day_trader_network
 
