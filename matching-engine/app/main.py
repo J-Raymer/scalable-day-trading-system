@@ -1,10 +1,13 @@
+
+# run locally on uvicorn using "uvicorn matching-engine.app.main:app --reload"
+import jwt
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from uuid import UUID
 from schemas.common import SuccessResponse, ErrorResponse, User
 from schemas.engine import StockOrder
-from .core import receiveOrder, cancelOrder, clearSellOrders
+from .core import receiveOrder, cancelOrder, getUserFromId, getAllUsers
 
 app = FastAPI(
     root_path="/engine"
@@ -17,22 +20,42 @@ async def home():
 
 
 # engine calls
-@app.post("/placeStockOrder", responses={
-    200: {"model": SuccessResponse},
-    400: {"model": ErrorResponse},
-    401: {"model": ErrorResponse},
-    403: {"model": ErrorResponse},
-    404: {"model": ErrorResponse},
-})
-async def placeStockOrder(order: StockOrder, user: User): # REMOVE AFTER TESTING= Depends(verify_token)):
+@app.post(
+    "/placeStockOrder",
+    responses={
+        200: {"model": SuccessResponse},
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+    },
+)
+async def placeStockOrder(
+    order: StockOrder, user: User
+):  # REMOVE AFTER TESTING= Depends(verify_token)):
     return receiveOrder(order, user)
 
 
-@app.post("/cancelStockTransaction", responses={
-    200: {"model": SuccessResponse},
-    400: {"model": ErrorResponse},
-    404: {"model": ErrorResponse},
-})
+# TEST CALL
+@app.post("/getUserFromId")
+async def getUser(data):
+    return getUserFromId(data.id)
+
+
+# TEST CALL
+@app.get("/getUsers")
+async def getUsers():
+    return getAllUsers()
+
+
+@app.post(
+    "/cancelStockTransaction",
+    responses={
+        200: {"model": SuccessResponse},
+        400: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+    },
+)
 async def cancelStockTransaction(stockID: str):
     return cancelOrder()
 

@@ -3,14 +3,17 @@ from fastapi import FastAPI
 from uuid import UUID
 from schemas.engine import StockOrder, SellOrder, BuyOrder
 from schemas.common import SuccessResponse, ErrorResponse, User
+from schemas.transaction import AddMoneyRequest
 from datetime import datetime
 from collections import defaultdict, deque
 from heapq import heapify, heappop, heappush
 import requests
 
+
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
- 
+
+
 def receiveOrder(order: StockOrder, user: User):
     # grab the details only we know
     time = datetime.now()
@@ -36,7 +39,7 @@ def receiveOrder(order: StockOrder, user: User):
                 timestamp=time,
             )
         )
-        return {"success": True, "data": {}}
+        return {"success": True, "data": {uid}}
 
 
 def checkMatch():
@@ -44,26 +47,27 @@ def checkMatch():
 
     for stock_id in sellTrees:
         if (sellTrees[stock_id]) and (buyQueues[stock_id]):
-            print('match found')
-            buy_order  = buyQueues[stock_id][0]
+            print("match found")
+            buy_order = buyQueues[stock_id][0]
             sell_order = sellTrees[stock_id][0]
-            
-            #get wallet of buyer
-            response = requests.get("http://transaction/getWalletBalance", json={"user": 1})
-           
-            #happy path
+
+            # get wallet of buyer
+            response = requests.get(
+                "http://transaction/getWalletBalance", json={"user": 1}
+            )
+
+            # happy path
             if buy_order.user_id != sell_order.user_id:
-                #happy path
+                # happy path
                 if buy_order.quantity == sell_order.quantity:
 
-
                     # pop both
-                    fufilled_buy  = buyQueues[stock_id].popleft()
+                    fufilled_buy = buyQueues[stock_id].popleft()
                     fufilled_sell = heappop(sellTrees[stock_id])
                     # send a transaction to the transaction service
-                    response = requests.post("http://transaction/addMoneyToWallet", json={})
-                         
-
+                    response = requests.post(
+                        "http://transaction/addMoneyToWallet", json={}
+                    )
 
                 if buyOrder.quantity < sellOrder.quantity:
                     pass
@@ -82,25 +86,28 @@ def getStockPrices():
     stockPrices = [(stock_id, sellTrees[stock_id][0]) for stock_id in sellTrees]
     return {"success": True, "data": stockPrices}
 
+
 def processSellOrder(sellOrder: SellOrder):
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
-    print(sellTrees[sellOrder.stock_id]) #REMOVE AFTER TESTING
+    print(sellTrees[sellOrder.stock_id])  # REMOVE AFTER TESTING
     checkMatch()
 
 
 def processBuyOrder(buyOrder: BuyOrder):
     buyQueues[buyOrder.stock_id].append(buyOrder)
-    print(buyQueues[buyOrder.stock_id]) #REMOVE AFTER TESTING
+    print(buyQueues[buyOrder.stock_id])  # REMOVE AFTER TESTING
     checkMatch()
 
 
 # Matches buy orders to sell orders with partial buy handling
 # poppedSellOrders stores touples containing (sellOrder popped from heap, quantity sold)
 # return price of buy order
-
-
 def matchBuy(buyOrder: BuyOrder):
-    return matchBuyRecursive(buyOrder, [])
+    ordersFilled = matchBuyRecursive(buyOrder, [])
+
+    orderPrice = calculateMarketBuy(ordersFilled)
+
+    user = engineGetUser.getUserFromId(buyOrder.user_id)
 
 
 def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
@@ -139,17 +146,27 @@ def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
 
         return matchBuyRecursive(buyOrder, poppedSellOrders)
 
-    # ErrorResponse
-    # idk what to put here
-    return []
 
-
-def calculateBuyPrice(sellOrderList):
+def calculateMarketBuy(sellOrderList):
     price = 0.0
     for i in sellOrderList:
         # price += sell price * quantity sold
         price = price + (i[0].price * i[1])
     return price
+
+
+# Pays sellers after buy order has been filled
+def paySellers(sellOrderList):
+    for sellOrder in sellOrderList:
+        userId = sellOrder[0].user_id
+
+        user = engineGetUser.getUserFromId(userId)
+
+        addMoneyRequest = AddMoneyRequest(sellOrder[0].price * sellOrder[1])
+        # send post request to transaction service??
+        requests.post(
+            "http://transaction/addMoneyToWallet", json={addMoneyRequest, user}
+        )
 
 
 def cancelOrder(stockID: str):
