@@ -1,8 +1,6 @@
-import jwt
 import sqlmodel
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
-from fastapi.security import OAuth2PasswordBearer
 from uuid import UUID
 import os
 import dotenv
@@ -18,12 +16,11 @@ DB_PASSWORD = os.getenv("PASSWORD")
 DB_HOST = os.getenv("HOST")
 DB_PORT = os.getenv("POSTGRES_PORT")
 DB_NAME = os.getenv("DB_NAME")
-JWT_SECRET = os.getenv("JWT_SECRET")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
 app = FastAPI(
     root_path="/transaction"
 )
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -35,26 +32,6 @@ app.add_middleware(
 
 url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
-
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
-
-
-async def verify_token(token: str = Depends(oauth2_scheme)):
-    if not token:
-        raise HTTPException(status_code=400, detail="Token is required")
-    try:
-        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"require": ["exp", "id", "username"]})
-        return User(username=decoded_token["username"], id=decoded_token["id"])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Expired Token")
-    except jwt.InvalidSignatureError:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-    except jwt.MissingRequiredClaimError:
-        raise HTTPException(status_code=400, detail="Missing required claim")
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
 
 @app.get("/")
 async def home():
@@ -80,7 +57,7 @@ async def get_wallet_balance(user: User = Depends(verify_token)):
 
     with sqlmodel.Session(engine) as session:
 
-        statement = sqlmodel.select(Wallets).where(Wallets.user_id == user.id)
+        statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
         wallet = session.exec(statement).one_or_none()
         if not wallet:
             new_wallet = Wallets(user_id=user.id)

@@ -1,4 +1,4 @@
-FROM nginx:alpine
+FROM openresty/openresty:alpine
 
 # Cache and routing dependencies
 RUN apk add --no-cache \
@@ -8,7 +8,8 @@ RUN apk add --no-cache \
     nginx-mod-http-lua \
     && rm -rf /var/cache/apk/*
 
+RUN apk info
 
-COPY nginx.conf /etc/nginx/nginx.conf
-CMD ["nginx", "-g", "daemon off;"]
+COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+CMD ["openresty", "-g", "daemon off;"]
 

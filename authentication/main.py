@@ -5,7 +5,7 @@ import os
 import sqlmodel
 from sqlmodel import func
 from datetime import datetime, timedelta
-from fastapi import FastAPI, Response, Depends, HTTPException
+from fastapi import FastAPI, Depends, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
@@ -55,7 +55,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 @app.get("/validate_token",
         responses={
             200: {"model": SuccessResponse},
-            401: {"model": ErrorResponse},
             401: {"model": ErrorResponse},
             403: {"model": ErrorResponse},
         })
