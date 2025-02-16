@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Button, Snackbar, Alert } from '@mui/material';
+import { Typography } from '@mui/material';
 import { PortfolioGrid } from '@/features/portfolio/PortfolioGrid';
 import { StockTransactionsGrid } from '@/features/transactions/stock/StockTransactionsGrid';
 import './TradePage.scss';

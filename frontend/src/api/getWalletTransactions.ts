@@ -2,11 +2,10 @@ import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { API_URL, QueryConfig } from '@/lib/react-query.ts';
 
-
 const token = localStorage.getItem('token');
 const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-export interface WalletTxItem {
+export interface WalletTransaction {
   wallet_tx_id: number;
   is_debit: boolean;
   amount: number;
@@ -14,7 +13,7 @@ export interface WalletTxItem {
   stock_tx_id: number;
 }
 
-async function getWalletTransactions(): Promise<WalletTxItem[]> {
+async function getWalletTransactions(): Promise<WalletTransaction[]> {
   const response = await axios.get(
     `${API_URL}/transaction/getWalletTransactions`,
     {
