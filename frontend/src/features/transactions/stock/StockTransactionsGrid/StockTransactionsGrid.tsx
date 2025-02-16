@@ -99,7 +99,7 @@ export const StockTransactionsGrid = () => {
         setCurrentId={setCurrentTxId}
       />
       <DashboardCard>
-        <Typography variant="h5">Transactions</Typography>
+        <Typography variant="h5">Stock Transactions</Typography>
         <DataGrid
           columns={columns}
           rows={placeHolderData}
