@@ -145,7 +145,9 @@ def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
 
         # push sell order back onto heap with reduced quantity
 
-        heappush(sellTrees[buyOrder.stock_id], (minSellOrder, buyQuantity))
+        heappush(sellTrees[buyOrder.stock_id], minSellOrder)
+
+        poppedSellOrders.append((minSellOrder, buyQuantity))
 
         return poppedSellOrders
 
