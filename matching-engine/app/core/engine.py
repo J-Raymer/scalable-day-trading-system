@@ -1,4 +1,5 @@
 from typing import List
+from app.core.engineDbConnect import addToWallet, removeFromWallet
 from fastapi import FastAPI
 from uuid import UUID
 from schemas.engine import StockOrder, SellOrder, BuyOrder
@@ -7,8 +8,6 @@ from schemas.transaction import AddMoneyRequest
 from datetime import datetime
 from collections import defaultdict, deque
 from heapq import heapify, heappop, heappush
-import requests
-
 
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
@@ -28,17 +27,17 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
             )
         )
         return {"success": True, "data": {}}
-    else:
-        processSellOrder(
-            SellOrder(
-                user_id=sending_user_id,
-                stock_id=order.stock_id,
-                quantity=order.quantity,
-                price=order.price,
-                timestamp=time,
-            )
+
+    processSellOrder(
+        SellOrder(
+            user_id=sending_user_id,
+            stock_id=order.stock_id,
+            quantity=order.quantity,
+            price=order.price,
+            timestamp=time,
         )
-        return {"success": True, "data": {uid}}
+    )
+    return {"success": True, "data": {}}
 
 
 def checkMatch():
@@ -88,25 +87,30 @@ def getStockPrices():
 
 def processSellOrder(sellOrder: SellOrder):
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
-    print(sellTrees[sellOrder.stock_id])  # REMOVE AFTER TESTING
-    checkMatch()
 
 
 def processBuyOrder(buyOrder: BuyOrder):
     buyQueues[buyOrder.stock_id].append(buyOrder)
-    print(buyQueues[buyOrder.stock_id])  # REMOVE AFTER TESTING
-    checkMatch()
+
+    matchBuy((buyOrder))
 
 
 # Matches buy orders to sell orders with partial buy handling
 # poppedSellOrders stores touples containing (sellOrder popped from heap, quantity sold)
 # return price of buy order
 def matchBuy(buyOrder: BuyOrder):
+    # returns a list of touples (SellOrderFilled, AmountSold)
     ordersFilled = matchBuyRecursive(buyOrder, [])
 
     orderPrice = calculateMarketBuy(ordersFilled)
 
-    user = engineGetUser.getUserFromId(buyOrder.user_id)
+    # takes money out of the buyers wallet
+    try:
+        removeFromWallet(buyOrder.user_id, orderPrice)
+
+        paySellers(ordersFilled)
+    except:
+        pass
 
 
 def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
@@ -147,7 +151,7 @@ def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
 
 
 def calculateMarketBuy(sellOrderList):
-    price = 0.0
+    price = 0
     for i in sellOrderList:
         # price += sell price * quantity sold
         price = price + (i[0].price * i[1])
@@ -159,15 +163,9 @@ def paySellers(sellOrderList):
     for sellOrder in sellOrderList:
         userId = sellOrder[0].user_id
 
-        user = engineGetUser.getUserFromId(userId)
+        amount = sellOrder[0].price * sellOrder[1]
 
-        addMoneyRequest = AddMoneyRequest(sellOrder[0].price * sellOrder[1])
-        # send post request to transaction service??
-        # TODO
-        # add a call to engineDb to add money to wallet directly
-        requests.post(
-            "http://transaction/addMoneyToWallet", json={addMoneyRequest, user}
-        )
+        addToWallet(userId, amount)
 
 
 def cancelOrder(stockID: str):
