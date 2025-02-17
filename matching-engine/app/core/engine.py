@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from uuid import UUID
 from schemas.engine import StockOrder, SellOrder, BuyOrder
 from schemas.common import SuccessResponse, ErrorResponse, User
@@ -110,8 +110,9 @@ def processBuyOrder(buyOrder: BuyOrder):
 # return price of buy order
 def matchBuy(buyOrder: BuyOrder):
     global sellTrees
+    tempTree = sellTrees[buyOrder.stock_id]
     # returns a list of touples (SellOrderFilled, AmountSold)
-    ordersFilled = matchBuyRecursive(buyOrder, [])
+    ordersFilled, newSellTree = matchBuyRecursive(buyOrder, [], tempTree)
 
     orderPrice = calculateMarketBuy(ordersFilled)
 
@@ -120,15 +121,18 @@ def matchBuy(buyOrder: BuyOrder):
         fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
     except Exception as e:
         print(e)
-        for sellOrderTouple in ordersFilled:
-            sellOrder, sellPrice = sellOrderTouple
-            heappush(sellTrees[sellOrder.stock_id], sellOrder)
+    else:
+        sellTrees[buyOrder.stock_id] = newSellTree
 
 
-def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
-    global sellTrees
+def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree):
 
-    minSellOrder = heappop(sellTrees[buyOrder.stock_id])
+    if len(tempTree) == 0:
+        raise HTTPException(
+            status_code=400, detail="not enough sell volume to fill buy order"
+        )
+
+    minSellOrder = heappop(tempTree)
 
     buyQuantity = buyOrder.quantity
     sellQuantity = minSellOrder.quantity
@@ -136,7 +140,7 @@ def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
     # Case where sell order quantity == buy order quantity
     if sellQuantity == buyQuantity:
         poppedSellOrders.append((minSellOrder, minSellOrder.quantity))
-        return poppedSellOrders
+        return poppedSellOrders, tempTree
 
     # Case where first sell order quantity > buy order quantity
     if sellQuantity > buyQuantity:
@@ -146,11 +150,11 @@ def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
 
         # push sell order back onto heap with reduced quantity
 
-        heappush(sellTrees[buyOrder.stock_id], minSellOrder)
+        heappush(tempTree, minSellOrder)
 
         poppedSellOrders.append((minSellOrder, buyQuantity))
 
-        return poppedSellOrders
+        return poppedSellOrders, tempTree
 
     # Case where sell order quantity < buy order quantity
     # removes quantity of sell order from buy order and pops that sell order from heap
@@ -161,7 +165,7 @@ def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
 
         poppedSellOrders.append((minSellOrder, minSellOrder.quantity))
 
-        return matchBuyRecursive(buyOrder, poppedSellOrders)
+        return matchBuyRecursive(buyOrder, poppedSellOrders, tempTree)
 
 
 def calculateMarketBuy(sellOrderList):
