@@ -115,13 +115,14 @@ def matchBuy(buyOrder: BuyOrder):
     orderPrice = calculateMarketBuy(ordersFilled)
 
     # takes money out of the buyers wallet
-    # try:
-    #    fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
-    # except:
-    #
-    #    for sellOrderTouple in ordersFilled:
-    #        sellOrder, sellPrice = sellOrderTouple
-    #        heappush(sellTrees[sellOrder.stock_id], sellOrder)
+    try:
+       fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
+    except Exception as e:
+        print(e)
+
+       for sellOrderTouple in ordersFilled:
+           sellOrder, sellPrice = sellOrderTouple
+           heappush(sellTrees[sellOrder.stock_id], sellOrder)
 
 
 def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
