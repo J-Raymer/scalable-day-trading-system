@@ -3,7 +3,8 @@ from fastapi.responses import RedirectResponse
 from uuid import UUID
 from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder
-from .core import receiveOrder, cancelOrder, getUserFromId, getAllUsers
+from schemas.setup import StockSetup
+from .core import receiveOrder, cancelOrder, getUserFromId, getStockPriceEngine
 
 app = FastAPI(root_path="/engine")
 
@@ -25,25 +26,17 @@ async def home():
     },
 )
 async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
+
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
-    username, user_id = x_user_data.split('|')
+    username, user_id = x_user_data.split("|")
     return receiveOrder(order, user_id)
 
 
-# TEST CALL
-@app.post("/getUserFromId")
-async def getUser(x_user_data: str = Header(None)):
-    if not x_user_data:
-        raise HTTPException(status_code=400, detail="User data is missing in headers")
-    username, user_id = x_user_data.split('|')
-    return getUserFromId(user_id)
-
-
-# TEST CALL
-@app.get("/getUsers")
-async def getUsers():
-    return getAllUsers()
+# Dont need this in the matching engine, nice for testing
+@app.post("/getStockPrice")
+async def getStockPrice(stock: StockSetup):
+    return getStockPriceEngine(stock.stock_id)
 
 
 @app.post(

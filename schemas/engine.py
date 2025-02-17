@@ -1,10 +1,11 @@
 from pydantic import BaseModel
 from datetime import datetime
 from dataclasses import dataclass
+from uuid import UUID
 
 
 class StockOrder(BaseModel):
-    stock_id: str
+    stock_id: int
     is_buy: bool
     order_type: str
     quantity: int
@@ -16,8 +17,8 @@ class StockOrder(BaseModel):
 
 @dataclass()
 class SellOrder:
-    user_id: int
-    stock_id: str
+    user_id: UUID
+    stock_id: int
     quantity: int
     price: int
     timestamp: datetime
@@ -32,8 +33,7 @@ class SellOrder:
 
 
 class BuyOrder(BaseModel):
-    user_id: int
-    stock_id: str
+    user_id: UUID
+    stock_id: int
     quantity: int
     timestamp: datetime
-

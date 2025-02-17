@@ -3,7 +3,7 @@ from datetime import datetime
 
 
 class AddMoneyRequest(BaseModel):
-    amount: float
+    amount: int
 
 
 class WalletTxResult(BaseModel):
@@ -18,3 +18,4 @@ class PortfolioResult(BaseModel):
     stock_id: int
     stock_name: str
     quantity_owned: int
+
