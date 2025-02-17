@@ -5,7 +5,7 @@ from uuid import UUID
 
 
 class StockOrder(BaseModel):
-    stock_id: str
+    stock_id: int
     is_buy: bool
     order_type: str
     quantity: int
@@ -18,7 +18,7 @@ class StockOrder(BaseModel):
 @dataclass()
 class SellOrder:
     user_id: UUID
-    stock_id: str
+    stock_id: int
     quantity: int
     price: int
     timestamp: datetime
@@ -34,6 +34,6 @@ class SellOrder:
 
 class BuyOrder(BaseModel):
     user_id: UUID
-    stock_id: str
+    stock_id: int
     quantity: int
     timestamp: datetime
