@@ -65,7 +65,7 @@ async def get_wallet_balance(x_user_data: str = Header(None)):
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
         wallet = session.exec(statement).one_or_none()
         if not wallet:
-            new_wallet = Wallets(user_id=user.id)
+            new_wallet = Wallets(user_id=user_id)
             session.add(new_wallet)
             session.commit()
             return SuccessResponse(data={"balance": 0})
