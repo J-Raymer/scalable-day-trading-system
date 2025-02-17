@@ -75,7 +75,7 @@ def matchBuy(buyOrder: BuyOrder):
     try:
         fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
     except Exception as e:
-        print(e)
+        raise e
     else:
         sellTrees[buyOrder.stock_id] = newSellTree
 
