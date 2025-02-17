@@ -64,17 +64,17 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         amountSoldTotal = 0
 
         for sellOrderTouple in sellOrders:
-            sellOrder, sellPrice = sellOrderTouple
+            sellOrder, sellQuantity = sellOrderTouple
 
             statement = sqlmodel.select(Wallets).where(
                 Wallets.user_id == sellOrder.user_id
             )
             sellerWallet = session.exec(statement).one_or_none()
 
-            sellerWallet.balance += sellPrice
+            sellerWallet.balance += sellOrder.price * sellQuantity
             session.add(sellerWallet)
 
-            amountSoldTotal += sellPrice
+            amountSoldTotal += sellOrder.price * sellQuantity
 
         if not amountSoldTotal == buyPrice:
             raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")

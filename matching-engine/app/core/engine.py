@@ -168,7 +168,7 @@ def calculateMarketBuy(sellOrderList):
     price = 0
     for i in sellOrderList:
         # price += sell price * quantity sold
-        price = price + (i[0].price * i[1])
+        price += i[0].price * i[1]
     return price
 
 
