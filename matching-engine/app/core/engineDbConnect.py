@@ -1,5 +1,5 @@
 from typing import override
-from schemas.common import User
+from schemas.common import User, SuccessResponse
 import dotenv
 import os
 import sqlmodel
@@ -7,7 +7,7 @@ from fastapi import FastAPI, Response, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
-from database import Users
+from database import Users, Wallets
 
 
 dotenv.load_dotenv(override=True)
@@ -33,16 +33,39 @@ def getUserFromId(userId: str):
             return result
 
 
-def getAllUsers():
+def addToWallet(userId: str, amount: int):
+    if not userId:
+        raise HTTPException(status_code=400, detail="User id error")
+
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
+
     with sqlmodel.Session(engine) as session:
-        query = sqlmodel.select(Users)
-        results = session.exec(query)
+        statement = sqlmodel.select(Wallets).where(Wallets.user_id == userId)
+        wallet = session.exec(statement).one_or_none()
+        wallet.balance += amount
+        session.add(wallet)
+        session.commit()
 
-        users = results.all()
-        if results:
-            print(users)
-
-        return User(username="", id="-1")
-
+    return SuccessResponse()
 
 
+def removeFromWallet(userId: str, amount: int):
+    if not userId:
+        raise HTTPException(status_code=400, detail="User id error")
+
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
+
+    with sqlmodel.Session(engine) as session:
+        statement = sqlmodel.select(Wallets).where(Wallets.user_id == userId)
+        wallet = session.exec(statement).one_or_none()
+
+        if wallet.balance < amount:
+            raise HTTPException(status_code=400, detail="Wallet lacks funds")
+
+        wallet.balance -= amount
+        session.add(wallet)
+        session.commit()
+
+    return SuccessResponse()
