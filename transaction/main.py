@@ -1,3 +1,4 @@
+from typing import override
 import sqlmodel
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
@@ -17,7 +18,7 @@ from schemas.transaction import AddMoneyRequest, WalletTxResult, PortfolioResult
 from schemas.setup import Stock, StockSetup
 from fastapi.middleware.cors import CORSMiddleware
 
-dotenv.load_dotenv()
+dotenv.load_dotenv(override=True)
 DB_USERNAME = os.getenv("USERNAME")
 DB_PASSWORD = os.getenv("PASSWORD")
 DB_HOST = os.getenv("HOST")

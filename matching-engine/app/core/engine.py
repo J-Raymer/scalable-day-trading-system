@@ -164,6 +164,8 @@ def paySellers(sellOrderList):
 
         addMoneyRequest = AddMoneyRequest(sellOrder[0].price * sellOrder[1])
         # send post request to transaction service??
+        # TODO
+        # add a call to engineDb to add money to wallet directly
         requests.post(
             "http://transaction/addMoneyToWallet", json={addMoneyRequest, user}
         )

@@ -1,4 +1,3 @@
-
 # run locally on uvicorn using "uvicorn matching-engine.app.main:app --reload"
 import jwt
 from fastapi import FastAPI, Depends, HTTPException
@@ -9,9 +8,7 @@ from schemas.common import SuccessResponse, ErrorResponse, User
 from schemas.engine import StockOrder
 from .core import receiveOrder, cancelOrder, getUserFromId, getAllUsers
 
-app = FastAPI(
-    root_path="/engine"
-)
+app = FastAPI(root_path="/engine")
 
 
 @app.get("/")
@@ -38,7 +35,7 @@ async def placeStockOrder(
 
 # TEST CALL
 @app.post("/getUserFromId")
-async def getUser(data):
+async def getUser(data: User):
     return getUserFromId(data.id)
 
 
@@ -58,4 +55,3 @@ async def getUsers():
 )
 async def cancelStockTransaction(stockID: str):
     return cancelOrder()
-
