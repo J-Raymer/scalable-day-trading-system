@@ -25,6 +25,7 @@ async def home():
     },
 )
 async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
+
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
