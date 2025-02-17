@@ -1,5 +1,6 @@
 from typing import override
 from schemas.common import User, SuccessResponse
+from schemas.engine import SellOrder, BuyOrder
 import dotenv
 import os
 import sqlmodel
@@ -33,6 +34,57 @@ def getUserFromId(userId: str):
             return result
 
 
+# takes buy order and list of sell orders
+# connects to database and checks if buyer has funds
+# takes funds from buyer and distributes to seller(s)
+#
+# Main purpose of writing it like this is to execute taking money from the buyer and giving
+#   it to sellers as one transaction
+def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
+
+    if buyPrice <= 0:
+        raise HTTPException(status_code=400, detail="Buy price must be greater than 0")
+
+    if len(sellOrders) <= 0:
+        raise HTTPException(status_code=400, detail="Missing sell orders")
+
+    if not buyOrder:
+        raise HTTPException(status_code=400, detail="Missing buy order")
+
+    with sqlmodel.Session(engine) as session:
+
+        statement = sqlmodel.select(Wallets).where(Wallets.user_id == buyOrder.user_id)
+        buyerWallet = session.exec(statement).one_or_none()
+
+        if buyerWallet.balance < buyPrice:
+            raise HTTPException(status_code=400, detail="buyer lacks funds")
+
+        buyerWallet.balance -= buyPrice
+        session.add(buyerWallet)
+
+        amountSoldTotal = 0
+
+        for sellOrderTouple in sellOrders:
+            sellOrder, sellPrice = sellOrderTouple
+
+            statement = sqlmodel.select(Wallets).where(
+                Wallets.user_id == sellOrder.user_id
+            )
+            sellerWallet = session.exec(statement).one_or_none()
+
+            sellerWallet.balance += sellPrice
+            session.add(sellerWallet)
+
+            amountSoldTotal += sellPrice
+
+        if not amountSoldTotal == buyPrice:
+            raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
+
+        session.commit()
+
+    return SuccessResponse()
+
+
 def addToWallet(userId: str, amount: int):
     if not userId:
         raise HTTPException(status_code=400, detail="User id error")
@@ -48,6 +100,11 @@ def addToWallet(userId: str, amount: int):
         session.commit()
 
     return SuccessResponse()
+
+
+# TODO add transaction to database
+def addSellTransaction():
+    pass
 
 
 def removeFromWallet(userId: str, amount: int):
