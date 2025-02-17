@@ -1,10 +1,11 @@
 import os
+from typing import override
 import dotenv
 from sqlmodel import SQLModel, create_engine
 
 
 def create_db_and_tables():
-    dotenv.load_dotenv()
+    dotenv.load_dotenv(override=True)
 
     username = os.getenv("USERNAME")
     password = os.getenv("PASSWORD")
@@ -16,3 +17,5 @@ def create_db_and_tables():
     engine = create_engine(url)
 
     SQLModel.metadata.create_all(engine)
+
+    print("DATABASE USERNAME -------", username)

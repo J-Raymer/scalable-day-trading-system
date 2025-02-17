@@ -7,7 +7,7 @@ services:
     depends_on:
       - database
     environment:
-      - USERNAME=${USERNAME}
+      - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
       - HOST=${HOST}
       - POSTGRES_PORT=${DOCKER_PORT}
@@ -24,7 +24,7 @@ services:
     depends_on:
       - database
     environment:
-      - USERNAME=${USERNAME}
+      - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
       - HOST=${HOST}
       - POSTGRES_PORT=${DOCKER_PORT}
@@ -42,7 +42,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      - USERNAME=${USERNAME}
+      - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
       - HOST=${HOST}
       - POSTGRES_PORT=${DOCKER_PORT}
@@ -56,10 +56,12 @@ services:
   db:
     image: postgres:latest
     environment:
-      - POSTGRES_USER=${USERNAME}
+      - POSTGRES_USER=${DB_USERNAME}
       - POSTGRES_PASSWORD=${PASSWORD}
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_PORT=${DOCKER_PORT}
+    ports:
+      - ${HOST_PORT}:${DOCKER_PORT}
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -78,9 +80,13 @@ services:
     depends_on:
       - database
     environment:
-      - USERNAME=${USERNAME}
+      - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
       - HOST=${HOST}
+      - POSTGRES_PORT=${DOCKER_PORT}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
     networks:
         - day_trader_network
 

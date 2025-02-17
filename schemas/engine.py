@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 from dataclasses import dataclass
 
 
@@ -15,23 +16,24 @@ class StockOrder(BaseModel):
 
 @dataclass()
 class SellOrder:
+    user_id: int
     stock_id: str
     quantity: int
     price: int
+    timestamp: datetime
 
     def __eq__(self, other):
         return self.price == other.price
 
     def __lt__(self, other):
         if self.price == other.price:
-            return self.stock_id < other.stock_id
+            return self.timestamp < other.timestamp
         return self.price < other.price
 
 
 class BuyOrder(BaseModel):
+    user_id: int
     stock_id: str
     quantity: int
+    timestamp: datetime
 
-
-class UID(BaseModel):
-    id: str
