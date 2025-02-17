@@ -17,5 +17,3 @@ def create_db_and_tables():
     engine = create_engine(url)
 
     SQLModel.metadata.create_all(engine)
-
-    print("DATABASE USERNAME -------", username)

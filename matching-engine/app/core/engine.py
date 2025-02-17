@@ -17,8 +17,6 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
     # grab the details only we know
     time = datetime.now()
 
-    print("ORDER RECEIVED: ", order)
-
     if order.is_buy:
         processBuyOrder(
             BuyOrder(
@@ -42,61 +40,18 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
     return {"success": True, "data": {}}
 
 
-def checkMatch():
-    global sellTrees, buyQueues
-
-    for stock_id in sellTrees:
-        if (sellTrees[stock_id]) and (buyQueues[stock_id]):
-            print("match found")
-            buy_order = buyQueues[stock_id][0]
-            sell_order = sellTrees[stock_id][0]
-
-            # get wallet of buyer
-            response = requests.get(
-                "http://transaction/getWalletBalance", json={"user": 1}
-            )
-
-            # happy path
-            if buy_order.user_id != sell_order.user_id:
-                # happy path
-                if buy_order.quantity == sell_order.quantity:
-
-                    # pop both
-                    fufilled_buy = buyQueues[stock_id].popleft()
-                    fufilled_sell = heappop(sellTrees[stock_id])
-                    # send a transaction to the transaction service
-                    response = requests.post(
-                        "http://transaction/addMoneyToWallet", json={}
-                    )
-
-                if buyOrder.quantity < sellOrder.quantity:
-                    pass
-                if buyOrder.quantity > sellOrder.quantity:
-                    pass
-
-
-def clearSellOrders():
-    global sellTrees
-    sellTrees.clear()
-    return {"message": "sell orders cleared"}
-
-
 def getStockPriceEngine(stockID):
     global sellTrees
-    print("SELL TREE: ", sellTrees)
-    return {"success": True, "data": sellTrees[stockID]}
 
+    if not sellTrees[stockID] or len(sellTrees[stockID]) == 0:
+        raise HTTPException(status_code=400, detail="No sell orders for stock")
 
-# TEST METHOD
-def getSellOrdersEngine(stockID):
-    return {"success": True, "data": sellTrees[stockID]}
+    return {"success": True, "data": sellTrees[stockID][0].price}
 
 
 def processSellOrder(sellOrder: SellOrder):
     global sellTrees
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
-    print("SELL ORDER RECEIVED: ", sellOrder)
-    print("SELL TREE: ", sellTrees)
 
 
 def processBuyOrder(buyOrder: BuyOrder):

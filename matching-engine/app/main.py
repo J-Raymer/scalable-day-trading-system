@@ -33,15 +33,7 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
     return receiveOrder(order, user_id)
 
 
-# TEST CALL
-@app.post("/getUserFromId")
-async def getUser(x_user_data: str = Header(None)):
-    if not x_user_data:
-        raise HTTPException(status_code=400, detail="User data is missing in headers")
-    username, user_id = x_user_data.split("|")
-    return getUserFromId(user_id)
-
-
+# Dont need this in the matching engine, nice for testing
 @app.post("/getStockPrice")
 async def getStockPrice(stock: StockSetup):
     return getStockPriceEngine(stock.stock_id)
