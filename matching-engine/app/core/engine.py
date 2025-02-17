@@ -14,15 +14,14 @@ sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
 
 
-def receiveOrder(order: StockOrder, user: User):
+def receiveOrder(order: StockOrder, sending_user_id: UUID):
     # grab the details only we know
     time = datetime.now()
-    uid = user.id
 
     if order.is_buy:
         processBuyOrder(
             BuyOrder(
-                user_id=uid,
+                user_id=sending_user_id,
                 stock_id=order.stock_id,
                 quantity=order.quantity,
                 timestamp=time,
@@ -32,7 +31,7 @@ def receiveOrder(order: StockOrder, user: User):
     else:
         processSellOrder(
             SellOrder(
-                user_id=uid,
+                user_id=sending_user_id,
                 stock_id=order.stock_id,
                 quantity=order.quantity,
                 price=order.price,

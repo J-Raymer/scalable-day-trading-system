@@ -42,4 +42,7 @@ def getAllUsers():
         if results:
             print(users)
 
-        return User(username="", id=-1)
+        return User(username="", id="-1")
+
+
+

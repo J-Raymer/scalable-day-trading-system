@@ -1,10 +1,7 @@
-# run locally on uvicorn using "uvicorn matching-engine.app.main:app --reload"
-import jwt
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
-from fastapi.security import OAuth2PasswordBearer
 from uuid import UUID
-from schemas.common import SuccessResponse, ErrorResponse, User
+from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder
 from .core import receiveOrder, cancelOrder, getUserFromId, getAllUsers
 
@@ -27,16 +24,20 @@ async def home():
         404: {"model": ErrorResponse},
     },
 )
-async def placeStockOrder(
-    order: StockOrder, user: User
-):  # REMOVE AFTER TESTING= Depends(verify_token)):
-    return receiveOrder(order, user)
+async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
+    if not x_user_data:
+        raise HTTPException(status_code=400, detail="User data is missing in headers")
+    username, user_id = x_user_data.split('|')
+    return receiveOrder(order, user_id)
 
 
 # TEST CALL
 @app.post("/getUserFromId")
-async def getUser(data: User):
-    return getUserFromId(data.id)
+async def getUser(x_user_data: str = Header(None)):
+    if not x_user_data:
+        raise HTTPException(status_code=400, detail="User data is missing in headers")
+    username, user_id = x_user_data.split('|')
+    return getUserFromId(user_id)
 
 
 # TEST CALL
