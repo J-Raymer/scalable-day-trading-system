@@ -3,7 +3,8 @@ from fastapi.responses import RedirectResponse
 from uuid import UUID
 from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder
-from .core import receiveOrder, cancelOrder, getUserFromId
+from schemas.setup import StockSetup
+from .core import receiveOrder, cancelOrder, getUserFromId, getStockPriceEngine
 
 app = FastAPI(root_path="/engine")
 
@@ -39,6 +40,11 @@ async def getUser(x_user_data: str = Header(None)):
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
     return getUserFromId(user_id)
+
+
+@app.post("/getStockPrice")
+async def getStockPrice(stock: StockSetup):
+    return getStockPriceEngine(stock.stock_id)
 
 
 @app.post(

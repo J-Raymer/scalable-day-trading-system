@@ -1,4 +1,3 @@
-from typing import override
 from schemas.common import User, SuccessResponse
 from schemas.engine import SellOrder, BuyOrder
 import dotenv

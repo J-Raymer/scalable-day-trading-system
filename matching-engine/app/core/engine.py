@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from uuid import UUID
 from schemas.engine import StockOrder, SellOrder, BuyOrder
 from schemas.common import SuccessResponse, ErrorResponse, User
-from schemas.transaction import AddMoneyRequest
 from datetime import datetime
 from collections import defaultdict, deque
 from heapq import heapify, heappop, heappush
@@ -12,9 +11,12 @@ sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
 
 
+# UUID might need to be a string
 def receiveOrder(order: StockOrder, sending_user_id: UUID):
     # grab the details only we know
     time = datetime.now()
+
+    print("ORDER RECEIVED: ", order)
 
     if order.is_buy:
         processBuyOrder(
@@ -78,14 +80,22 @@ def clearSellOrders():
     return {"message": "sell orders cleared"}
 
 
-def getStockPrices():
+def getStockPriceEngine(stockID):
     global sellTrees
-    stockPrices = [(stock_id, sellTrees[stock_id][0]) for stock_id in sellTrees]
-    return {"success": True, "data": stockPrices}
+    print("SELL TREE: ", sellTrees)
+    return {"success": True, "data": sellTrees[stockID]}
+
+
+# TEST METHOD
+def getSellOrdersEngine(stockID):
+    return {"success": True, "data": sellTrees[stockID]}
 
 
 def processSellOrder(sellOrder: SellOrder):
+    global sellTrees
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
+    print("SELL ORDER RECEIVED: ", sellOrder)
+    print("SELL TREE: ", sellTrees)
 
 
 def processBuyOrder(buyOrder: BuyOrder):
@@ -98,18 +108,20 @@ def processBuyOrder(buyOrder: BuyOrder):
 # poppedSellOrders stores touples containing (sellOrder popped from heap, quantity sold)
 # return price of buy order
 def matchBuy(buyOrder: BuyOrder):
+    global sellTrees
     # returns a list of touples (SellOrderFilled, AmountSold)
     ordersFilled = matchBuyRecursive(buyOrder, [])
 
     orderPrice = calculateMarketBuy(ordersFilled)
 
     # takes money out of the buyers wallet
-    try:
-        removeFromWallet(buyOrder.user_id, orderPrice)
-
-        paySellers(ordersFilled)
-    except:
-        pass
+    # try:
+    #    fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
+    # except:
+    #
+    #    for sellOrderTouple in ordersFilled:
+    #        sellOrder, sellPrice = sellOrderTouple
+    #        heappush(sellTrees[sellOrder.stock_id], sellOrder)
 
 
 def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
@@ -117,8 +129,8 @@ def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List):
 
     minSellOrder = heappop(sellTrees[buyOrder.stock_id])
 
-    buyQuantity = buyOrder.buyQuantity
-    sellQuantity = SellOrder.sellQuantity
+    buyQuantity = buyOrder.quantity
+    sellQuantity = minSellOrder.quantity
 
     # Case where sell order quantity == buy order quantity
     if sellQuantity == buyQuantity:
@@ -155,16 +167,6 @@ def calculateMarketBuy(sellOrderList):
         # price += sell price * quantity sold
         price = price + (i[0].price * i[1])
     return price
-
-
-# Pays sellers after buy order has been filled
-def paySellers(sellOrderList):
-    for sellOrder in sellOrderList:
-        userId = sellOrder[0].user_id
-
-        amount = sellOrder[0].price * sellOrder[1]
-
-        addToWallet(userId, amount)
 
 
 def cancelOrder(stockID: str):
