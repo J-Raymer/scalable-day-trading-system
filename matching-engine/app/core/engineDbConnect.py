@@ -84,44 +84,6 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
     return SuccessResponse()
 
 
-def addToWallet(userId: str, amount: int):
-    if not userId:
-        raise HTTPException(status_code=400, detail="User id error")
-
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
-
-    with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(Wallets).where(Wallets.user_id == userId)
-        wallet = session.exec(statement).one_or_none()
-        wallet.balance += amount
-        session.add(wallet)
-        session.commit()
-
-    return SuccessResponse()
-
-
 # TODO add transaction to database
 def addSellTransaction():
     pass
-
-
-def removeFromWallet(userId: str, amount: int):
-    if not userId:
-        raise HTTPException(status_code=400, detail="User id error")
-
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
-
-    with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(Wallets).where(Wallets.user_id == userId)
-        wallet = session.exec(statement).one_or_none()
-
-        if wallet.balance < amount:
-            raise HTTPException(status_code=400, detail="Wallet lacks funds")
-
-        wallet.balance -= amount
-        session.add(wallet)
-        session.commit()
-
-    return SuccessResponse()
