@@ -1,34 +1,34 @@
 import React, { useState } from 'react';
 import { DashboardCard } from '@/components/DashboardCard/DashboardCard.tsx';
 import { useWalletBalance } from '@/api/getWalletBallance.ts';
-import { Button, Typography } from '@mui/material';
+import { Button, Typography, Skeleton } from '@mui/material';
 import { UpdateWalletDialog } from '@/features/wallet/UpdateWalletDialog';
 import './WalletCard.scss';
 
-interface WalletCardProps {
-  onError: (message: string) => void;
-}
+export const WalletCard = () => {
+  const { data, isLoading } = useWalletBalance();
 
-export const WalletCard = ({ onError }: WalletCardProps) => {
-  const { data, error } = useWalletBalance();
-
-  if (error && typeof error === 'object' && 'message' in error) {
-    onError((error as { message: string }).message);
-  }
   const [open, setOpen] = useState(false);
 
   return (
     <DashboardCard className="wallet-card">
-      <UpdateWalletDialog isOpen={open} setIsOpen={setOpen} onError={onError} />
+      <UpdateWalletDialog isOpen={open} setIsOpen={setOpen} />
       <div>
         <Typography variant="h5" component="h2">
           Wallet
         </Typography>
         <Typography variant="body2" color="textSecondary">
-          {`Your balance is $${data?.balance ?? ''}`}
+          {isLoading ? (
+            <Skeleton />
+          ) : (
+            <>
+              {data?.balance
+                ? `Your balance is $${data?.balance}`
+                : 'An error occurred fetching wallet balance'}
+            </>
+          )}
         </Typography>
       </div>
-
       <Button
         fullWidth
         variant="contained"

@@ -17,11 +17,6 @@ export function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  const handleError = (message: string) => {
-    setError(message);
-    setOpen(true);
-  };
-
   const handleClose = () => {
     setOpen(false);
     setError(null);
@@ -44,7 +39,7 @@ export function HomePage() {
       </Snackbar>
       <Grid2 container spacing={3}>
         <Grid2 size={{ xs: 12, md: 6 }}>
-          <WalletCard onError={handleError} />
+          <WalletCard />
         </Grid2>
         <Grid2 size={{ xs: 12, md: 6 }}>
           <Card>
