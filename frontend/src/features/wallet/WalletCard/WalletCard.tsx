@@ -29,7 +29,6 @@ export const WalletCard = () => {
           )}
         </Typography>
       </div>
-
       <Button
         fullWidth
         variant="contained"
