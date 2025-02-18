@@ -21,7 +21,11 @@ export const WalletCard = () => {
           {isLoading ? (
             <Skeleton />
           ) : (
-            `Your balance is $${data?.balance ?? 'An error fetching data occurred'}`
+            <>
+              {data?.balance
+                ? `Your balance is $${data?.balance}`
+                : 'An error occurred fetching wallet balance'}
+            </>
           )}
         </Typography>
       </div>
