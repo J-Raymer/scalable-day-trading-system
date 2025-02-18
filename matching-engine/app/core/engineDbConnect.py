@@ -4,10 +4,8 @@ import dotenv
 import os
 import sqlmodel
 from fastapi import FastAPI, Response, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
-from fastapi.security import OAuth2PasswordBearer
-from database import Users, Wallets
+from database import Users, Wallets, WalletTransactions
+from datetime import datetime
 
 
 dotenv.load_dotenv(override=True)
@@ -40,7 +38,6 @@ def getUserFromId(userId: str):
 # Main purpose of writing it like this is to execute taking money from the buyer and giving
 #   it to sellers as one transaction
 def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
-
     if buyPrice <= 0:
         raise HTTPException(status_code=400, detail="Buy price must be greater than 0")
 
@@ -49,6 +46,8 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
 
     if not buyOrder:
         raise HTTPException(status_code=400, detail="Missing buy order")
+
+    time = datetime.now()
 
     with sqlmodel.Session(engine) as session:
 
@@ -61,20 +60,43 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         buyerWallet.balance -= buyPrice
         session.add(buyerWallet)
 
+        # Adds wallet transaction for money taken out of buyers wallet
+        session.add(
+            WalletTransactions(
+                user_id=buyOrder.user_id,
+                is_debit=False,
+                amount=buyPrice,
+                timestamp=time,
+            )
+        )
+
         amountSoldTotal = 0
 
         for sellOrderTouple in sellOrders:
             sellOrder, sellQuantity = sellOrderTouple
+
+            # calculates price using the price per stock and the *actual* amount sold
+            sellPrice = sellOrder.price * sellQuantity
 
             statement = sqlmodel.select(Wallets).where(
                 Wallets.user_id == sellOrder.user_id
             )
             sellerWallet = session.exec(statement).one_or_none()
 
-            sellerWallet.balance += sellOrder.price * sellQuantity
+            sellerWallet.balance += sellPrice
             session.add(sellerWallet)
 
-            amountSoldTotal += sellOrder.price * sellQuantity
+            # Adds wallet transaction for seller getting paid
+            session.add(
+                WalletTransactions(
+                    user_id=sellOrder.user_id,
+                    is_debit=True,
+                    amount=sellPrice,
+                    timestamp=time,
+                )
+            )
+
+            amountSoldTotal += sellPrice
 
         if not amountSoldTotal == buyPrice:
             raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
