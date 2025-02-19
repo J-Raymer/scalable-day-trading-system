@@ -21,8 +21,6 @@ url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 app = FastAPI(root_path="/engine")
 
-time = datetime.now()
-
 
 def getUserFromId(userId: str):
     with sqlmodel.Session(engine) as session:
@@ -40,6 +38,7 @@ def getUserFromId(userId: str):
 # Main purpose of writing it like this is to execute taking money from the buyer and giving
 #   it to sellers as one transaction
 def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
+    time = datetime.now()
     if buyPrice <= 0:
         raise HTTPException(status_code=400, detail="Buy price must be greater than 0")
 
@@ -61,8 +60,13 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         buyerWallet.balance -= buyPrice
         session.add(buyerWallet)
 
-        addWalletTx(session, buyOrder, buyPrice, isDebit=False)
+        # creates stock transaction for the buy order
+        stockTxId = addStockTx(session, buyOrder, isBuy=True)
 
+        # creates wallet transaction for taking money from the buyer
+        addWalletTx(session, buyOrder, buyPrice, stockTxId, isDebit=False)
+
+        # TODO stock added to portfolio
         amountSoldTotal = 0
 
         for sellOrderTouple in sellOrders:
@@ -80,7 +84,12 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             sellerWallet.balance += sellPrice
             session.add(sellerWallet)
 
-            addWalletTx(session, sellOrder, sellPrice, isDebit=True)
+            # creates stock transaction for the sellOrder
+            # TODO integrate this so it updates pending sell order to COMPLETED
+            stockTxId = addStockTx(session, buyOrder, isBuy=False)
+
+            # creates wallet transaction for paying the seller
+            addWalletTx(session, sellOrder, sellPrice, stockTxId, isDebit=True)
 
             amountSoldTotal += sellPrice
 
@@ -92,34 +101,42 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
     return SuccessResponse()
 
 
-def addWalletTx(session, order, orderValue, isDebit: bool):
+def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
+    time = datetime.now()
     walletTx = WalletTransactions(
         user_id=order.user_id,
+        stock_tx_id=stockTxId,
         is_debit=isDebit,
         amount=orderValue,
         timestamp=time,
     )
 
-    print(walletTx.wallet_tx_id)
-
     session.add(walletTx)
-
-    return walletTx.wallet_tx_id
 
 
 # TODO add transaction to database
-def addStockTx(session, order, walletTxId):
-    session.add(
-        StockTransactions(
-            stock_id=order.stock_id,
-            wallet_tx_id=walletTxId,
-            order_status=OrderStatus.COMPLETED,
-            is_buy=order.is_buy,
-            order_type=order.order_type,
-            stock_price=order.price,  # dont know if this should be price per stock or overall buy price. Price per stock could involve rounding on int division.
-            quantity=order.quantity,
-            parent_tx_id=None,
-            time_stamp=time,
-            user_id=order.user_id,
-        )
+def addStockTx(session, order, isBuy: bool):
+    time = datetime.now()
+
+    stockTx = StockTransactions(
+        stock_id=order.stock_id,
+        order_status=OrderStatus.COMPLETED,
+        is_buy=isBuy,
+        order_type=order.order_type,
+        quantity=order.quantity,
+        parent_tx_id=None,
+        time_stamp=time,
+        user_id=order.user_id,
     )
+
+    if isBuy:
+        stockTx.stock_price = 0
+        # dont know if this should be price per stock or overall buy price or 0. Price per stock could involve rounding on int division.
+    else:
+        stockTx.stock_price = order.price
+
+    session.add(stockTx)
+    session.flush()
+    session.refresh(stockTx)
+
+    return stockTx.stock_tx_id

@@ -10,7 +10,7 @@ class StockOrder(BaseModel):
     is_buy: bool
     order_type: Literal["MARKET", "LIMIT"]
     quantity: int
-    price: int
+    price: Optional[int] = None
 
 
 # TODO: child sell order
@@ -21,7 +21,7 @@ class SellOrder:
     user_id: UUID
     stock_id: int
     quantity: int
-    price: Optional[int] = None
+    price: int
     timestamp: datetime
     order_type: Literal["MARKET", "LIMIT"]
 
@@ -39,4 +39,5 @@ class BuyOrder(BaseModel):
     stock_id: int
     quantity: int
     timestamp: datetime
+    price: Literal[0]
     order_type: Literal["MARKET", "LIMIT"]
