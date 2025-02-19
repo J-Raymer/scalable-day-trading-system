@@ -10,6 +10,7 @@ class OrderStatus(str, Enum):
     PARTIALLY_COMPLETE = "PARTIALLY_COMPLETE"
     COMPLETED = "COMPLETED"
 
+
 class OrderType(str, Enum):
     MARKET = "MARKET"
     LIMIT = "LIMIT"
@@ -31,6 +32,7 @@ class Wallets(SQLModel, table=True):
 
 class WalletTransactions(SQLModel, table=True):
     wallet_tx_id: int = Field(default=None, primary_key=True)
+    stock_tx_id: int = Field(default=None, foreign_key="stocktransactions.stock_tx_id")
     user_id: UUID = Field(foreign_key="users.id", index=True)
     is_debit: bool
     amount: int
@@ -52,7 +54,6 @@ class StockPortfolios(SQLModel, table=True):
 class StockTransactions(SQLModel, table=True):
     stock_tx_id: int = Field(default=None, primary_key=True)
     stock_id: int = Field(foreign_key="stocks.stock_id")
-    wallet_tx_id: int = Field(foreign_key="wallettransactions.wallet_tx_id")
     order_status: OrderStatus = Field(default=OrderStatus.IN_PROGRESS)
     is_buy: bool
     order_type: OrderType

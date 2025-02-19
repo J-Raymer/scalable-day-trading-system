@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from dataclasses import dataclass
 from uuid import UUID
-from typing import Literal
+from typing import Literal, Optional
 
 
 class StockOrder(BaseModel):
@@ -37,6 +37,7 @@ class SellOrder:
 class BuyOrder(BaseModel):
     user_id: UUID
     stock_id: int
+    price: int
     quantity: int
     timestamp: datetime
     order_type: Literal["MARKET", "LIMIT"]

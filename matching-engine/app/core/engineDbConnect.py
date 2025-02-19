@@ -21,8 +21,6 @@ url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 app = FastAPI(root_path="/engine")
 
-time = datetime.now()
-
 
 def getUserFromId(userId: str):
     with sqlmodel.Session(engine) as session:
@@ -49,6 +47,8 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
     if not buyOrder:
         raise HTTPException(status_code=400, detail="Missing buy order")
 
+    time = datetime.now()
+
     with sqlmodel.Session(engine) as session:
 
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == buyOrder.user_id)
@@ -61,7 +61,11 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         buyerWallet.balance -= buyPrice
         session.add(buyerWallet)
 
-        addWalletTx(session, buyOrder, buyPrice, isDebit=False)
+        # creates stock transaction
+        stockTxId = addStockTx(session, buyOrder, False)
+
+        # creates wallet transaction
+        addWalletTx(session, buyOrder, buyPrice, stockTxId, isDebit=False)
 
         amountSoldTotal = 0
 
@@ -80,7 +84,13 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             sellerWallet.balance += sellPrice
             session.add(sellerWallet)
 
-            addWalletTx(session, sellOrder, sellPrice, isDebit=True)
+            # creates stock transaction
+            stockTxId = addStockTx(session, sellOrder, False)
+
+            # creates wallet transaction
+            addWalletTx(session, sellOrder, sellPrice, stockTxId, isDebit=True)
+
+            # TODO amount sold for partial buys needs to be added to transaction
 
             amountSoldTotal += sellPrice
 
@@ -92,15 +102,16 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
     return SuccessResponse()
 
 
-def addWalletTx(session, order, orderValue, isDebit: bool):
+def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
+    time = datetime.now()
+
     walletTx = WalletTransactions(
         user_id=order.user_id,
+        stock_tx_id=stockTxId,
         is_debit=isDebit,
         amount=orderValue,
         timestamp=time,
     )
-
-    print(walletTx.wallet_tx_id)
 
     session.add(walletTx)
 
@@ -108,18 +119,23 @@ def addWalletTx(session, order, orderValue, isDebit: bool):
 
 
 # TODO add transaction to database
-def addStockTx(session, order, walletTxId):
-    session.add(
-        StockTransactions(
-            stock_id=order.stock_id,
-            wallet_tx_id=walletTxId,
-            order_status=OrderStatus.COMPLETED,
-            is_buy=order.is_buy,
-            order_type=order.order_type,
-            stock_price=order.price,  # dont know if this should be price per stock or overall buy price. Price per stock could involve rounding on int division.
-            quantity=order.quantity,
-            parent_tx_id=None,
-            time_stamp=time,
-            user_id=order.user_id,
-        )
+def addStockTx(session, order, isBuy: bool):
+    time = datetime.now()
+
+    stockTx = StockTransactions(
+        stock_id=order.stock_id,
+        order_status=OrderStatus.COMPLETED,
+        is_buy=isBuy,
+        order_type=order.order_type,
+        stock_price=order.price,  # dont know if this should be price per stock or overall buy price. Price per stock could involve rounding on int division.
+        quantity=order.quantity,
+        parent_tx_id=None,
+        time_stamp=time,
+        user_id=order.user_id,
     )
+
+    session.add(stockTx)
+    session.flush()
+    session.refresh(stockTx)
+
+    return stockTx.stock_tx_id
