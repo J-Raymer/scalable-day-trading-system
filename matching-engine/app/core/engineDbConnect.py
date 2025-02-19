@@ -4,10 +4,8 @@ import dotenv
 import os
 import sqlmodel
 from fastapi import FastAPI, Response, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
-from fastapi.security import OAuth2PasswordBearer
-from database import Users, Wallets
+from database import Users, Wallets, WalletTransactions, StockTransactions, OrderStatus
+from datetime import datetime
 
 
 dotenv.load_dotenv(override=True)
@@ -22,6 +20,8 @@ url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 
 engine = sqlmodel.create_engine(url)
 app = FastAPI(root_path="/engine")
+
+time = datetime.now()
 
 
 def getUserFromId(userId: str):
@@ -40,7 +40,6 @@ def getUserFromId(userId: str):
 # Main purpose of writing it like this is to execute taking money from the buyer and giving
 #   it to sellers as one transaction
 def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
-
     if buyPrice <= 0:
         raise HTTPException(status_code=400, detail="Buy price must be greater than 0")
 
@@ -58,23 +57,32 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         if buyerWallet.balance < buyPrice:
             raise HTTPException(status_code=400, detail="buyer lacks funds")
 
+        # subtracts from buyer's wallet balance
         buyerWallet.balance -= buyPrice
         session.add(buyerWallet)
+
+        addWalletTx(session, buyOrder, buyPrice, isDebit=False)
 
         amountSoldTotal = 0
 
         for sellOrderTouple in sellOrders:
             sellOrder, sellQuantity = sellOrderTouple
 
+            # calculates price using the price per stock and the *actual* amount sold
+            sellPrice = sellOrder.price * sellQuantity
+
             statement = sqlmodel.select(Wallets).where(
                 Wallets.user_id == sellOrder.user_id
             )
             sellerWallet = session.exec(statement).one_or_none()
 
-            sellerWallet.balance += sellOrder.price * sellQuantity
+            # adds money to sellers wallet
+            sellerWallet.balance += sellPrice
             session.add(sellerWallet)
 
-            amountSoldTotal += sellOrder.price * sellQuantity
+            addWalletTx(session, sellOrder, sellPrice, isDebit=True)
+
+            amountSoldTotal += sellPrice
 
         if not amountSoldTotal == buyPrice:
             raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
@@ -84,44 +92,34 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
     return SuccessResponse()
 
 
-def addToWallet(userId: str, amount: int):
-    if not userId:
-        raise HTTPException(status_code=400, detail="User id error")
+def addWalletTx(session, order, orderValue, isDebit: bool):
+    walletTx = WalletTransactions(
+        user_id=order.user_id,
+        is_debit=isDebit,
+        amount=orderValue,
+        timestamp=time,
+    )
 
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
+    print(walletTx.wallet_tx_id)
 
-    with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(Wallets).where(Wallets.user_id == userId)
-        wallet = session.exec(statement).one_or_none()
-        wallet.balance += amount
-        session.add(wallet)
-        session.commit()
+    session.add(walletTx)
 
-    return SuccessResponse()
+    return walletTx.wallet_tx_id
 
 
 # TODO add transaction to database
-def addSellTransaction():
-    pass
-
-
-def removeFromWallet(userId: str, amount: int):
-    if not userId:
-        raise HTTPException(status_code=400, detail="User id error")
-
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
-
-    with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(Wallets).where(Wallets.user_id == userId)
-        wallet = session.exec(statement).one_or_none()
-
-        if wallet.balance < amount:
-            raise HTTPException(status_code=400, detail="Wallet lacks funds")
-
-        wallet.balance -= amount
-        session.add(wallet)
-        session.commit()
-
-    return SuccessResponse()
+def addStockTx(session, order, walletTxId):
+    session.add(
+        StockTransactions(
+            stock_id=order.stock_id,
+            wallet_tx_id=walletTxId,
+            order_status=OrderStatus.COMPLETED,
+            is_buy=order.is_buy,
+            order_type=order.order_type,
+            stock_price=order.price,  # dont know if this should be price per stock or overall buy price. Price per stock could involve rounding on int division.
+            quantity=order.quantity,
+            parent_tx_id=None,
+            time_stamp=time,
+            user_id=order.user_id,
+        )
+    )

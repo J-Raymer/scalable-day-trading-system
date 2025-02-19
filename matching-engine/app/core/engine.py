@@ -24,6 +24,7 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
                 stock_id=order.stock_id,
                 quantity=order.quantity,
                 timestamp=time,
+                order_type=order.order_type,
             )
         )
         return {"success": True, "data": {}}
@@ -35,6 +36,7 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
             quantity=order.quantity,
             price=order.price,
             timestamp=time,
+            order_type=order.order_type,
         )
     )
     return {"success": True, "data": {}}
@@ -46,7 +48,7 @@ def getStockPriceEngine(stockID):
     if not sellTrees[stockID] or len(sellTrees[stockID]) == 0:
         raise HTTPException(status_code=400, detail="No sell orders for stock")
 
-    return {"success": True, "data": sellTrees[stockID][0].price}
+    return {"success": True, "data": sellTrees[stockID]}
 
 
 def processSellOrder(sellOrder: SellOrder):
@@ -65,14 +67,16 @@ def processBuyOrder(buyOrder: BuyOrder):
 # return price of buy order
 def matchBuy(buyOrder: BuyOrder):
     global sellTrees
-    tempTree = sellTrees[buyOrder.stock_id]
-    # returns a list of touples (SellOrderFilled, AmountSold)
-    ordersFilled, newSellTree = matchBuyRecursive(buyOrder, [], tempTree)
 
-    orderPrice = calculateMarketBuy(ordersFilled)
-
-    # takes money out of the buyers wallet
     try:
+        tempTree = sellTrees[buyOrder.stock_id].copy()
+        # returns a list of touples (SellOrderFilled, AmountSold)
+        ordersFilled, newSellTree = matchBuyRecursive(buyOrder, [], tempTree)
+
+        orderPrice = calculateMarketBuy(ordersFilled)
+
+        # takes money out of the buyers wallet
+
         fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
     except Exception as e:
         raise e

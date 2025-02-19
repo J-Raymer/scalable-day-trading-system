@@ -2,12 +2,13 @@ from pydantic import BaseModel
 from datetime import datetime
 from dataclasses import dataclass
 from uuid import UUID
+from typing import Literal
 
 
 class StockOrder(BaseModel):
     stock_id: int
     is_buy: bool
-    order_type: str
+    order_type: Literal["MARKET", "LIMIT"]
     quantity: int
     price: int
 
@@ -22,6 +23,7 @@ class SellOrder:
     quantity: int
     price: int
     timestamp: datetime
+    order_type: Literal["MARKET", "LIMIT"]
 
     def __eq__(self, other):
         return self.price == other.price
@@ -37,3 +39,4 @@ class BuyOrder(BaseModel):
     stock_id: int
     quantity: int
     timestamp: datetime
+    order_type: Literal["MARKET", "LIMIT"]
