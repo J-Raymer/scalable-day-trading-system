@@ -24,6 +24,7 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
                 stock_id=order.stock_id,
                 quantity=order.quantity,
                 timestamp=time,
+                order_type=order.order_type,
             )
         )
         return {"success": True, "data": {}}
@@ -35,6 +36,7 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
             quantity=order.quantity,
             price=order.price,
             timestamp=time,
+            order_type=order.order_type,
         )
     )
     return {"success": True, "data": {}}
