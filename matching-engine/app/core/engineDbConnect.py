@@ -168,7 +168,7 @@ def payOutStocks(buyOrder: BuyOrder, buyPrice):
         buyerStockHolding = session.exec(statement).one_or_none()
 
         if not buyerStockHolding:
-            newStockholding = StockPortfolios(
+            newStockHolding = StockPortfolios(
                 user_id = buyOrder.user_id,
                 stock_id = buyOrder.stock_id,
                 quantity_owned = buyOrder.quantity
