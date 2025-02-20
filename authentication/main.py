@@ -1,4 +1,3 @@
-from typing import override
 import bcrypt
 import dotenv
 import jwt
@@ -6,10 +5,11 @@ import os
 import sqlmodel
 from sqlmodel import func
 from datetime import datetime, timedelta
-from fastapi import FastAPI, Depends, Response, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.middleware.cors import CORSMiddleware
 from database import Users
 from schemas.common import *
 
@@ -26,15 +26,6 @@ url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 app = FastAPI(root_path="/authentication")
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Allows front end requests locally
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 def generate_token(user: Users):
     expiration = datetime.now() + timedelta(days=1)
@@ -50,6 +41,9 @@ def generate_token(user: Users):
     )
     return token
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    raise HTTPException(status_code=400, detail="Invalid Payload")
 
 @app.get("/")
 async def home():

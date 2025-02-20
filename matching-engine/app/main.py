@@ -1,12 +1,18 @@
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
-from uuid import UUID
+from fastapi.exceptions import RequestValidationError
 from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder
 from schemas.setup import StockSetup
-from .core import receiveOrder, cancelOrder, getUserFromId, getStockPriceEngine
+from .core import receiveOrder, cancelOrder, getStockPriceEngine
+
 
 app = FastAPI(root_path="/engine")
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    raise HTTPException(status_code=400, detail="Invalid Payload")
 
 
 @app.get("/")

@@ -1,9 +1,9 @@
-from schemas.common import User, SuccessResponse
-from schemas.engine import SellOrder, BuyOrder
+from schemas.common import SuccessResponse
+from schemas.engine import BuyOrder
 import dotenv
 import os
 import sqlmodel
-from fastapi import FastAPI, Response, Depends, HTTPException
+from fastapi import HTTPException
 from database import Users, Wallets, WalletTransactions, StockTransactions, StockPortfolios, OrderStatus
 from datetime import datetime
 
@@ -19,8 +19,6 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 
 engine = sqlmodel.create_engine(url)
-app = FastAPI(root_path="/engine")
-
 
 def getUserFromId(userId: str):
     with sqlmodel.Session(engine) as session:
@@ -109,7 +107,6 @@ def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
 
     session.add(walletTx)
 
-
 def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
     time = datetime.now()
 
@@ -124,18 +121,17 @@ def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
         user_id=order.user_id,
     )
 
+    # we should just put this ^^^ but for clarity im just gonna leave it like this for now
     if isBuy:
-        stockTx.stock_price = price
-        # dont know if this should be price per stock or overall buy price or 0. Price per stock could involve rounding on int division.
+        stockTx.stock_price = price # buy orders will pass in the total buy price from the combined orders
     else:
-        stockTx.stock_price = price
+        stockTx.stock_price = price # sell order will pass in their individual sell price
 
     session.add(stockTx)
     session.flush()
     session.refresh(stockTx)
 
     return stockTx.stock_tx_id
-
 
 def gatherStocks(order, user_id, stock_id, stock_amount):
     with sqlmodel.Session(engine) as session:

@@ -1,18 +1,17 @@
 from typing import List
-from fastapi import FastAPI, HTTPException
+from fastapi import HTTPException
 from uuid import UUID
 from schemas.engine import StockOrder, SellOrder, BuyOrder
-from schemas.common import SuccessResponse, ErrorResponse, User
 from datetime import datetime
 from collections import defaultdict, deque
-from heapq import heapify, heappop, heappush
+from heapq import heappop, heappush
 from .engineDbConnect import fundsBuyerToSeller, gatherStocks, payOutStocks 
 
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
 
 
-# UUID might need to be a string
+# TODO: UUID might need to be a string
 def receiveOrder(order: StockOrder, sending_user_id: UUID):
     # grab the details only we know
     time = datetime.now()
