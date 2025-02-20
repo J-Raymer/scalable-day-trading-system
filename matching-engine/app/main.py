@@ -2,9 +2,9 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from schemas.common import SuccessResponse, ErrorResponse
-from schemas.engine import StockOrder
+from schemas.engine import StockOrder, CancelOrder
 from schemas.setup import StockSetup
-from .core import receiveOrder, cancelOrder, getStockPriceEngine
+from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
 
 
 app = FastAPI(root_path="/engine")
@@ -53,5 +53,5 @@ async def getStockPrice():
         404: {"model": ErrorResponse},
     },
 )
-async def cancelStockTransaction(stockID: str):
-    return cancelOrder()
+async def cancelStockTransaction(cancelOrder: CancelOrder):
+    return cancelOrderEngine(cancelOrder)

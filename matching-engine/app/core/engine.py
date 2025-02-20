@@ -1,11 +1,18 @@
 from typing import List
 from fastapi import HTTPException
 from uuid import UUID
-from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice
+from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
 from datetime import datetime
 from collections import defaultdict, deque
-from heapq import heappop, heappush
-from .engineDbConnect import fundsBuyerToSeller, gatherStocks, getStockData, payOutStocks 
+from heapq import heapify, heappop, heappush
+from .engineDbConnect import (
+    fundsBuyerToSeller,
+    gatherStocks,
+    getStockData,
+    payOutStocks,
+    cancelTransaction,
+    getTransaction,
+)
 
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
@@ -31,14 +38,24 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
 
     else:
         incomingSellOrder = SellOrder(
-                user_id=sending_user_id,
-                stock_id=order.stock_id,
-                quantity=order.quantity,
-                price=order.price,
-                timestamp=time,
-                order_type=order.order_type,
+            user_id=sending_user_id,
+            stock_id=order.stock_id,
+            quantity=order.quantity,
+            price=order.price,
+            timestamp=time,
+            order_type=order.order_type,
         )
-        gatherStocks(incomingSellOrder, sending_user_id, order.stock_id, order.quantity)
+        transactionId = gatherStocks(
+            incomingSellOrder, sending_user_id, order.stock_id, order.quantity
+        )
+
+        incomingSellOrder.stock_tx_id = transactionId
+
+        if incomingSellOrder.stock_tx_id == None:
+            raise HTTPException(
+                status_code=400, detail="error assigning id to sell order"
+            )
+
         processSellOrder(incomingSellOrder)
         return {"success": True, "data": {}}
 
@@ -150,5 +167,21 @@ def calculateMarketBuy(sellOrderList):
     return price
 
 
-def cancelOrder(stockID: str):
-    return {}
+def cancelOrderEngine(cancelOrder: CancelOrder):
+    transactionId = cancelOrder.stock_tx_id
+    # Search heap for order
+
+    transaction = getTransaction(transactionId)
+    global sellTrees
+
+    tree = sellTrees[transaction.stock_id]
+
+    for sellOrder in tree:
+
+        if sellOrder.stock_tx_id == transactionId:
+            tree.remove(sellOrder)
+            heapify(tree)
+            break
+
+    # set transaction status to cancelled
+    cancelTransaction(transactionId)

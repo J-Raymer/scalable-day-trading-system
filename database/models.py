@@ -9,6 +9,7 @@ class OrderStatus(str, Enum):
     IN_PROGRESS = "IN_PROGRESS"
     PARTIALLY_COMPLETE = "PARTIALLY_COMPLETE"
     COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
 
 
 class OrderType(str, Enum):

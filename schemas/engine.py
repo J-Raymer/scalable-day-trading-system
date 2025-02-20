@@ -24,6 +24,7 @@ class SellOrder:
     price: int
     timestamp: datetime
     order_type: Literal["MARKET", "LIMIT"]
+    stock_tx_id: Optional[int] = None
 
     def __eq__(self, other):
         return self.price == other.price
@@ -47,3 +48,7 @@ class StockPrice(BaseModel):
     stock_id: int
     stock_name: str
     current_price: int
+
+
+class CancelOrder(BaseModel):
+    stock_tx_id: int
