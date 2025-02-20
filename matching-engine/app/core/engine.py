@@ -91,11 +91,8 @@ def matchBuy(buyOrder: BuyOrder):
 
         orderPrice = calculateMarketBuy(ordersFilled)
 
-        # transfer stocks to the buyers wallet
-        stockTxId = payOutStocks(buyOrder, orderPrice)
-
         # takes money out of the buyers wallet
-        fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice, stockTxId)
+        fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
     except Exception as e: 
         raise e
     else:
