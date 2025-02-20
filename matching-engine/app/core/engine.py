@@ -1,11 +1,11 @@
 from typing import List
 from fastapi import HTTPException
 from uuid import UUID
-from schemas.engine import StockOrder, SellOrder, BuyOrder
+from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice
 from datetime import datetime
 from collections import defaultdict, deque
 from heapq import heappop, heappush
-from .engineDbConnect import fundsBuyerToSeller
+from .engineDbConnect import fundsBuyerToSeller, getStockData
 
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
@@ -42,13 +42,28 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
     return {"success": True, "data": {}}
 
 
-def getStockPriceEngine(stockID):
+def getStockPriceEngine():
     global sellTrees
 
-    if not sellTrees[stockID] or len(sellTrees[stockID]) == 0:
-        raise HTTPException(status_code=400, detail="No sell orders for stock")
+    stockList = getStockData()
+    data = []
 
-    return {"success": True, "data": sellTrees[stockID]}
+    for stock in stockList:
+
+        id = stock.stock_id
+
+        if not sellTrees[id] or len(sellTrees[id]) == 0:
+            continue
+
+        data.append(
+            StockPrice(
+                stock_id=id,
+                stock_name=stock.stock_name,
+                current_price=sellTrees[id][0].price,
+            )
+        )
+
+    return {"success": True, "data": data}
 
 
 def processSellOrder(sellOrder: SellOrder):

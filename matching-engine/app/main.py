@@ -40,9 +40,9 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
 
 
 # Dont need this in the matching engine, nice for testing
-@app.post("/getStockPrice")
-async def getStockPrice(stock: StockSetup):
-    return getStockPriceEngine(stock.stock_id)
+@app.get("/getStockPrice")
+async def getStockPrice():
+    return getStockPriceEngine()
 
 
 @app.post(

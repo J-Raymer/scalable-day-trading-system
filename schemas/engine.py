@@ -41,3 +41,9 @@ class BuyOrder(BaseModel):
     timestamp: datetime
     price: Literal[0]
     order_type: Literal["MARKET", "LIMIT"]
+
+
+class StockPrice(BaseModel):
+    stock_id: int
+    stock_name: str
+    current_price: int

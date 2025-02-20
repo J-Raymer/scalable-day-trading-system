@@ -4,7 +4,7 @@ import dotenv
 import os
 import sqlmodel
 from fastapi import HTTPException
-from database import Users, Wallets, WalletTransactions, StockTransactions, OrderStatus
+from database import Stocks, Wallets, WalletTransactions, StockTransactions, OrderStatus
 from datetime import datetime
 
 
@@ -21,13 +21,13 @@ url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 
 
-def getUserFromId(userId: str):
+def getStockData():
     with sqlmodel.Session(engine) as session:
-        query = sqlmodel.select(Users).where(Users.id == userId)
-        result = session.exec(query).one_or_none()
+        query = sqlmodel.select(Stocks)
+        result = session.exec(query)
 
         if result:
-            return result
+            return result.all()
 
 
 # takes buy order and list of sell orders
