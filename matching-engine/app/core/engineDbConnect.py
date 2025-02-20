@@ -166,11 +166,20 @@ def payOutStocks(buyOrder: BuyOrder, buyPrice):
                     (StockPortfolios.stock_id == buyOrder.stock_id)
                 )
         buyerStockHolding = session.exec(statement).one_or_none()
-        buyerStockHolding.quantity_owned += buyOrder.quantity
+
+        if not buyerStockHolding:
+            newStockholding = StockPortfolios(
+                user_id = buyOrder.user_id,
+                stock_id = buyOrder.stock_id,
+                quantity_owned = buyOrder.quantity
+            )
+            session.add(newStockHolding)
+        else:
+            buyerStockHolding.quantity_owned += buyOrder.quantity
+            session.add(buyerStockHolding)
 
         stockTxId = addStockTx(session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED)
-        session.add(buyerStockHolding)
-    
         session.commit()
 
         return stockTxId
+
