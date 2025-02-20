@@ -41,7 +41,6 @@ type UseBuyStockOptions = {
   mutationConfig?: MutationConfig<typeof placeOrder>;
 };
 
-// TODO: When do we add wallet transactions? Is that on buy stock? Determine for invalidation
 export const usePlaceOrder = ({ mutationConfig }: UseBuyStockOptions = {}) => {
   const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
