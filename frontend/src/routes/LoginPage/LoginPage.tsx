@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   TextField,
@@ -42,6 +42,19 @@ export function LoginPage() {
       await login.mutateAsync({ username, password });
     } catch (error) {}
   };
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        handleLogin();
+      }
+    };
+
+    window.addEventListener('keypress', handleKeyPress);
+    return () => {
+      window.removeEventListener('keypress', handleKeyPress);
+    };
+  }, [username, password]);
 
   return (
     <Container maxWidth="sm" className="login-page">
