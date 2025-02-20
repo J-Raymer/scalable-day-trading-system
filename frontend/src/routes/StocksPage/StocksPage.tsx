@@ -5,6 +5,7 @@ import { Button, Typography, Snackbar, Alert, Slide } from '@mui/material';
 import { SlideTransition } from '@/components/SlideTransition';
 import { PurchaseStockDialog } from '@/features/transactions/stock/PurchaseStockDialog';
 import './StocksPage.scss';
+import { DashboardCard } from '@/components/DashboardCard/DashboardCard';
 
 export const StocksPage = () => {
   const stocks = useStockPrices();
@@ -66,6 +67,7 @@ export const StocksPage = () => {
   return (
     <div className="stocks-page">
       <Typography variant="h2">Stocks</Typography>
+      <DashboardCard>
       <Snackbar
         open={open}
         autoHideDuration={6000}
@@ -90,6 +92,8 @@ export const StocksPage = () => {
         getRowId={(row) => row.stock_id}
         disableRowSelectionOnClick
       />
+      </DashboardCard>
     </div>
+    
   );
 };
