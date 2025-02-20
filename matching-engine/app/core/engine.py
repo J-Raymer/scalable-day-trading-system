@@ -10,6 +10,7 @@ from .engineDbConnect import (
     gatherStocks,
     getStockData,
     payOutStocks,
+    cancelTransaction
 )
 
 sellTrees = defaultdict(list)
@@ -159,4 +160,4 @@ def calculateMarketBuy(sellOrderList):
 
 
 def cancelOrderEngine(cancelOrder: CancelOrder):
-    pass
+    stockTransaction = 
