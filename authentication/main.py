@@ -26,15 +26,6 @@ url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 app = FastAPI(root_path="/authentication")
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Allows front end requests locally
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 def generate_token(user: Users):
     expiration = datetime.now() + timedelta(days=1)
