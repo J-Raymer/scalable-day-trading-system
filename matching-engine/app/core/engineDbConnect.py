@@ -1,7 +1,7 @@
 from schemas.common import SuccessResponse
 from schemas.engine import BuyOrder
 import sqlmodel
-from sqlmodel import select
+from sqlmodel import Session, select
 from .db import get_db_session
 from fastapi import HTTPException
 from database import Stocks, Wallets, WalletTransactions, StockTransactions, StockPortfolios, OrderStatus
@@ -50,13 +50,14 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             session.add(sellerWallet)
 
             stockTxId = addStockTx(session, sellOrder, isBuy=False, price=sellOrder.price, state=OrderStatus.COMPLETED)
-
             addWalletTx(session, sellOrder, sellPrice, stockTxId, isDebit=True)
 
             amountSoldTotal += sellPrice
 
         if not amountSoldTotal == buyPrice:
             raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
+
+        session.commit()
 
 def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
     time = datetime.now()
@@ -71,7 +72,6 @@ def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
 
 def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
     time = datetime.now()
-
     stockTx = StockTransactions(
         stock_id=order.stock_id,
         order_status=state,
@@ -104,10 +104,15 @@ def gatherStocks(order, user_id, stock_id, stock_amount):
         holding.quantity_owned -= stock_amount
         stockTXID = addStockTx(session, order, isBuy=False, price=order.price, state=OrderStatus.IN_PROGRESS)
         session.add(holding)
+        
+        session.commit()
 
         return stockTXID
 
 def payOutStocks(session, buyOrder: BuyOrder, buyPrice):
+    if not buyOrder:
+        raise HTTPException(status_code=400, detail="Missing buy order")
+
     statement = select(StockPortfolios).where(
                 (StockPortfolios.user_id == buyOrder.user_id) & (StockPortfolios.stock_id == buyOrder.stock_id)
             )
