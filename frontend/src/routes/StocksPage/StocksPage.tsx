@@ -22,11 +22,6 @@ export const StocksPage = () => {
   );
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleError = (message: string) => {
-    setError(message);
-    setOpen(true);
-  };
-
   const handleClose = () => {
     setOpen(false);
     setError(null);
@@ -46,7 +41,7 @@ export const StocksPage = () => {
   const columns: GridColDef<Stock>[] = [
     { field: 'stock_id', headerName: 'id' },
     { field: 'stock_name', headerName: 'Name', flex: 60 },
-    { field: 'price', headerName: 'Price' },
+    { field: 'current_price', headerName: 'Current Price' },
     {
       field: 'actions',
       headerName: 'Actions',
@@ -57,7 +52,7 @@ export const StocksPage = () => {
             handleOpenDialog(
               params.row.stock_id,
               params.row.stock_name,
-              params.row.price,
+              params.row.current_price,
             )
           }
           variant="contained"

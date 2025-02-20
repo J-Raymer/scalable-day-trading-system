@@ -8,7 +8,7 @@ const headers = token ? { Authorization: `Bearer ${token}` } : {};
 export interface Stock {
   stock_id: number;
   stock_name: string;
-  price: number;
+  current_price: number;
 }
 
 async function getStockPrices(): Promise<Stock[]> {
