@@ -47,3 +47,7 @@ class StockPrice(BaseModel):
     stock_id: int
     stock_name: str
     current_price: int
+
+
+class CancelOrder(BaseModel):
+    stock_tx_id: int
