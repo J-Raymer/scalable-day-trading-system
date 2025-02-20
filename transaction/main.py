@@ -54,14 +54,10 @@ async def get_wallet_balance(x_user_data: str = Header(None)):
     username, user_id = x_user_data.split("|")
 
     with sqlmodel.Session(engine) as session:
-
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
         wallet = session.exec(statement).one_or_none()
         if not wallet:
-            new_wallet = Wallets(user_id=user_id)
-            session.add(new_wallet)
-            session.commit()
-            return SuccessResponse(data={"balance": 0})
+            raise HTTPException(status_code=404, detail="Wallet not found")
         return SuccessResponse(data={"balance": wallet.balance})
 
 
