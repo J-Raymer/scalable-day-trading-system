@@ -60,7 +60,7 @@ export const StockTransactionsGrid = () => {
         <DataGrid
           columns={columns}
           rows={transactions.data?? []}
-          getRowId={(row) => row.stock_id}
+          getRowId={(row) => row.stock_tx_id}
           disableRowSelectionOnClick
         />
       </DashboardCard>
