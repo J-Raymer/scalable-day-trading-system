@@ -10,7 +10,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
-from database import Users
+from database import Users, Wallets
 from schemas.common import *
 
 dotenv.load_dotenv(override=True)
@@ -114,6 +114,10 @@ async def register(user: RegisterRequest):
             salt=salt.decode("utf-8"),
         )
         session.add(new_user)
+        session.flush()
+        session.refresh(new_user)
+        new_wallet = Wallets(user_id=new_user.id)
+        session.add(new_wallet)
         session.commit()
         session.refresh(new_user)
         token = generate_token(new_user)
