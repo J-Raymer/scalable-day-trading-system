@@ -28,13 +28,13 @@ DB_NAME = os.getenv("DB_NAME")
 app = FastAPI(root_path="/transaction")
 
 # Add CORS middleware
-#app.add_middleware(
+# app.add_middleware(
 #    CORSMiddleware,
 #    allow_origins=["http://localhost:5173"],  # Allows front end requests locally
 #    allow_credentials=True,
 #    allow_methods=["*"],
 #    allow_headers=["*"],
-#)
+# )
 
 url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
@@ -100,7 +100,7 @@ async def get_wallet_transactions(x_user_data: str = Header(None)):
             sqlmodel.select(*columns)
             .join(
                 StockTransactions,
-                WalletTransactions.wallet_tx_id == StockTransactions.wallet_tx_id,
+                WalletTransactions.stock_tx_id == StockTransactions.stock_tx_id,
             )
             .where(WalletTransactions.user_id == user_id)
         )
