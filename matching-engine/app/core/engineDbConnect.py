@@ -37,7 +37,7 @@ def getUserFromId(userId: str):
 #
 # Main purpose of writing it like this is to execute taking money from the buyer and giving
 #   it to sellers as one transaction
-def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
+def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice, stockTxId):
     time = datetime.now()
     if buyPrice <= 0:
         raise HTTPException(status_code=400, detail="Buy price must be greater than 0")
@@ -59,9 +59,6 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         # subtracts from buyer's wallet balance
         buyerWallet.balance -= buyPrice
         session.add(buyerWallet)
-
-        # creates stock transaction for the buy order
-        stockTxId = addStockTx(session, buyOrder, isBuy=True)
 
         # creates wallet transaction for taking money from the buyer
         addWalletTx(session, buyOrder, buyPrice, stockTxId, isDebit=False)
@@ -98,8 +95,6 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
 
         session.commit()
-
-    return walletTransactions
 
 
 def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
@@ -178,7 +173,9 @@ def payOutStocks(buyOrder: BuyOrder, buyPrice):
         buyerStockHolding = session.exec(statement).one_or_none()
         buyerStockHolding.quantity_owned += buyOrder.quantity
 
-        stockTXID = addStockTx(session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED)
+        stockTxId = addStockTx(session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED)
         session.add(buyerStockHolding)
     
         session.commit()
+
+        return stockTxId

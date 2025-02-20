@@ -38,7 +38,7 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
                 price=order.price,
                 timestamp=time,
                 order_type=order.order_type,
-            )
+        )
         gatherStocks(incomingSellOrder, sending_user_id, order.stock_id, order.quantity)
         processSellOrder(incomingSellOrder)
         return {"success": True, "data": {}}
@@ -78,10 +78,10 @@ def matchBuy(buyOrder: BuyOrder):
         orderPrice = calculateMarketBuy(ordersFilled)
 
         # transfer stocks to the buyers wallet
-        payOutStocks(buyOrder, orderPrice)
+        stockTxId = payOutStocks(buyOrder, orderPrice)
 
         # takes money out of the buyers wallet
-        fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
+        fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice, stockTxId)
     except Exception as e: 
         raise e
     else:
