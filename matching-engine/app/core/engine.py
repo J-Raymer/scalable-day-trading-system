@@ -108,12 +108,9 @@ def matchBuy(buyOrder: BuyOrder):
 
         orderPrice = calculateMarketBuy(ordersFilled)
 
-        # transfer stocks to the buyers wallet
-        stockTxId = payOutStocks(buyOrder, orderPrice)
-
         # takes money out of the buyers wallet
-        fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice, stockTxId)
-    except Exception as e:
+        fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
+    except Exception as e: 
         raise e
     else:
         sellTrees[buyOrder.stock_id] = newSellTree
