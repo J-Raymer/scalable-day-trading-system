@@ -4,12 +4,13 @@ from uuid import UUID
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
 from datetime import datetime
 from collections import defaultdict, deque
-from heapq import heappop, heappush
+from heapq import heapify, heappop, heappush
 from .engineDbConnect import (
     fundsBuyerToSeller,
     gatherStocks,
     getStockData,
     payOutStocks,
+    cancelTransaction,
     getTransaction,
 )
 
@@ -170,5 +171,20 @@ def calculateMarketBuy(sellOrderList):
 
 
 def cancelOrderEngine(cancelOrder: CancelOrder):
-    return {}
-    # stockTransaction = getTransaction(cancelOrder.stock_tx_id)
+    transactionId = cancelOrder.stock_tx_id
+    # Search heap for order
+
+    transaction = getTransaction(transactionId)
+    global sellTrees
+
+    tree = sellTrees[transaction.stock_id]
+
+    for sellOrder in tree:
+
+        if sellOrder.stock_tx_id == transactionId:
+            tree.remove(sellOrder)
+            heapify(tree)
+            break
+
+    # set transaction status to cancelled
+    cancelTransaction(transactionId)
