@@ -41,13 +41,14 @@ type UseBuyStockOptions = {
   mutationConfig?: MutationConfig<typeof placeOrder>;
 };
 
-// TODO: When do we add wallet transactions? Is that on buy stock? Determine for invalidation
 export const usePlaceOrder = ({ mutationConfig }: UseBuyStockOptions = {}) => {
   const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
     mutationFn: placeOrder,
     onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries(['portfolio', 'wallet_tx', 'stock_tx']);
+      queryClient.invalidateQueries(['portfolio']);
+      queryClient.invalidateQueries(['wallet_tx']);
+      queryClient.invalidateQueries(['stock_tx']);
       onSuccess?.(data, variables, context);
     },
     ...restConfig,
