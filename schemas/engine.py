@@ -24,6 +24,7 @@ class SellOrder:
     price: int
     timestamp: datetime
     order_type: Literal["MARKET", "LIMIT"]
+    stock_tx_id: Optional[int] = None
 
     def __eq__(self, other):
         return self.price == other.price

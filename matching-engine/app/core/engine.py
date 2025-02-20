@@ -10,7 +10,7 @@ from .engineDbConnect import (
     gatherStocks,
     getStockData,
     payOutStocks,
-    cancelTransaction
+    getTransaction,
 )
 
 sellTrees = defaultdict(list)
@@ -44,7 +44,17 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
             timestamp=time,
             order_type=order.order_type,
         )
-        gatherStocks(incomingSellOrder, sending_user_id, order.stock_id, order.quantity)
+        transactionId = gatherStocks(
+            incomingSellOrder, sending_user_id, order.stock_id, order.quantity
+        )
+
+        incomingSellOrder.stock_tx_id = transactionId
+
+        if incomingSellOrder.stock_tx_id == None:
+            raise HTTPException(
+                status_code=400, detail="error assigning id to sell order"
+            )
+
         processSellOrder(incomingSellOrder)
         return {"success": True, "data": {}}
 
@@ -160,4 +170,5 @@ def calculateMarketBuy(sellOrderList):
 
 
 def cancelOrderEngine(cancelOrder: CancelOrder):
-    stockTransaction = 
+    return {}
+    # stockTransaction = getTransaction(cancelOrder.stock_tx_id)

@@ -210,5 +210,11 @@ def payOutStocks(buyOrder: BuyOrder, buyPrice):
         return stockTxId
 
 
-def cancelTransaction(stockTxId):
-    pass
+def getTransaction(stockTxId):
+
+    with sqlmodel.Session(engine) as session:
+
+        statement = sqlmodel.select(StockTransactions).where(
+            StockTransactions.stock_tx_id == stockTxId
+        )
+        result = session.exec(statement).one_or_none()
