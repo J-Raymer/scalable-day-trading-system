@@ -74,7 +74,9 @@ export const SellStockDialog = ({
       return;
     }
 
-    const error = handleValidate(Number(price), Number(quantity));
+    const priceAsNum = Number(price)
+    const quantityAsNum = Number(quantity)
+    const error = handleValidate(priceAsNum, quantityAsNum);
     if (error) {
       setError('Error, missing stock id');
       setShowError(true);
@@ -85,8 +87,8 @@ export const SellStockDialog = ({
       await sellStock.mutateAsync({
         stockId,
         orderType: OrderType.LIMIT,
-        quantity: 1,
-        price: 100,
+        quantity: quantityAsNum,
+        price: priceAsNum,
         isBuy: false,
       });
     } catch (e) {}
