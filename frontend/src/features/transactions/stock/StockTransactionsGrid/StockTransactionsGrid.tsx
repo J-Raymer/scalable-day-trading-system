@@ -20,7 +20,7 @@ export const StockTransactionsGrid = () => {
   };
 
   const columns: GridColDef<StockTransactions>[] = [
-    { field: 'stock_tx_id', headerName: 'id', width: 1 },
+    { field: 'stock_tx_id', headerName: 'Tx ID', width: 60 },
     { field: 'order_status', headerName: 'Order Status', flex: 15 },
     { field: 'order_type', headerName: 'Order Type', flex: 10 },
     { field: 'stock_price', headerName: 'Price', flex: 5 },

@@ -18,7 +18,7 @@ export const PortfolioGrid = () => {
   };
 
   const columns: GridColDef<PortfolioItem>[] = [
-    { field: 'stock_id', headerName: 'id' },
+    { field: 'stock_id', headerName: 'Stock ID' },
     { field: 'stock_name', headerName: 'Name', flex: 60 },
     { field: 'quantity_owned', headerName: 'Quantity Owned', flex: 30 },
     {
