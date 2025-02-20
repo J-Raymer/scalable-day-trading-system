@@ -25,7 +25,6 @@ DB_NAME = os.getenv("DB_NAME")
 
 app = FastAPI(root_path="/transaction")
 
-
 url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 
