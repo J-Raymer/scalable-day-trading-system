@@ -6,7 +6,7 @@ from schemas.common import SuccessResponse, ErrorResponse, User
 from datetime import datetime
 from collections import defaultdict, deque
 from heapq import heapify, heappop, heappush
-from .engineDbConnect import fundsBuyerToSeller, checkStockPortfolio
+from .engineDbConnect import fundsBuyerToSeller, gatherStocks, payOutStocks 
 
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
@@ -30,9 +30,8 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
         )
         return {"success": True, "data": {}}
 
-    elif checkStockPortfolio(sending_user_id, order.stock_id, order.quantity):
-        processSellOrder(
-            SellOrder(
+    else:
+        incomingSellOrder = SellOrder(
                 user_id=sending_user_id,
                 stock_id=order.stock_id,
                 quantity=order.quantity,
@@ -40,10 +39,9 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
                 timestamp=time,
                 order_type=order.order_type,
             )
-        )
+        gatherStocks(incomingSellOrder, sending_user_id, order.stock_id, order.quantity)
+        processSellOrder(incomingSellOrder)
         return {"success": True, "data": {}}
-    else:
-        return {"success": False, "data": {"message": "you can only sell stock you own"}}
 
 
 def getStockPriceEngine(stockID):
@@ -79,10 +77,11 @@ def matchBuy(buyOrder: BuyOrder):
 
         orderPrice = calculateMarketBuy(ordersFilled)
 
-        # takes money out of the buyers wallet
+        # transfer stocks to the buyers wallet
+        payOutStocks(buyOrder, orderPrice)
 
-        orderWalletTransactionList = fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
-        transferStocks(buyOrder, ordersFilled, orderWalletTransactionList) 
+        # takes money out of the buyers wallet
+        fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
     except Exception as e: 
         raise e
     else:
