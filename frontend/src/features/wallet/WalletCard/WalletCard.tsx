@@ -22,7 +22,7 @@ export const WalletCard = () => {
             <Skeleton />
           ) : (
             <>
-              {data?.balance
+              {data?.balance !== undefined
                 ? `Your balance is $${data?.balance}`
                 : 'An error occurred fetching wallet balance'}
             </>
