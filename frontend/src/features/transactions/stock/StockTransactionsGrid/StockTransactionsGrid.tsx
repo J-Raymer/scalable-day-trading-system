@@ -32,7 +32,7 @@ export const StockTransactionsGrid = () => {
       flex: 10,
       renderCell: (params) => {
         return (
-          params.row.order_status !== OrderStatus.COMPLETED &&
+          params.row.order_status === OrderStatus.IN_PROGRESS &&
           params.row.order_type == OrderType.LIMIT && (
             <Button
               variant="contained"
@@ -59,7 +59,7 @@ export const StockTransactionsGrid = () => {
         <Typography variant="h5">Stock Transactions</Typography>
         <DataGrid
           columns={columns}
-          rows={transactions.data?? []}
+          rows={transactions.data ?? []}
           getRowId={(row) => row.stock_tx_id}
           disableRowSelectionOnClick
         />

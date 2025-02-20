@@ -19,7 +19,7 @@ async function cancelOrder({ stockTxId }: UseCancelOrderProps): Promise<void> {
       headers,
     },
   );
-  return response.data.data;
+  return response.data;
 }
 
 type UseCancelOrderOptions = {
