@@ -1,100 +1,62 @@
 from schemas.common import SuccessResponse
 from schemas.engine import BuyOrder
-import dotenv
-import os
 import sqlmodel
+from sqlmodel import select
+from .db import get_db_session
 from fastapi import HTTPException
 from database import Stocks, Wallets, WalletTransactions, StockTransactions, StockPortfolios, OrderStatus
 from datetime import datetime
 
-
-dotenv.load_dotenv(override=True)
-USERNAME = os.getenv("USERNAME")
-PASSWORD = os.getenv("PASSWORD")
-HOST = os.getenv("HOST")
-PORT = os.getenv("POSTGRES_PORT")
-DB_NAME = os.getenv("DB_NAME")
-JWT_SECRET = os.getenv("JWT_SECRET")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
-url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
-
-engine = sqlmodel.create_engine(url)
-
 def getStockData():
-    with sqlmodel.Session(engine) as session:
-        query = sqlmodel.select(Stocks)
+    with get_db_session() as session:
+        query = select(Stocks)
         result = session.exec(query)
+        return result.all()
 
-        if result:
-            return result.all()
-
-# takes buy order and list of sell orders
-# connects to database and checks if buyer has funds
-# takes funds from buyer and distributes to seller(s)
-#
-# Main purpose of writing it like this is to execute taking money from the buyer and giving
-#   it to sellers as one transaction
 def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
-    time = datetime.now()
-    if buyPrice <= 0:
-        raise HTTPException(status_code=400, detail="Buy price must be greater than 0")
+    with get_db_session() as session:
+        if buyPrice <= 0:
+            raise HTTPException(status_code=400, detail="Buy price must be greater than 0")
 
-    if len(sellOrders) <= 0:
-        raise HTTPException(status_code=400, detail="Missing sell orders")
+        if len(sellOrders) <= 0:
+            raise HTTPException(status_code=400, detail="Missing sell orders")
 
-    if not buyOrder:
-        raise HTTPException(status_code=400, detail="Missing buy order")
+        if not buyOrder:
+            raise HTTPException(status_code=400, detail="Missing buy order")
 
-    with sqlmodel.Session(engine) as session:
-        
         buyerStockTxId = payOutStocks(session, buyOrder, buyPrice)
 
-        statement = sqlmodel.select(Wallets).where(Wallets.user_id == buyOrder.user_id)
+        statement = select(Wallets).where(Wallets.user_id == buyOrder.user_id)
         buyerWallet = session.exec(statement).one_or_none()
 
         if buyerWallet.balance < buyPrice:
-            raise HTTPException(status_code=400, detail="buyer lacks funds")
-        
-        # subtracts from buyer's wallet balance
+            raise HTTPException(status_code=400, detail="Buyer lacks funds")
+
         buyerWallet.balance -= buyPrice
         session.add(buyerWallet)
 
-        # creates wallet transaction for taking money from the buyer
         addWalletTx(session, buyOrder, buyPrice, buyerStockTxId, isDebit=False)
 
-        # TODO stock added to portfolio
         amountSoldTotal = 0
-
 
         for sellOrderTouple in sellOrders:
             sellOrder, sellQuantity = sellOrderTouple
-
-            # calculates price using the price per stock and the *actual* amount sold
             sellPrice = sellOrder.price * sellQuantity
 
-            statement = sqlmodel.select(Wallets).where(
-                Wallets.user_id == sellOrder.user_id
-            )
+            statement = select(Wallets).where(Wallets.user_id == sellOrder.user_id)
             sellerWallet = session.exec(statement).one_or_none()
 
-            # adds money to sellers wallet
             sellerWallet.balance += sellPrice
             session.add(sellerWallet)
 
-            # creates stock transaction for the sellOrder
-            # TODO integrate this so it updates pending sell order to COMPLETED
             stockTxId = addStockTx(session, sellOrder, isBuy=False, price=sellOrder.price, state=OrderStatus.COMPLETED)
 
-            # creates wallet transaction for paying the seller
             addWalletTx(session, sellOrder, sellPrice, stockTxId, isDebit=True)
 
             amountSoldTotal += sellPrice
 
         if not amountSoldTotal == buyPrice:
             raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
-
-        session.commit()
-
 
 def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
     time = datetime.now()
@@ -105,7 +67,6 @@ def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
         amount=orderValue,
         timestamp=time,
     )
-
     session.add(walletTx)
 
 def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
@@ -122,11 +83,7 @@ def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
         user_id=order.user_id,
     )
 
-    # we should just put this ^^^ but for clarity im just gonna leave it like this for now
-    if isBuy:
-        stockTx.stock_price = price # buy orders will pass in the total buy price from the combined orders
-    else:
-        stockTx.stock_price = price # sell order will pass in their individual sell price
+    stockTx.stock_price = price
 
     session.add(stockTx)
     session.flush()
@@ -135,11 +92,9 @@ def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
     return stockTx.stock_tx_id
 
 def gatherStocks(order, user_id, stock_id, stock_amount):
-    with sqlmodel.Session(engine) as session:
-        statement = sqlmodel.select(StockPortfolios).where(
-                    (StockPortfolios.user_id == user_id)
-                    &
-                    (StockPortfolios.stock_id == stock_id)
+    with get_db_session() as session:
+        statement = select(StockPortfolios).where(
+                    (StockPortfolios.user_id == user_id) & (StockPortfolios.stock_id == stock_id)
                 )
         holding = session.exec(statement).one_or_none()
 
@@ -147,31 +102,22 @@ def gatherStocks(order, user_id, stock_id, stock_amount):
             raise HTTPException(status_code=500, detail="You cannot sell stocks you don't own")
 
         holding.quantity_owned -= stock_amount
-        stockTXID = addStockTx(session, order, isBuy=False, price=order.price, state=OrderStatus.IN_PROGRESS) 
+        stockTXID = addStockTx(session, order, isBuy=False, price=order.price, state=OrderStatus.IN_PROGRESS)
         session.add(holding)
-        
-        session.commit()
 
         return stockTXID
 
-
 def payOutStocks(session, buyOrder: BuyOrder, buyPrice):
-
-    if not buyOrder:
-        raise HTTPException(status_code=400, detail="Missing buy order")
-
-    statement = sqlmodel.select(StockPortfolios).where(
-                (StockPortfolios.user_id == buyOrder.user_id)
-                &
-                (StockPortfolios.stock_id == buyOrder.stock_id)
+    statement = select(StockPortfolios).where(
+                (StockPortfolios.user_id == buyOrder.user_id) & (StockPortfolios.stock_id == buyOrder.stock_id)
             )
     buyerStockHolding = session.exec(statement).one_or_none()
 
     if not buyerStockHolding:
         newStockHolding = StockPortfolios(
-            user_id = buyOrder.user_id,
-            stock_id = buyOrder.stock_id,
-            quantity_owned = buyOrder.quantity
+            user_id=buyOrder.user_id,
+            stock_id=buyOrder.stock_id,
+            quantity_owned=buyOrder.quantity
         )
         session.add(newStockHolding)
     else:
@@ -181,4 +127,3 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice):
     stockTxId = addStockTx(session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED)
 
     return stockTxId
-
