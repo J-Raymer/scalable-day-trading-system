@@ -38,13 +38,6 @@ export const PortfolioGrid = () => {
     },
   ];
 
-  // TODO: Need to update this when real data is available
-  const placeholderData: PortfolioItem[] = [
-    { stock_id: 1, stock_name: 'AAPL', quantity_owned: 150 },
-    { stock_id: 2, stock_name: 'GOOGL', quantity_owned: 2800 },
-    { stock_id: 3, stock_name: 'AMZN', quantity_owned: 3400 },
-  ];
-
   return (
     <>
       <SellStockDialog
@@ -57,7 +50,7 @@ export const PortfolioGrid = () => {
         <Typography variant="h5">Stock Portfolio</Typography>
         <DataGrid
           columns={columns}
-          rows={placeholderData}
+          rows={portolio.data?? []}
           getRowId={(row) => row.stock_id}
           disableRowSelectionOnClick
         />

@@ -18,31 +18,12 @@ export const WalletTransactionsGrid = () => {
     { field: 'time_stamp', headerName: 'Timestamp', flex: 30 },
   ];
 
-  const placeHolderData: WalletTransaction[] = [
-    // TODO: Replace this with real data when engine complete
-    // TODO: How should we format the timestamp?
-    {
-      stock_tx_id: 1,
-      wallet_tx_id: 1,
-      is_debit: true,
-      amount: 100,
-      time_stamp: new Date('2023-10-01T10:00:00Z'),
-    },
-    {
-      stock_tx_id: 2,
-      wallet_tx_id: 2,
-      is_debit: false,
-      amount: 200,
-      time_stamp: new Date('2023-10-01T10:00:00Z'),
-    },
-  ];
-
   return (
     <DashboardCard>
       <Typography variant="h5">Wallet Transactions</Typography>
       <DataGrid
         columns={columns}
-        rows={placeHolderData}
+        rows={transactions.data ?? []}
         getRowId={(row) => row.wallet_tx_id}
         disableRowSelectionOnClick
       />

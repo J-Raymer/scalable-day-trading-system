@@ -47,7 +47,7 @@ export const usePlaceOrder = ({ mutationConfig }: UseBuyStockOptions = {}) => {
   return useMutation({
     mutationFn: placeOrder,
     onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries(['portfolio', 'wallet_tx']);
+      queryClient.invalidateQueries(['portfolio', 'wallet_tx', 'stock_tx']);
       onSuccess?.(data, variables, context);
     },
     ...restConfig,
