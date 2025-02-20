@@ -1,22 +1,20 @@
-from typing import override
 import sqlmodel
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
+from fastapi.exceptions import RequestValidationError
 from uuid import UUID
 import os
 import dotenv
 from database import (
     Wallets,
     WalletTransactions,
-    Users,
     Stocks,
     StockPortfolios,
     StockTransactions,
 )
-from schemas.common import SuccessResponse, ErrorResponse, User
+from schemas.common import SuccessResponse, ErrorResponse
 from schemas.transaction import AddMoneyRequest, WalletTxResult, PortfolioResult
 from schemas.setup import Stock, StockSetup
-from fastapi.middleware.cors import CORSMiddleware
 
 dotenv.load_dotenv(override=True)
 DB_USERNAME = os.getenv("USERNAME")
@@ -27,18 +25,14 @@ DB_NAME = os.getenv("DB_NAME")
 
 app = FastAPI(root_path="/transaction")
 
-# Add CORS middleware
-# app.add_middleware(
-#    CORSMiddleware,
-#    allow_origins=["http://localhost:5173"],  # Allows front end requests locally
-#    allow_credentials=True,
-#    allow_methods=["*"],
-#    allow_headers=["*"],
-# )
 
 url = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = sqlmodel.create_engine(url)
 
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    raise HTTPException(status_code=400, detail="Invalid Payload")
 
 @app.get("/")
 async def home():

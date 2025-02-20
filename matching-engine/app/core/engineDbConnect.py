@@ -1,9 +1,9 @@
-from schemas.common import User, SuccessResponse
-from schemas.engine import SellOrder, BuyOrder
+from schemas.common import SuccessResponse
+from schemas.engine import BuyOrder
 import dotenv
 import os
 import sqlmodel
-from fastapi import FastAPI, Response, Depends, HTTPException
+from fastapi import HTTPException
 from database import Users, Wallets, WalletTransactions, StockTransactions, OrderStatus
 from datetime import datetime
 
@@ -19,7 +19,6 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 
 engine = sqlmodel.create_engine(url)
-app = FastAPI(root_path="/engine")
 
 
 def getUserFromId(userId: str):
