@@ -11,7 +11,7 @@ interface UseBuyStockProps {
 }
 
 const token = localStorage.getItem('token');
-const headers = token ? { Authorization: `Bearer ${token}` } : {};
+const headers = token ? { token } : {};
 
 async function placeOrder({
   stockId,

@@ -102,17 +102,17 @@ services:
     networks:
       - day_trader_network
 
-  frontend:
-    build: ./frontend
-    container_name: frontend
-    depends_on:
-      - api-gateway
-    environment:
-      - VITE_API_URL=${VITE_API_URL}
-    ports:
-      - ${FE_PORT}:${FE_PORT}
-    networks:
-      - day_trader_network
+#  frontend:
+#    build: ./frontend
+#    container_name: frontend
+#    depends_on:
+#      - api-gateway
+#    environment:
+#      - VITE_API_URL=${VITE_API_URL}
+#    ports:
+#      - ${FE_PORT}:${FE_PORT}
+#    networks:
+#      - day_trader_network
 
 
 volumes:

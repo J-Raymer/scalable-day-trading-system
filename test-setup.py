@@ -18,7 +18,7 @@ def setup_stocks(token: str):
         "stock_name": fake.company(),
     }
     headers = {
-        "Authorization": f"Bearer {token}"
+        "token": token
     }
     response = requests.post("http://localhost:3001/setup/createStock", json=stock_data, headers=headers)
     stock = response.json()
@@ -30,7 +30,7 @@ def add_single_stock_to_user(token: str, stock_id: str):
         "quantity":100
     }
     headers = {
-        "Authorization": f"Bearer {token}"
+        "token": token
     }
     response = requests.post("http://localhost:3001/setup/addStockToUser", json=stock_data, headers=headers)
     return response.json()

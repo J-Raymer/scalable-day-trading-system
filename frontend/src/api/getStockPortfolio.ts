@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { API_URL, QueryConfig } from '@/lib/react-query.ts';
 
 const token = localStorage.getItem('token');
-const headers = token ? { Authorization: `Bearer ${token}` } : {};
+const headers = token ? { token } : {};
 
 export interface PortfolioItem {
   stock_id: number;
