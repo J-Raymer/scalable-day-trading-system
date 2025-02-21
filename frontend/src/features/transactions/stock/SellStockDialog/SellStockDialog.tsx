@@ -45,6 +45,8 @@ export const SellStockDialog = ({
       onSuccess: () => {
         setIsOpen(false);
         setCurrentId(undefined);
+        setQuantity('');
+        setPrice('');
       },
       onError: (error) => {
         setError(error.response?.data.detail ?? 'An unknown error occurred');

@@ -4,6 +4,7 @@ import dotenv
 import os
 import sqlmodel
 from fastapi import HTTPException
+from sqlmodel import desc
 from database import (
     Stocks,
     Wallets,
@@ -30,7 +31,7 @@ engine = sqlmodel.create_engine(url)
 
 def getStockData():
     with sqlmodel.Session(engine) as session:
-        query = sqlmodel.select(Stocks)
+        query = sqlmodel.select(Stocks).order_by(desc(Stocks.stock_name))
         result = session.exec(query)
 
         if result:

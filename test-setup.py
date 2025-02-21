@@ -41,10 +41,10 @@ def main():
         res = register()
         token = res['data']['token']
         results = list(map(lambda _: setup_stocks(token), range(20)))
-        added_stock = add_single_stock_to_user(token,  results[0]['data']['stock_id'])
+        added_stocks = list(map(lambda stock: add_single_stock_to_user(token, stock['data']['stock_id']), results[0:5]))
         print('Set up user data and stocks')
         print('User data', res['data'])
-        print('added stock to user', added_stock['data'])
+        print('added stocks to user', added_stocks)
         print('Stocks', results)
     except Exception as e:
         print('Exception occurred setting up tests', e)

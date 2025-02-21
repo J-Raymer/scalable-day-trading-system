@@ -1,6 +1,8 @@
 from typing import List
 from fastapi import HTTPException
 from uuid import UUID
+
+from schemas import SuccessResponse
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
 from datetime import datetime
 from collections import defaultdict, deque
@@ -80,8 +82,7 @@ def getStockPriceEngine():
                 current_price=sellTrees[id][0].price,
             )
         )
-
-    return {"success": True, "data": data}
+    return SuccessResponse(data=data)
 
 
 def processSellOrder(sellOrder: SellOrder):

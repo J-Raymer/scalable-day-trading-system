@@ -1,5 +1,5 @@
 import sqlmodel
-from sqlmodel import Session
+from sqlmodel import Session, desc
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
@@ -147,6 +147,7 @@ async def get_stock_prices(x_user_data: str = Header(None), session: Session = D
         )
         .join(Stocks, StockPortfolios.stock_id == Stocks.stock_id)
         .where(StockPortfolios.user_id == user_id)
+        .order_by(desc(Stocks.stock_name))
     )
     result = session.exec(statement).all()
     portfolio = list(
