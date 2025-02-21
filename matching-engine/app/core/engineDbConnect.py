@@ -139,7 +139,7 @@ def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
         is_buy=isBuy,
         order_type=order.order_type,
         quantity=order.quantity,
-        parent_tx_id=None,
+        parent_stock_tx_id=None,
         time_stamp=time,
         user_id=order.user_id,
     )
@@ -267,7 +267,7 @@ def createChildTransaction(order, parentStockTxId):
             order_type=order.order_type,
             stock_price=order.price,
             quantity=order.quantity,
-            parent_tx_id=parentStockTxId,
+            parent_stock_tx_id=parentStockTxId,
             time_stamp=time,
             user_id=order.user_id,
         )

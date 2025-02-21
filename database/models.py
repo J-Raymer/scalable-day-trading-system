@@ -60,6 +60,6 @@ class StockTransactions(SQLModel, table=True):
     order_type: OrderType
     stock_price: int
     quantity: int
-    parent_tx_id: int | None = Field(foreign_key="stocktransactions.stock_tx_id")
+    parent_stock_tx_id: int | None = Field(foreign_key="stocktransactions.stock_tx_id")
     time_stamp: datetime = Field(default_factory=datetime.now)
     user_id: UUID = Field(foreign_key="users.id", index=True)
