@@ -90,18 +90,22 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             sellerWallet.balance += sellPrice
             session.add(sellerWallet)
 
-            # creates stock transaction for the sellOrder
-            # TODO integrate this so it updates pending sell order to COMPLETED
-            stockTxId = addStockTx(
-                session,
-                sellOrder,
-                isBuy=False,
-                price=sellOrder.price,
-                state=OrderStatus.COMPLETED,
+            # updates the sell order transaction to completed
+            sellerStockTxId = sellOrder.stock_tx_id   
+            statement = sqlmodel.select(StockTransactions).where(
+                StockTransactions.stock_tx_id == sellerStockTxId
             )
+            incompleteTx = session.exec(statement).one_or_none()
 
+            if not incompleteTx:
+                raise HTTPException(status_code=500, detail="Missing Sell Transaction to update")
+
+            incompleteTx.order_status = OrderStatus.COMPLETED
+
+            session.add(incompleteTx)
+ 
             # creates wallet transaction for paying the seller
-            addWalletTx(session, sellOrder, sellPrice, stockTxId, isDebit=True)
+            addWalletTx(session, sellOrder, sellPrice, sellerStockTxId, isDebit=True)
 
             amountSoldTotal += sellPrice
 
@@ -213,14 +217,27 @@ def cancelTransaction(stockTxId):
 
     with sqlmodel.Session(engine) as session:
 
+        # Set the transaction to cancelled 
         statement = sqlmodel.select(StockTransactions).where(
             StockTransactions.stock_tx_id == stockTxId
         )
-        result = session.exec(statement).one_or_none()
+        transactionToBeCancelled = session.exec(statement).one_or_none()
 
-        result.order_status = OrderStatus.CANCELLED
+        transactionToBeCancelled.order_status = OrderStatus.CANCELLED
 
-        session.add(result)
+        session.add(transactionToBeCancelled)
+
+        # then refund the stocks to the users portfolio
+        statement = sqlmodel.select(StockPortfolios).where(
+            (StockPortfolios.user_id == transactionToBeCancelled.user_id)
+            &
+            (StockPortfolios.stock_id == transactionToBeCancelled.stock_id)
+        )
+        sellerPortfolio = session.exec(statement).one_or_none()
+
+        sellerPortfolio.quantity_owned += transactionToBeCancelled.quantity
+
+        session.add(sellerPortfolio)
 
         session.commit()
 
