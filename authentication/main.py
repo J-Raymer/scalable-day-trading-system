@@ -62,13 +62,13 @@ async def validate_token(token: str = Depends(oauth2_scheme)):
         )
         return {"username": decoded_token["username"], "id": decoded_token["id"]}
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Expired Token")
+        raise HTTPException(status_code=401, detail="Invalid Token")
     except jwt.InvalidSignatureError:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise HTTPException(status_code=401, detail="Invalid Token")
     except jwt.MissingRequiredClaimError:
-        raise HTTPException(status_code=400, detail="Missing required claim")
+        raise HTTPException(status_code=400, detail="Invalid Token")
     except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=400, detail="Invalid Payload")
 
 @app.post(
     "/register",
