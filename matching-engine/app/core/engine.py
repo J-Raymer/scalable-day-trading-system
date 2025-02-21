@@ -14,6 +14,8 @@ from .engineDbConnect import (
     payOutStocks,
     cancelTransaction,
     getTransaction,
+    createChildTransaction,
+    setToPartiallyComplete
 )
 
 sellTrees = defaultdict(list)
@@ -140,11 +142,32 @@ def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree):
         # remove buy quantity from sell order
         minSellOrder.quantity = minSellOrder.quantity - buyQuantity
 
-        # push sell order back onto heap with reduced quantity
+        # change the original stock transaction to Partially complete
+        setToPartiallyComplete(minSellOrder.stock_tx_id, minSellOrder.quantity)
 
+        # push original sell order back onto heap with reduced quantity
         heappush(tempTree, minSellOrder)
 
-        poppedSellOrders.append((minSellOrder, buyQuantity))
+        # create a child sell order
+        childSellOrder = SellOrder(
+            user_id = minSellOrder.user_id,
+            stock_id = minSellOrder.stock_id,
+            quantity = buyQuantity,
+            price = minSellOrder.price,
+            timestamp = minSellOrder.timestamp,
+            order_type = minSellOrder.order_type
+        )
+
+        # create a child transaction that is IN_PROGRESS, with the parent stock tx id
+        childTxId = createChildTransaction(childSellOrder, minSellOrder.stock_tx_id)
+        childSellOrder.stock_tx_id = childTxId
+        
+        res = getTransaction(childTxId)
+
+        if not res:
+            raise HTTPException(status_code=400, detail="transaction not in db")
+
+        poppedSellOrders.append((childSellOrder, buyQuantity))
 
         return poppedSellOrders, tempTree
 

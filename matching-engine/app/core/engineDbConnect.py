@@ -57,13 +57,14 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
 
     with sqlmodel.Session(engine) as session:
         
-        buyerStockTxId = payOutStocks(session, buyOrder, buyPrice)
-
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == buyOrder.user_id)
         buyerWallet = session.exec(statement).one_or_none()
 
         if buyerWallet.balance < buyPrice:
             raise HTTPException(status_code=400, detail="buyer lacks funds")
+        
+        # pay out the stocks
+        buyerStockTxId = payOutStocks(session, buyOrder, buyPrice)
 
         # subtracts from buyer's wallet balance
         buyerWallet.balance -= buyPrice
@@ -91,7 +92,8 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             session.add(sellerWallet)
 
             # updates the sell order transaction to completed
-            sellerStockTxId = sellOrder.stock_tx_id   
+            sellerStockTxId = sellOrder.stock_tx_id
+
             statement = sqlmodel.select(StockTransactions).where(
                 StockTransactions.stock_tx_id == sellerStockTxId
             )
@@ -251,3 +253,43 @@ def getTransaction(stockTxId):
         result = session.exec(statement).one_or_none()
 
         return result
+
+
+def createChildTransaction(order, parentStockTxId):
+    with sqlmodel.Session(engine) as session:
+
+        time = datetime.now()
+
+        childTx = StockTransactions(
+            stock_id=order.stock_id,
+            order_status=OrderStatus.IN_PROGRESS,
+            is_buy=False,
+            order_type=order.order_type,
+            stock_price=order.price,
+            quantity=order.quantity,
+            parent_tx_id=parentStockTxId,
+            time_stamp=time,
+            user_id=order.user_id,
+        )
+
+        session.add(childTx)
+        session.flush()
+        session.refresh(childTx)
+        session.commit()
+        return childTx.stock_tx_id
+
+def setToPartiallyComplete(stockTxId, quantity):
+    with sqlmodel.Session(engine) as session:
+
+        statement = sqlmodel.select(StockTransactions).where(
+            StockTransactions.stock_tx_id == stockTxId
+        )
+        transactionToChange = session.exec(statement).one_or_none()
+
+        transactionToChange.order_status = OrderStatus.PARTIALLY_COMPLETE
+        transactionToChange.quantity = quantity
+
+        session.add(transactionToChange)
+        session.commit()
+        return SuccessResponse()
+
