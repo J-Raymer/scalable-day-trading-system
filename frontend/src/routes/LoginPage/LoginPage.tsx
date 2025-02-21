@@ -12,7 +12,7 @@ import { SlideTransition } from '@/components/SlideTransition';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLogin } from '@/api/login.ts';
 import './LoginPage.scss';
-import logo from '../../../assets/stockii-logo.jpeg';
+import logo from '@/assets/logo.svg';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
