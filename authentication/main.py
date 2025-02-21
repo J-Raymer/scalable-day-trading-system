@@ -82,7 +82,7 @@ async def validate_token(token: str = Depends(oauth2_scheme)):
 async def register(user: RegisterRequest, session: Session = Depends(get_session)):
     if not (user.user_name and user.password and user.name):
         raise HTTPException(
-            status_code=400, detail="Username, name and password required"
+            status_code=400, detail="Invalid Payload"
         )
 
     query = sqlmodel.select(Users).where(
@@ -91,7 +91,7 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
     existing_user = session.exec(query).one_or_none()
 
     if existing_user:
-        raise HTTPException(status_code=409, detail="Username already exists")
+        raise HTTPException(status_code=400, detail="Invalid Payload")
 
     salt = bcrypt.gensalt()
     new_user = Users(
@@ -131,6 +131,6 @@ async def login(user: LoginRequest, session: Session = Depends(get_session)):
         user.password.encode("utf-8"), result.salt.encode("utf-8")
     ).decode("utf-8")
     if hashed_password != result.password:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=400, detail="Invalid Payload")
     token = generate_token(result)
     return SuccessResponse(data={"token": token})
