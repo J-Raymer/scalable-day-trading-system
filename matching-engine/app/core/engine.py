@@ -186,3 +186,4 @@ def cancelOrderEngine(cancelOrder: CancelOrder):
 
     # set transaction status to cancelled
     cancelTransaction(transactionId)
+    return SuccessResponse()
