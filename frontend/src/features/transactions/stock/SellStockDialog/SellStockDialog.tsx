@@ -9,7 +9,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { ButtonColor, OrderType } from '@/lib/enums.ts';
 import { SlideTransition } from '@/components/SlideTransition';
 import { usePlaceOrder } from '@/api/placeOrder.ts';
 
@@ -76,8 +75,8 @@ export const SellStockDialog = ({
       return;
     }
 
-    const priceAsNum = Number(price)
-    const quantityAsNum = Number(quantity)
+    const priceAsNum = Number(price);
+    const quantityAsNum = Number(quantity);
     const error = handleValidate(priceAsNum, quantityAsNum);
     if (error) {
       setError('Error, missing stock id');
@@ -88,7 +87,6 @@ export const SellStockDialog = ({
     try {
       await sellStock.mutateAsync({
         stockId,
-        orderType: OrderType.LIMIT,
         quantity: quantityAsNum,
         price: priceAsNum,
         isBuy: false,
@@ -135,10 +133,7 @@ export const SellStockDialog = ({
             onChange={(e) => setPrice(e.target.value)}
           />
         </DialogContent>
-        <DialogFooter
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-        />
+        <DialogFooter onSubmit={handleSubmit} onCancel={handleCancel} />
       </Dialog>
       <Snackbar
         open={showError}
