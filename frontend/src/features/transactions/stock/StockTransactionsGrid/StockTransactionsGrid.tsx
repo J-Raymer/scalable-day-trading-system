@@ -26,10 +26,11 @@ export const StockTransactionsGrid = () => {
     { field: 'stock_price', headerName: 'Price', flex: 5 },
     { field: 'quantity', headerName: 'Quantity', flex: 10 },
     { field: 'is_buy', headerName: 'Is Buy Order', flex: 10 },
+    { field: 'time_stamp', headerName: 'Time Stamp', flex: 15},
     {
       field: 'actions',
       headerName: 'Actions',
-      flex: 10,
+      flex: 15,
       renderCell: (params) => {
         return (
           params.row.order_status === OrderStatus.IN_PROGRESS &&

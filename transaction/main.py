@@ -77,6 +77,7 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Sess
             WalletTransactions.stock_tx_id == StockTransactions.stock_tx_id,
         )
         .where(WalletTransactions.user_id == user_id)
+        .order_by(WalletTransactions.time_stamp)
     )
     result = session.exec(statement).all()
     wallet_transactions = list(
@@ -175,7 +176,7 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Sessi
 
     statement = sqlmodel.select(StockTransactions).where(
         StockTransactions.user_id == user_id
-    )
+    ).order_by(StockTransactions.time_stamp)
     result = session.exec(statement).all()
     return SuccessResponse(data=result)
 
