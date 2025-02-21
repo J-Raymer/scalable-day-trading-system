@@ -155,7 +155,7 @@ async def get_stock_prices(x_user_data: str = Header(None), session: Session = D
             lambda stock: PortfolioResult(
                 stock_id=stock[0], stock_name=stock[1], quantity_owned=stock[2]
             ),
-            result,
+            filter(lambda stock: stock[2] > 0, result)
         )
     )
     return SuccessResponse(data=portfolio)
