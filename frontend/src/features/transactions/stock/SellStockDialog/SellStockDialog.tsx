@@ -9,7 +9,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { ButtonColor, OrderType } from '@/lib/enums.ts';
 import { SlideTransition } from '@/components/SlideTransition';
 import { usePlaceOrder } from '@/api/placeOrder.ts';
 
@@ -45,6 +44,8 @@ export const SellStockDialog = ({
       onSuccess: () => {
         setIsOpen(false);
         setCurrentId(undefined);
+        setQuantity('');
+        setPrice('');
       },
       onError: (error) => {
         setError(error.response?.data.detail ?? 'An unknown error occurred');
@@ -74,7 +75,9 @@ export const SellStockDialog = ({
       return;
     }
 
-    const error = handleValidate(Number(price), Number(quantity));
+    const priceAsNum = Number(price);
+    const quantityAsNum = Number(quantity);
+    const error = handleValidate(priceAsNum, quantityAsNum);
     if (error) {
       setError('Error, missing stock id');
       setShowError(true);
@@ -84,9 +87,8 @@ export const SellStockDialog = ({
     try {
       await sellStock.mutateAsync({
         stockId,
-        orderType: OrderType.LIMIT,
-        quantity: 1,
-        price: 100,
+        quantity: quantityAsNum,
+        price: priceAsNum,
         isBuy: false,
       });
     } catch (e) {}
@@ -131,10 +133,7 @@ export const SellStockDialog = ({
             onChange={(e) => setPrice(e.target.value)}
           />
         </DialogContent>
-        <DialogFooter
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-        />
+        <DialogFooter onSubmit={handleSubmit} onCancel={handleCancel} />
       </Dialog>
       <Snackbar
         open={showError}

@@ -5,7 +5,6 @@ import { OrderType } from '@/lib/enums';
 
 interface UseBuyStockProps {
   stockId: number;
-  orderType: OrderType;
   quantity: number;
   price: number;
   isBuy: boolean;
@@ -16,7 +15,6 @@ const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
 async function placeOrder({
   stockId,
-  orderType,
   quantity,
   price,
   isBuy,
@@ -26,7 +24,7 @@ async function placeOrder({
     {
       stock_id: stockId,
       is_buy: isBuy,
-      order_type: orderType,
+      order_type: isBuy ? OrderType.MARKET : OrderType.LIMIT,
       quantity,
       price,
     },
@@ -41,13 +39,14 @@ type UseBuyStockOptions = {
   mutationConfig?: MutationConfig<typeof placeOrder>;
 };
 
-// TODO: When do we add wallet transactions? Is that on buy stock? Determine for invalidation
 export const usePlaceOrder = ({ mutationConfig }: UseBuyStockOptions = {}) => {
   const { onSuccess, ...restConfig } = mutationConfig ?? {};
   return useMutation({
     mutationFn: placeOrder,
     onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries(['portfolio', 'wallet_tx']);
+      queryClient.invalidateQueries(['portfolio']);
+      queryClient.invalidateQueries(['wallet_tx']);
+      queryClient.invalidateQueries(['stock_tx']);
       onSuccess?.(data, variables, context);
     },
     ...restConfig,

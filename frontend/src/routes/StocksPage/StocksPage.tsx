@@ -5,6 +5,7 @@ import { Button, Typography, Snackbar, Alert, Slide } from '@mui/material';
 import { SlideTransition } from '@/components/SlideTransition';
 import { PurchaseStockDialog } from '@/features/transactions/stock/PurchaseStockDialog';
 import './StocksPage.scss';
+import { DashboardCard } from '@/components/DashboardCard/DashboardCard';
 
 export const StocksPage = () => {
   const stocks = useStockPrices();
@@ -21,11 +22,6 @@ export const StocksPage = () => {
     undefined,
   );
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  const handleError = (message: string) => {
-    setError(message);
-    setOpen(true);
-  };
 
   const handleClose = () => {
     setOpen(false);
@@ -46,7 +42,7 @@ export const StocksPage = () => {
   const columns: GridColDef<Stock>[] = [
     { field: 'stock_id', headerName: 'id' },
     { field: 'stock_name', headerName: 'Name', flex: 60 },
-    { field: 'price', headerName: 'Price' },
+    { field: 'current_price', headerName: 'Current Price' },
     {
       field: 'actions',
       headerName: 'Actions',
@@ -57,7 +53,7 @@ export const StocksPage = () => {
             handleOpenDialog(
               params.row.stock_id,
               params.row.stock_name,
-              params.row.price,
+              params.row.current_price,
             )
           }
           variant="contained"
@@ -71,6 +67,7 @@ export const StocksPage = () => {
   return (
     <div className="stocks-page">
       <Typography variant="h2">Stocks</Typography>
+      <DashboardCard>
       <Snackbar
         open={open}
         autoHideDuration={6000}
@@ -95,6 +92,8 @@ export const StocksPage = () => {
         getRowId={(row) => row.stock_id}
         disableRowSelectionOnClick
       />
+      </DashboardCard>
     </div>
+    
   );
 };

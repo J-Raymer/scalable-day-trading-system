@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   TextField,
@@ -12,6 +12,7 @@ import { SlideTransition } from '@/components/SlideTransition';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLogin } from '@/api/login.ts';
 import './LoginPage.scss';
+import logo from '@/assets/logo.svg';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
@@ -43,11 +44,24 @@ export function LoginPage() {
     } catch (error) {}
   };
 
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        handleLogin();
+      }
+    };
+
+    window.addEventListener('keypress', handleKeyPress);
+    return () => {
+      window.removeEventListener('keypress', handleKeyPress);
+    };
+  }, [username, password]);
+
   return (
-    <Container maxWidth="sm" className="login-page">
-      <Typography variant="h4" component="h1" gutterBottom>
-        Login
-      </Typography>
+    <Container maxWidth="sm" className="login-page" style={{ marginBottom: '300px' }}>
+      <Box display="flex" justifyContent="center" mb={4}>
+        <img src={logo} alt="Stockii Logo" style={{ width: '500px' }} />
+      </Box>
       <TextField
         label="Username"
         variant="outlined"

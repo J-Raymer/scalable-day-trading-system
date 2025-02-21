@@ -1,13 +1,16 @@
 from pydantic import BaseModel
+from datetime import datetime
 from dataclasses import dataclass
+from uuid import UUID
+from typing import Literal, Optional
 
 
 class StockOrder(BaseModel):
-    stock_id: str
+    stock_id: int
     is_buy: bool
-    order_type: str
+    order_type: Literal["MARKET", "LIMIT"]
     quantity: int
-    price: int
+    price: Optional[int] = None
 
 
 # TODO: child sell order
@@ -15,23 +18,37 @@ class StockOrder(BaseModel):
 
 @dataclass()
 class SellOrder:
-    stock_id: str
+    user_id: UUID
+    stock_id: int
     quantity: int
     price: int
+    timestamp: datetime
+    order_type: Literal["MARKET", "LIMIT"]
+    stock_tx_id: Optional[int] = None
 
     def __eq__(self, other):
         return self.price == other.price
 
     def __lt__(self, other):
         if self.price == other.price:
-            return self.stock_id < other.stock_id
+            return self.timestamp < other.timestamp
         return self.price < other.price
 
 
 class BuyOrder(BaseModel):
-    stock_id: str
+    user_id: UUID
+    stock_id: int
     quantity: int
+    timestamp: datetime
+    price: Literal[0]
+    order_type: Literal["MARKET", "LIMIT"]
 
 
-class UID(BaseModel):
-    id: str
+class StockPrice(BaseModel):
+    stock_id: int
+    stock_name: str
+    current_price: int
+
+
+class CancelOrder(BaseModel):
+    stock_tx_id: int

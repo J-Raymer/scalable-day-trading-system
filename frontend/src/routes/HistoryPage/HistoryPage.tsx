@@ -1,23 +1,13 @@
 import { useState } from 'react';
-import {
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  Snackbar,
-  Alert,
-} from '@mui/material';
+import { Typography, Snackbar, Alert } from '@mui/material';
 import { SlideTransition } from '@/components/SlideTransition';
+import { WalletTransactionsGrid } from '@/features/transactions/wallet';
+import { StockTransactionsGrid } from '@/features/transactions/stock/StockTransactionsGrid';
 import './HistoryPage.scss';
 
 export function HistoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-
-  const handleError = (message: string) => {
-    setError(message);
-    setOpen(true);
-  };
 
   const handleClose = () => {
     setOpen(false);
@@ -25,7 +15,7 @@ export function HistoryPage() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 4 }} className="history-page">
+    <div className="history-page">
       <Typography variant="h4" component="h1" gutterBottom>
         History
       </Typography>
@@ -39,22 +29,8 @@ export function HistoryPage() {
           {error}
         </Alert>
       </Snackbar>
-      <Card sx={{ mt: 2 }}>
-        <CardContent>
-          <Typography variant="h5" component="h2">
-            Wallet Transactions
-          </Typography>
-          {/* Add wallet transactions content here */}
-        </CardContent>
-      </Card>
-      <Card sx={{ mt: 2 }}>
-        <CardContent>
-          <Typography variant="h5" component="h2">
-            Stock Transactions
-          </Typography>
-          {/* Add stock transactions content here */}
-        </CardContent>
-      </Card>
-    </Container>
+      <WalletTransactionsGrid />
+      <StockTransactionsGrid />
+    </div>
   );
 }

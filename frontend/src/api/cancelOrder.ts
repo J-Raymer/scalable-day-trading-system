@@ -19,7 +19,7 @@ async function cancelOrder({ stockTxId }: UseCancelOrderProps): Promise<void> {
       headers,
     },
   );
-  return response.data.data;
+  return response.data;
 }
 
 type UseCancelOrderOptions = {
@@ -34,6 +34,7 @@ export const useCancelOrder = ({
     mutationFn: cancelOrder,
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries(['stock_tx']);
+      queryClient.invalidateQueries(['portfolio']);
       onSuccess?.(data, variables, context);
     },
     ...restConfig,

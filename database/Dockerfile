@@ -5,7 +5,9 @@ USER docker
 
 WORKDIR /app
 
+COPY database/requirements.txt /app/database/requirements.txt
+RUN pip install --no-warn-script-location --no-cache-dir -r /app/database/requirements.txt
+
 COPY . /app/database
 
-# Ignore warning about the env path
-RUN pip install --no-warn-script-location --no-cache-dir -r /app/database/requirements.txt
+CMD ["python3", "-m", "database.app"]

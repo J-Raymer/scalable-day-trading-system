@@ -52,7 +52,7 @@ export function RegisterPage() {
 
   return (
     <Container maxWidth="sm" className="register-page">
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography variant="h3" component="h1" gutterBottom align="center">
         Register
       </Typography>
       <TextField
