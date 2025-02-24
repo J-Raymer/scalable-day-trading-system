@@ -68,32 +68,31 @@ export const StocksPage = () => {
     <div className="stocks-page">
       <Typography variant="h2">Stocks</Typography>
       <DashboardCard>
-      <Snackbar
-        open={open}
-        autoHideDuration={6000}
-        onClose={handleClose}
-        TransitionComponent={SlideTransition}
-      >
-        <Alert onClose={handleClose} variant="filled" severity="error">
-          {error}
-        </Alert>
-      </Snackbar>
-      <PurchaseStockDialog
-        isOpen={dialogOpen}
-        setIsOpen={setDialogOpen}
-        stockId={currentStockId}
-        stockName={currentStockName ?? ''}
-        price={currentPrice}
-      />
-      <DataGrid
-        sx={{ width: 800 }}
-        rows={stocks.data ?? []}
-        columns={columns}
-        getRowId={(row) => row.stock_id}
-        disableRowSelectionOnClick
-      />
+        <Snackbar
+          open={open}
+          autoHideDuration={6000}
+          onClose={handleClose}
+          TransitionComponent={SlideTransition}
+        >
+          <Alert onClose={handleClose} variant="filled" severity="error">
+            {error}
+          </Alert>
+        </Snackbar>
+        <PurchaseStockDialog
+          isOpen={dialogOpen}
+          setIsOpen={setDialogOpen}
+          stockId={currentStockId}
+          stockName={currentStockName ?? ''}
+          price={currentPrice}
+        />
+        <DataGrid
+          sx={{ width: 800 }}
+          rows={stocks.data ?? []}
+          columns={columns}
+          getRowId={(row) => row.stock_id}
+          disableRowSelectionOnClick
+        />
       </DashboardCard>
     </div>
-    
   );
 };

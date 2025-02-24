@@ -7,7 +7,7 @@ interface UseCancelOrderProps {
 }
 
 const token = localStorage.getItem('token');
-const headers = token ? { Authorization: `Bearer ${token}` } : {};
+const headers = token ? { token } : {};
 
 async function cancelOrder({ stockTxId }: UseCancelOrderProps): Promise<void> {
   const response = await axios.post(

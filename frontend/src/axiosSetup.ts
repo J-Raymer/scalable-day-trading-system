@@ -6,7 +6,7 @@ const setupAxiosInterceptors = (navigate: ReturnType<typeof useNavigate>) => {
     (config) => {
       const token = localStorage.getItem('token');
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers.token = token;
       }
       return config;
     },
