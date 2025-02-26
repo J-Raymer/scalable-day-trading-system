@@ -71,7 +71,12 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         session.add(buyerWallet)
 
         # creates wallet transaction for taking money from the buyer
-        addWalletTx(session, buyOrder, buyPrice, buyerStockTxId, isDebit=True)
+        buyerWalletTxId = addWalletTx(
+            session, buyOrder, buyPrice, buyerStockTxId, isDebit=True
+        )
+
+        # adds wallet tx id to stock stock_tx_id
+        addWalletTxToStockTx(session, buyerStockTxId, buyerWalletTxId)
 
         # TODO stock added to portfolio
         amountSoldTotal = 0
@@ -109,7 +114,11 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             session.add(incompleteTx)
 
             # creates wallet transaction for paying the seller
-            addWalletTx(session, sellOrder, sellPrice, sellerStockTxId, isDebit=False)
+            sellerWalletTxId = addWalletTx(
+                session, sellOrder, sellPrice, sellerStockTxId, isDebit=False
+            )
+
+            addWalletTxToStockTx(session, sellerStockTxId, sellerWalletTxId)
 
             amountSoldTotal += sellPrice
 
@@ -130,6 +139,9 @@ def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
     )
 
     session.add(walletTx)
+    session.flush()
+    session.refresh(walletTx)
+    return walletTx.wallet_tx_id
 
 
 def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
@@ -295,3 +307,15 @@ def setToPartiallyComplete(stockTxId, quantity):
         session.add(transactionToChange)
         session.commit()
         return SuccessResponse()
+
+
+def addWalletTxToStockTx(session, stockTxId, walletTxId):
+
+    statement = sqlmodel.select(StockTransactions).where(
+        StockTransactions.stock_tx_id == stockTxId
+    )
+    stockTx = session.exec(statement).one_or_none()
+
+    stockTx.wallet_tx_id = walletTxId
+
+    session.add(stockTx)
