@@ -160,7 +160,9 @@ def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
 
     # we should just put this ^^^ but for clarity im just gonna leave it like this for now
     if isBuy:
-        stockTx.stock_price = price  # buy orders will pass in the total buy price from the combined orders
+        stockTx.stock_price = (
+            price / order.quantity
+        )  # buy orders will pass in the total buy price from the combined orders
     else:
         stockTx.stock_price = (
             price  # sell order will pass in their individual sell price
