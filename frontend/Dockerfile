@@ -2,7 +2,7 @@ FROM node:latest
 
 WORKDIR /app
 
-COPY . .
+COPY /frontend .
 
 RUN npm install typescript --save-dev
 

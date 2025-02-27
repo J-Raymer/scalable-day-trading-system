@@ -1,16 +1,26 @@
 # scalable-day-trading-system
 
-#### Backend (Docker)
+### Updated setup using docker swarm
 
-To start up the docker containers from the root directory type `docker compose up --build -d` and it will
-build and run all the micro-services.
+1. Initialize Docker Swarm
+   `docker swarm init`
 
-#### Frontend (Local)
+2. Build Docker Images
 
-To start up the webserver locally:
+- `docker build -t daytrader-auth -f authentication/Dockerfile .`
+- `docker build -t daytrader-transaction -f transaction/Dockerfile .`
+- `docker build -t daytrader-database -f database/Dockerfile .`
+- `docker build -t daytrader-matching-engine -f matching-engine/Dockerfile .`
+- `docker build -t daytrader-api-gateway -f api-gateway/Dockerfile .`
+- `docker build -t daytrader-frontend -f frontend/Dockerfile .`
 
-1. Install packages `npm i`
-2. Start server `npm start`
+3. Deploy the Docker Stack
+
+- `docker stack deploy -c docker-stack.yml daytrader`
+
+4. Verify Services are running
+
+- `docker stack services daytrader`
 
 ### API Documentation
 

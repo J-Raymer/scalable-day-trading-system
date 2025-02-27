@@ -10,6 +10,6 @@ RUN apk add --no-cache \
 
 RUN apk info
 
-COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY api-gateway/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 CMD ["openresty", "-g", "daemon off;"]
 

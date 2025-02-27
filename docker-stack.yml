@@ -1,11 +1,7 @@
-version: '3.8'
+version: "3.8"
 services:
   auth:
-    build:
-      context: .
-      dockerfile: ./authentication/Dockerfile
-    depends_on:
-      - database
+    image: daytrader-auth
     environment:
       - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
@@ -16,13 +12,13 @@ services:
       - JWT_ALGORITHM=${JWT_ALGORITHM}
     networks:
       - day_trader_network
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
 
   transaction:
-    build:
-      context: .
-      dockerfile: transaction/Dockerfile
-    depends_on:
-      - database
+    image: daytrader-transaction
     environment:
       - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
@@ -33,14 +29,13 @@ services:
       - JWT_ALGORITHM=${JWT_ALGORITHM}
     networks:
       - day_trader_network
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
 
   database:
-    build:
-      context: .
-      dockerfile: ./database/Dockerfile
-    depends_on:
-      db:
-        condition: service_healthy
+    image: daytrader-database
     environment:
       - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
@@ -52,6 +47,10 @@ services:
     working_dir: /app
     networks:
       - day_trader_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
   db:
     image: postgres:latest
@@ -67,18 +66,18 @@ services:
     networks:
       - day_trader_network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       retries: 5
       start_period: 30s
       timeout: 10s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
   matching-engine:
-    build:
-      context: .
-      dockerfile: ./matching-engine/Dockerfile
-    depends_on:
-      - database
+    image: daytrader-matching-engine
     environment:
       - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
@@ -88,36 +87,44 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
     networks:
-        - day_trader_network
+      - day_trader_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
   api-gateway:
-    build: ./api-gateway
+    image: daytrader-api-gateway
     container_name: api-gateway
-    depends_on:
-      - auth
-      - transaction
-      - matching-engine
     ports:
       - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
     networks:
       - day_trader_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: daytrader-frontend
     container_name: frontend
-    depends_on:
-      - api-gateway
     environment:
       - VITE_API_URL=${VITE_API_URL}
     ports:
       - ${FE_PORT}:${FE_PORT}
     networks:
       - day_trader_network
-
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
 volumes:
   db_data:
 
 networks:
   day_trader_network:
-    driver: bridge
+    driver: overlay
