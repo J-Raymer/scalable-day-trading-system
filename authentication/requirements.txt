@@ -5,4 +5,5 @@ PyJwt
 fastapi[standard]
 bcrypt
 pydantic
+redis
 

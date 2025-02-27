@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: ./authentication/Dockerfile
     depends_on:
+      - cache
       - database
     environment:
       - USERNAME=${DB_USERNAME}
@@ -14,6 +15,8 @@ services:
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - REDIS_HOST:${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
     networks:
       - day_trader_network
 
@@ -22,6 +25,7 @@ services:
       context: .
       dockerfile: transaction/Dockerfile
     depends_on:
+      - cache
       - database
     environment:
       - USERNAME=${DB_USERNAME}
@@ -31,6 +35,8 @@ services:
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
     networks:
       - day_trader_network
 
@@ -61,7 +67,7 @@ services:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_PORT=${DOCKER_PORT}
     ports:
-      - ${HOST_PORT}:${DOCKER_PORT}
+      - ${HOST_PORT}:${DOCKER_PORT} # TODO: This should be removed
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -78,6 +84,7 @@ services:
       context: .
       dockerfile: ./matching-engine/Dockerfile
     depends_on:
+      - cache
       - database
     environment:
       - USERNAME=${DB_USERNAME}
@@ -87,6 +94,8 @@ services:
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
     networks:
         - day_trader_network
 
@@ -114,9 +123,23 @@ services:
     networks:
       - day_trader_network
 
+  cache:
+    image: redis:latest
+    container_name: cache
+    ports: # TODO: remove this port
+      - ${REDIS_PORT}:${REDIS_PORT}
+    volumes:
+      - redis_data:/data
+    # Save to disk every 60 seconds if 1 key modified
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    networks:
+      - day_trader_network
+
 
 volumes:
   db_data:
+  redis_data:
+
 
 networks:
   day_trader_network:

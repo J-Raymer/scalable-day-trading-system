@@ -1,13 +1,21 @@
+import redis
+import os
+import dotenv
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder, CancelOrder
-from schemas.setup import StockSetup
 from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
 
 
 app = FastAPI(root_path="/engine")
+
+dotenv.load_dotenv(override=True)
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = int(os.getenv("REDIS_PORT"))
+
+cache = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 
 
 @app.exception_handler(RequestValidationError)

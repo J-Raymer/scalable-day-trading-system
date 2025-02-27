@@ -1,4 +1,7 @@
 import sqlmodel
+import redis
+import os
+import dotenv
 from sqlmodel import Session, desc
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.responses import RedirectResponse
@@ -15,6 +18,13 @@ from schemas.common import SuccessResponse, ErrorResponse
 from schemas.transaction import AddMoneyRequest, WalletTxResult, PortfolioResult
 from schemas.setup import Stock, StockSetup
 from .db import get_session
+
+dotenv.load_dotenv(override=True)
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = int(os.getenv("REDIS_PORT"))
+
+cache = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+
 
 app = FastAPI(root_path="/transaction")
 
