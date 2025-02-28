@@ -55,6 +55,7 @@ class StockPortfolios(SQLModel, table=True):
 
 class StockTransactions(SQLModel, table=True):
     stock_tx_id: int = Field(default=None, primary_key=True)
+    wallet_tx_id: int | None = Field(foreign_key="wallettransactions.wallet_tx_id")
     stock_id: int = Field(foreign_key="stocks.stock_id")
     order_status: OrderStatus = Field(default=OrderStatus.IN_PROGRESS)
     is_buy: bool
