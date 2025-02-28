@@ -1,19 +1,18 @@
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder, CancelOrder
-from schemas.setup import StockSetup
 from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
+from schemas import exception_handlers
 
 
 app = FastAPI(root_path="/engine")
 
 
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
-    raise HTTPException(status_code=400, detail="Invalid Payload")
-
+app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
+app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
 
 @app.get("/")
 async def home():
