@@ -9,7 +9,6 @@ from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import OAuth2PasswordBearer
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from fastapi.responses import JSONResponse, PlainTextResponse
 from database import Users, Wallets
 from schemas.common import *
 from schemas import exception_handlers
@@ -95,9 +94,6 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
     existing_user = session.exec(query).one_or_none()
 
     if existing_user:
-
-        # return {"success": False, "data": "Invalid Payload"}
-        # return ErrorResponse(data="Invalid Payload", success=False)
         raise HTTPException(status_code=400, detail="Invalid Payload")
 
     salt = bcrypt.gensalt()
