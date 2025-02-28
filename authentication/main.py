@@ -5,10 +5,14 @@ import sqlmodel
 from sqlmodel import func, Session
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import OAuth2PasswordBearer
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.responses import JSONResponse, PlainTextResponse
+from pydantic import BaseModel
+
 from database import Users, Wallets
 from schemas.common import *
 from .db import get_session
@@ -17,6 +21,14 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
 app = FastAPI(root_path="/authentication")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc):
+    return JSONResponse(
+        content=jsonable_encoder({"success": False, "data": exc.detail}),
+        status_code=exc.status_code)
+
 
 def generate_token(user: Users):
     expiration = datetime.now() + timedelta(days=1)
@@ -91,6 +103,9 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
     existing_user = session.exec(query).one_or_none()
 
     if existing_user:
+
+        # return {"success": False, "data": "Invalid Payload"}
+        # return ErrorResponse(data="Invalid Payload", success=False)
         raise HTTPException(status_code=400, detail="Invalid Payload")
 
     salt = bcrypt.gensalt()
