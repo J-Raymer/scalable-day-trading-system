@@ -56,13 +56,13 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         raise HTTPException(status_code=400, detail="Missing buy order")
 
     with sqlmodel.Session(engine) as session:
-        
+
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == buyOrder.user_id)
         buyerWallet = session.exec(statement).one_or_none()
 
         if buyerWallet.balance < buyPrice:
             raise HTTPException(status_code=400, detail="buyer lacks funds")
-        
+
         # pay out the stocks
         buyerStockTxId = payOutStocks(session, buyOrder, buyPrice)
 
@@ -71,7 +71,12 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         session.add(buyerWallet)
 
         # creates wallet transaction for taking money from the buyer
-        addWalletTx(session, buyOrder, buyPrice, buyerStockTxId, isDebit=False)
+        buyerWalletTxId = addWalletTx(
+            session, buyOrder, buyPrice, buyerStockTxId, isDebit=True
+        )
+
+        # adds wallet tx id to stock stock_tx_id
+        addWalletTxToStockTx(session, buyerStockTxId, buyerWalletTxId)
 
         # TODO stock added to portfolio
         amountSoldTotal = 0
@@ -100,14 +105,20 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             incompleteTx = session.exec(statement).one_or_none()
 
             if not incompleteTx:
-                raise HTTPException(status_code=500, detail="Missing Sell Transaction to update")
+                raise HTTPException(
+                    status_code=500, detail="Missing Sell Transaction to update"
+                )
 
             incompleteTx.order_status = OrderStatus.COMPLETED
 
             session.add(incompleteTx)
- 
+
             # creates wallet transaction for paying the seller
-            addWalletTx(session, sellOrder, sellPrice, sellerStockTxId, isDebit=True)
+            sellerWalletTxId = addWalletTx(
+                session, sellOrder, sellPrice, sellerStockTxId, isDebit=False
+            )
+
+            addWalletTxToStockTx(session, sellerStockTxId, sellerWalletTxId)
 
             amountSoldTotal += sellPrice
 
@@ -128,6 +139,9 @@ def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
     )
 
     session.add(walletTx)
+    session.flush()
+    session.refresh(walletTx)
+    return walletTx.wallet_tx_id
 
 
 def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
@@ -146,7 +160,9 @@ def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
 
     # we should just put this ^^^ but for clarity im just gonna leave it like this for now
     if isBuy:
-        stockTx.stock_price = price  # buy orders will pass in the total buy price from the combined orders
+        stockTx.stock_price = (
+            price / order.quantity
+        )  # buy orders will pass in the total buy price from the combined orders
     else:
         stockTx.stock_price = (
             price  # sell order will pass in their individual sell price
@@ -193,24 +209,25 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice):
         raise HTTPException(status_code=400, detail="Missing buy order")
 
     statement = sqlmodel.select(StockPortfolios).where(
-                (StockPortfolios.user_id == buyOrder.user_id)
-                &
-                (StockPortfolios.stock_id == buyOrder.stock_id)
-            )
+        (StockPortfolios.user_id == buyOrder.user_id)
+        & (StockPortfolios.stock_id == buyOrder.stock_id)
+    )
     buyerStockHolding = session.exec(statement).one_or_none()
 
     if not buyerStockHolding:
         newStockHolding = StockPortfolios(
-            user_id = buyOrder.user_id,
-            stock_id = buyOrder.stock_id,
-            quantity_owned = buyOrder.quantity
+            user_id=buyOrder.user_id,
+            stock_id=buyOrder.stock_id,
+            quantity_owned=buyOrder.quantity,
         )
         session.add(newStockHolding)
     else:
         buyerStockHolding.quantity_owned += buyOrder.quantity
         session.add(buyerStockHolding)
 
-    stockTxId = addStockTx(session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED)
+    stockTxId = addStockTx(
+        session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED
+    )
 
     return stockTxId
 
@@ -219,7 +236,7 @@ def cancelTransaction(stockTxId):
 
     with sqlmodel.Session(engine) as session:
 
-        # Set the transaction to cancelled 
+        # Set the transaction to cancelled
         statement = sqlmodel.select(StockTransactions).where(
             StockTransactions.stock_tx_id == stockTxId
         )
@@ -232,8 +249,7 @@ def cancelTransaction(stockTxId):
         # then refund the stocks to the users portfolio
         statement = sqlmodel.select(StockPortfolios).where(
             (StockPortfolios.user_id == transactionToBeCancelled.user_id)
-            &
-            (StockPortfolios.stock_id == transactionToBeCancelled.stock_id)
+            & (StockPortfolios.stock_id == transactionToBeCancelled.stock_id)
         )
         sellerPortfolio = session.exec(statement).one_or_none()
 
@@ -278,6 +294,7 @@ def createChildTransaction(order, parentStockTxId):
         session.commit()
         return childTx.stock_tx_id
 
+
 def setToPartiallyComplete(stockTxId, quantity):
     with sqlmodel.Session(engine) as session:
 
@@ -293,3 +310,14 @@ def setToPartiallyComplete(stockTxId, quantity):
         session.commit()
         return SuccessResponse()
 
+
+def addWalletTxToStockTx(session, stockTxId, walletTxId):
+
+    statement = sqlmodel.select(StockTransactions).where(
+        StockTransactions.stock_tx_id == stockTxId
+    )
+    stockTx = session.exec(statement).one_or_none()
+
+    stockTx.wallet_tx_id = walletTxId
+
+    session.add(stockTx)

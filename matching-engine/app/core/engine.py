@@ -38,7 +38,7 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
                 price=0,
             )
         )
-        return {"success": True, "data": {}}
+        return SuccessResponse()
 
     else:
         incomingSellOrder = SellOrder(
@@ -61,7 +61,7 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
             )
 
         processSellOrder(incomingSellOrder)
-        return {"success": True, "data": {}}
+        return SuccessResponse()
 
 
 def getStockPriceEngine():

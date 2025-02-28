@@ -4,8 +4,9 @@ import os
 import dotenv
 from sqlmodel import Session, desc
 from fastapi import FastAPI, Header, HTTPException, Depends
-from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import RedirectResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from uuid import UUID
 from database import (
     Wallets,
@@ -17,6 +18,7 @@ from database import (
 from schemas.common import SuccessResponse, ErrorResponse
 from schemas.transaction import AddMoneyRequest, WalletTxResult, PortfolioResult
 from schemas.setup import Stock, StockSetup
+from schemas import exception_handlers
 from .db import get_session
 
 dotenv.load_dotenv(override=True)
@@ -28,9 +30,8 @@ cache = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 
 app = FastAPI(root_path="/transaction")
 
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
-    raise HTTPException(status_code=400, detail="Invalid Payload")
+app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
+app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
 
 @app.get("/")
 async def home():
