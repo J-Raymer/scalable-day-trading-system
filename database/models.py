@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, BigInteger, Column
 from uuid import UUID
 
 
@@ -49,7 +49,7 @@ class Stocks(SQLModel, table=True):
 class StockPortfolios(SQLModel, table=True):
     user_id: UUID = Field(primary_key=True, foreign_key="users.id", index=True)
     stock_id: int = Field(primary_key=True, foreign_key="stocks.stock_id")
-    quantity_owned: int
+    quantity_owned: int = Field(sa_column=Column(BigInteger()))
 
 
 class StockTransactions(SQLModel, table=True):
@@ -60,7 +60,7 @@ class StockTransactions(SQLModel, table=True):
     is_buy: bool
     order_type: OrderType
     stock_price: int
-    quantity: int
+    quantity: int = Field(sa_column=Column(BigInteger()))
     parent_stock_tx_id: int | None = Field(foreign_key="stocktransactions.stock_tx_id")
     time_stamp: datetime = Field(default_factory=datetime.now)
     user_id: UUID = Field(foreign_key="users.id", index=True)
