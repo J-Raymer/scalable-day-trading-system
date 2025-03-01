@@ -8,15 +8,21 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import OAuth2PasswordBearer
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from database import Users, Wallets
 from schemas.common import *
+from schemas import exception_handlers
 from .db import get_session
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
 app = FastAPI(root_path="/authentication")
+
+
+app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
+app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
+
 
 def generate_token(user: Users):
     expiration = datetime.now() + timedelta(days=1)
@@ -32,9 +38,6 @@ def generate_token(user: Users):
     )
     return token
 
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
-    raise HTTPException(status_code=400, detail="Invalid Payload")
 
 @app.get("/")
 async def home():
