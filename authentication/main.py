@@ -117,8 +117,16 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
     session.commit()
     session.refresh(new_user)
     token = generate_token(new_user)
-    cache.set(str(new_user.id), json.dumps({"password": new_user.password, "salt": new_user.salt, "name": new_user.name}))
-    return SuccessResponse(data={"token": token, "cache": json.loads(cache.get(str(new_user.id)))})
+    # Username is unique so use that as the key since on login users don't send a user ID.
+    cache.set(new_user.user_name,
+              json.dumps(
+                  {"id": str(new_user.id),
+                   "password": new_user.password,
+                   "salt": new_user.salt,
+                   "name": new_user.name}
+              ))
+    return SuccessResponse(data={"token": token})
+
 
 @app.post(
     "/login",
@@ -132,15 +140,29 @@ async def login(user: LoginRequest, session: Session = Depends(get_session)):
     if not (user.user_name and user.password):
         raise HTTPException(status_code=400, detail="Username and password required")
 
-    query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
-    result = session.exec(query).one_or_none()
+    result = None
+    cache_hit = cache.get(user.user_name)
+    if cache_hit:
+        data = json.loads(cache_hit)
+        result = User(
+            id=data['id'],
+            user_name=user.user_name,
+            name=data['name'],
+            password=data['password'],
+            salt=data['salt'])
+    else:
+        query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
+        result = session.exec(query).one_or_none()
+
     if not result:
         raise HTTPException(status_code=404, detail="User not found")
 
     hashed_password = bcrypt.hashpw(
         user.password.encode("utf-8"), result.salt.encode("utf-8")
     ).decode("utf-8")
+
     if hashed_password != result.password:
         raise HTTPException(status_code=400, detail="Invalid Payload")
+
     token = generate_token(result)
     return SuccessResponse(data={"token": token})
