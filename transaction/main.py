@@ -138,6 +138,7 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
     wallet.balance += req.amount
     session.add(wallet)
     session.commit()
+    cache.set(f"wallet:{user_id}", wallet.balance + req.amount)
     return SuccessResponse()
 
 @app.get(
