@@ -28,7 +28,7 @@ class Users(SQLModel, table=True):
 class Wallets(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     user_id: UUID = Field(foreign_key="users.id", unique=True, index=True)
-    balance: int = Field(default=0)
+    balance: int = Field(default=0, sa_column=Column(BigInteger()))
 
 
 class WalletTransactions(SQLModel, table=True):
