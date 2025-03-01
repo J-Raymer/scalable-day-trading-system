@@ -52,6 +52,11 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: Session =
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
+    cache_hit = cache.get(f"wallet:{user_id}")
+    if cache_hit:
+        return SuccessResponse(data={"balance": int(cache_hit.decode())})
+
+
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
     wallet = session.exec(statement).one_or_none()
     if not wallet:

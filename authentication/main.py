@@ -125,6 +125,7 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
                    "salt": new_user.salt,
                    "name": new_user.name}
               ))
+    cache.set(f"wallet:{new_wallet.user_id}", 0)
     return SuccessResponse(data={"token": token})
 
 
