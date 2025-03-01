@@ -1,6 +1,8 @@
+import json
 import bcrypt
 import jwt
 import os
+import redis
 import sqlmodel
 from sqlmodel import func, Session
 from datetime import datetime, timedelta
@@ -19,6 +21,10 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
 app = FastAPI(root_path="/authentication")
 
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = int(os.getenv("REDIS_PORT"))
+
+cache = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 
 app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
 app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
@@ -111,7 +117,8 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
     session.commit()
     session.refresh(new_user)
     token = generate_token(new_user)
-    return SuccessResponse(data={"token": token})
+    cache.set(str(new_user.id), json.dumps({"password": new_user.password, "salt": new_user.salt, "name": new_user.name}))
+    return SuccessResponse(data={"token": token, "cache": json.loads(cache.get(str(new_user.id)))})
 
 @app.post(
     "/login",
