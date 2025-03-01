@@ -129,17 +129,16 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
         raise HTTPException(status_code=400, detail="Amount must be greater than 0")
 
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
-    wallet = session.exec(statement).one_or_none()
-    if not wallet:
-        new_wallet = Wallets(user_id=UUID(user_id), balance=req.amount)
-        session.add(new_wallet)
-        session.commit()
-        return SuccessResponse()
+    wallet = session.exec(statement).one()
+    balance = wallet.balance + req.amount
     wallet.balance += req.amount
+
     session.add(wallet)
     session.commit()
-    cache.set(f"wallet:{user_id}", wallet.balance + req.amount)
+
+    cache.set(f"wallet:{user_id}", balance)
     return SuccessResponse()
+
 
 @app.get(
     "/getStockPortfolio",
