@@ -1,4 +1,6 @@
 from uuid import UUID
+
+from aio_pika.abc import DeliveryMode
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
@@ -7,17 +9,51 @@ from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder, CancelOrder
 from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
 from schemas import exception_handlers
+import aio_pika
 
 
 app = FastAPI(root_path="/engine")
 
 
-app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
-app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
+async def getRabbitConnection():
+    return await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/")
+
+
+app.add_exception_handler(
+    StarletteHTTPException, exception_handlers.http_exception_handler
+)
+app.add_exception_handler(
+    RequestValidationError, exception_handlers.validation_exception_handler
+)
+
+
+@app.on_event("startup")
+async def startup():
+    app.rabbitmq_connection = await getRabbitConnection()
+    app.rabbitmq_channel = await app.rabbitmq_connection.channel()
+
+    await app.rabbitmq_channel.declare_queue("testQ", durable=True)
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await app.rabbitmq_connection.close()
+
 
 @app.get("/")
 async def home():
     return RedirectResponse(url="/engine/docs", status_code=302)
+
+
+# Rabbitmq test call
+@app.get("/rabbit")
+async def rabbitTest():
+    await app.rabbitmq_channel.default_exchange.publish(
+        aio_pika.Message(
+            body="Hello World".encode(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+        ),
+        routing_key="testQ",
+    )
 
 
 # engine calls
@@ -37,6 +73,7 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
     return receiveOrder(order, UUID(user_id))
+
 
 # TODO: Is the below comment still the case? Maybe move to transaction service and cache the prices?
 # Don't need this in the matching engine, nice for testing
