@@ -14,6 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from database import Users, Wallets
 from schemas.common import *
 from schemas import exception_handlers
+from schemas.RedisClient import RedisClient, CacheName
 from .db import get_session
 
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -21,10 +22,7 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
 app = FastAPI(root_path="/authentication")
 
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT"))
-
-cache = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+cache = RedisClient()
 
 app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
 app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
@@ -118,14 +116,13 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
     session.refresh(new_user)
     token = generate_token(new_user)
     # Username is unique so use that as the key since on login users don't send a user ID.
-    cache.set(new_user.user_name,
-              json.dumps(
-                  {"id": str(new_user.id),
+    cache.set(CacheName.USERS,
+        new_user.user_name,
+              {"id": str(new_user.id),
                    "password": new_user.password,
                    "salt": new_user.salt,
-                   "name": new_user.name}
-              ))
-    cache.set(f"wallet:{new_wallet.user_id}", 0)
+                   "name": new_user.name})
+    cache.set(CacheName.WALLETS, str(new_user.id), {"balance": 0})
     return SuccessResponse(data={"token": token})
 
 
@@ -142,15 +139,9 @@ async def login(user: LoginRequest, session: Session = Depends(get_session)):
         raise HTTPException(status_code=400, detail="Username and password required")
 
     result = None
-    cache_hit = cache.get(user.user_name)
+    cache_hit = cache.get(CacheName.USERS, user.user_name)
     if cache_hit:
-        data = json.loads(cache_hit)
-        result = User(
-            id=data['id'],
-            user_name=user.user_name,
-            name=data['name'],
-            password=data['password'],
-            salt=data['salt'])
+        result = User(user_name=user.user_name, **cache_hit)
     else:
         query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
         result = session.exec(query).one_or_none()

@@ -1,3 +1,4 @@
+import json
 import sqlmodel
 import redis
 import os
@@ -131,12 +132,12 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
     wallet = session.exec(statement).one()
     balance = wallet.balance + req.amount
-    wallet.balance += req.amount
+    wallet.balance = balance
 
     session.add(wallet)
     session.commit()
 
-    cache.set(f"wallet:{user_id}", balance)
+    cache.set(f"wallet:{{{user_id}}}", balance)
     return SuccessResponse()
 
 
