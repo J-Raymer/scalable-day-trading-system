@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from datetime import datetime
-from uuid import UUID
 from typing import Literal, Optional
 
 
@@ -16,7 +15,7 @@ class StockOrder(BaseModel):
 
 
 class SellOrder(BaseModel):
-    user_id: UUID
+    user_id: str
     stock_id: int
     quantity: int
     price: int
@@ -34,7 +33,7 @@ class SellOrder(BaseModel):
 
 
 class BuyOrder(BaseModel):
-    user_id: UUID
+    user_id: str
     stock_id: int
     quantity: int
     timestamp: datetime

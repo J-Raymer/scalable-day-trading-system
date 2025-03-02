@@ -8,7 +8,6 @@ from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from uuid import UUID
 from database import (
     Wallets,
     WalletTransactions,

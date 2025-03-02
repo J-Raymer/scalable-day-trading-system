@@ -1,6 +1,5 @@
 from typing import List
 from fastapi import HTTPException
-from uuid import UUID
 
 from schemas import SuccessResponse
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
@@ -24,8 +23,8 @@ buyQueues = defaultdict(deque)
 
 cache = RedisClient()
 
-# TODO: UUID might need to be a string
-def receiveOrder(order: StockOrder, sending_user_id: UUID):
+
+def receiveOrder(order: StockOrder, sending_user_id: str):
     # grab the details only we know
     time = datetime.now()
 

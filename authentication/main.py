@@ -34,7 +34,7 @@ def generate_token(user: Users):
         {
             "username": user.user_name,
             "name": user.name,
-            "id": str(user.id),
+            "id": user.id,
             "exp": expiration,
         },
         JWT_SECRET,
@@ -118,11 +118,11 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
     # Username is unique so use that as the key since on login users don't send a user ID.
     cache.set(CacheName.USERS,
         new_user.user_name,
-              {"id": str(new_user.id),
+              {"id": new_user.id,
                    "password": new_user.password,
                    "salt": new_user.salt,
                    "name": new_user.name})
-    cache.set(CacheName.WALLETS, str(new_user.id), {"balance": 0})
+    cache.set(CacheName.WALLETS, new_user.id, {"balance": 0})
     return SuccessResponse(data={"token": token})
 
 

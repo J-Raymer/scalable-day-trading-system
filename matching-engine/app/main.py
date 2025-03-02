@@ -1,7 +1,6 @@
 import redis
 import os
 import dotenv
-from uuid import UUID
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
@@ -45,7 +44,7 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
-    return receiveOrder(order, UUID(user_id))
+    return receiveOrder(order, user_id)
 
 # TODO: Is the below comment still the case? Maybe move to transaction service and cache the prices?
 # Don't need this in the matching engine, nice for testing
