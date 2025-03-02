@@ -16,6 +16,8 @@ class OrderType(str, Enum):
     MARKET = "MARKET"
     LIMIT = "LIMIT"
 
+def generate_user_id():
+    return str(uuid.uuid4())
 
 class Users(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid.uuid4, primary_key=True)

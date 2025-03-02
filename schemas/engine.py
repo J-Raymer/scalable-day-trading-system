@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from datetime import datetime
-from dataclasses import dataclass
 from uuid import UUID
 from typing import Literal, Optional
 
@@ -16,8 +15,7 @@ class StockOrder(BaseModel):
 # TODO: child sell order
 
 
-@dataclass()
-class SellOrder:
+class SellOrder(BaseModel):
     user_id: UUID
     stock_id: int
     quantity: int

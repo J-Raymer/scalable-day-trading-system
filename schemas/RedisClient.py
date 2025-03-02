@@ -1,15 +1,10 @@
-import uuid
 from enum import Enum
 import json
-from uuid import UUID
-
 import redis
 import os
 import dotenv
 from typing import List
 
-
-from pydantic import BaseModel
 
 class CacheName(str, Enum):
     STOCKS = 'stocks'
@@ -25,7 +20,7 @@ class RedisClient:
         dotenv.load_dotenv(override=True)
         port = os.getenv("REDIS_PORT") or 6379
         host = os.getenv("REDIS_HOST") or 'cache'
-        self.client = redis.Redis(host=host, port=port)
+        self.__client = redis.Redis(host=host, port=port)
 
     def __decode(self, res):
         return {key.decode(): json.loads(value.decode()) for key, value in res.items()}
@@ -35,14 +30,14 @@ class RedisClient:
         client.set(CacheName.STOCKS, 1, {"stock_id": 1, "stock_name": "Google", "price": 100}
         client.set(CacheName.STOCKS, 1, dict(Stock(id=1, name="Google", current_price=100))
         """
-        return self.client.hset(name, key, json.dumps(value))
+        return self.__client.hset(name, key, json.dumps(value))
 
     def get(self, name: CacheName, key: str | int):
         """Get an item from the cache.
         client.get(CacheNames.USERS, "123")
         {"id": "123", "user_name": "Test User"}
         """
-        result = self.client.hget(name, key)
+        result = self.__client.hget(name, key)
         if not result:
             return None
         return json.loads(result)
@@ -51,7 +46,7 @@ class RedisClient:
         """Get all the items from a given key as a dictionary
         client.get_all(CacheNames.STOCKS)
         """
-        result = self.client.hgetall(key)
+        result = self.__client.hgetall(key)
         if not result:
             return None
         return self.__decode(result)
@@ -62,7 +57,7 @@ class RedisClient:
         [{'stock_id': 1, 'quantity_owned': 100, 'stock_name': 'Smith-Bryan'},
         {'stock_id': 2, 'quantity_owned': 100, 'stock_name': 'Richardson and Sons'}]
         """
-        result = self.client.hget(name, key)
+        result = self.__client.hget(name, key)
         if not result:
             return None
         return list(json.loads(result).values())
@@ -71,7 +66,7 @@ class RedisClient:
         """Get all items as a list (same as get_all() but it returns a list instead)
         client.get_all(CacheNames.STOCKS)
         """
-        result = self.client.hgetall(key)
+        result = self.__client.hgetall(key)
         if not result:
             return None
         return list(self.__decode(result).values())
@@ -80,22 +75,23 @@ class RedisClient:
         """Update a value of a cache item, or set if no entry exists
         client.update(CacheName.STOCK_PORTFOLIO, 1, {"price": 100})
         """
-        result = self.client.hget(name, key)
+        result = self.__client.hget(name, key)
         if not result:
             return self.set(name, key, value)
         data = json.loads(result)
         data.update(value)
-        return self.client.hset(name, key, json.dumps(data))
+        return self.__client.hset(name, key, json.dumps(data))
 
 
     def delete(self, name: CacheName, keys: List[str] | List[int]):
         """Delete a cache entry
         client.delete('stocks', ['Google', 'Amazon'])
         """
-        return self.client.hdel(name, *keys)
+        return self.__client.hdel(name, *keys)
 
     def delete_all(self, key: str | int):
         """Delete the entire cache entry
         client.delete_all('stocks')
         """
-        return self.client.delete(key)
+        return self.__client.delete(key)
+

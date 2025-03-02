@@ -54,9 +54,9 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: Session =
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
-    # cache_hit = cache.get(CacheName.WALLETS, user_id)
-    # if cache_hit:
-    #     return SuccessResponse(data={"balance": cache_hit['balance']})
+    cache_hit = cache.get(CacheName.WALLETS, user_id)
+    if cache_hit:
+        return SuccessResponse(data={"balance": cache_hit['balance']})
 
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
     wallet = session.exec(statement).one_or_none()
@@ -77,6 +77,11 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Sess
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
+
+    cache_hit = cache.get_list(CacheName.WALLET_TX, user_id)
+
+    if cache_hit:
+        return SuccessResponse(data=cache_hit)
 
     # Can't pass more than 4 params into select, so have to do it this way, see here
     # https://github.com/fastapi/sqlmodel/issues/92
@@ -196,6 +201,12 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Sessi
         raise HTTPException(status_code=400, detail="User data is missing in headers")
 
     username, user_id = x_user_data.split("|")
+
+    cache_hit = cache.get_list(CacheName.STOCK_TX, user_id)
+
+    if cache_hit:
+        return SuccessResponse(data=cache_hit)
+
 
     statement = sqlmodel.select(StockTransactions).where(
         StockTransactions.user_id == user_id

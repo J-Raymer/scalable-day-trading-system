@@ -4,6 +4,7 @@ from uuid import UUID
 
 from schemas import SuccessResponse
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
+from schemas.RedisClient import RedisClient, CacheName
 from datetime import datetime
 from collections import defaultdict, deque
 from heapq import heapify, heappop, heappush
@@ -21,6 +22,7 @@ from .engineDbConnect import (
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
 
+cache = RedisClient()
 
 # TODO: UUID might need to be a string
 def receiveOrder(order: StockOrder, sending_user_id: UUID):
@@ -67,6 +69,12 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
 def getStockPriceEngine():
     global sellTrees
 
+    cache_hit = cache.get_all_list(CacheName.STOCKS)
+
+    if cache_hit:
+        print('CACHE HIT IN STOCK PRICE ENGINE', cache_hit)
+        return SuccessResponse(data=cache_hit)
+
     stockList = getStockData()
     data = []
 
@@ -90,6 +98,7 @@ def getStockPriceEngine():
 def processSellOrder(sellOrder: SellOrder):
     global sellTrees
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
+    cache.update(CacheName.STOCKS, sellOrder.stock_id, dict(sellOrder))
 
 
 def processBuyOrder(buyOrder: BuyOrder):
