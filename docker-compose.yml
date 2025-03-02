@@ -1,6 +1,14 @@
 version: '3.8'
 services:
 
+  rmq-test:
+    container_name: 'rmqtest'
+    build:
+      context: .
+      dockerfile: ./rmqtest/Dockerfile
+    networks:
+        - day_trader_network
+
   rabbitmq:
     image: rabbitmq:4.0-management
     container_name: 'rabbitmq'

@@ -32,7 +32,7 @@ async def startup():
     app.rabbitmq_connection = await getRabbitConnection()
     app.rabbitmq_channel = await app.rabbitmq_connection.channel()
 
-    await app.rabbitmq_channel.declare_queue("testQ", durable=True)
+    await app.rabbitmq_channel.declare_queue("testQ", auto_delete=True)
 
 
 @app.on_event("shutdown")

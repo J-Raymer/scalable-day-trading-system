@@ -1,0 +1,3 @@
+asyncio
+aio_pika
+
