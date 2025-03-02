@@ -28,7 +28,7 @@ class RedisClient:
         self.client = redis.Redis(host=host, port=port)
 
     def __decode(self, res):
-        return {key.decode(): value.decode() for key, value in res.items()}
+        return {key.decode(): json.loads(value.decode()) for key, value in res.items()}
 
     def set(self, name: CacheName, key: str | int, value: dict):
         """Set an Item (also overrides an existing item)

@@ -156,12 +156,10 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: Session 
 
     username, user_id = x_user_data.split("|")
 
-    cache_hit = cache.get(CacheName.STOCK_PORTFOLIO, user_id)
+    cache_hit = cache.get_list(CacheName.STOCK_PORTFOLIO, user_id)
 
     if cache_hit:
-        print("cache hit in portfolio")
-        print(cache_hit)
-
+        return SuccessResponse(data=cache_hit)
 
     statement = (
         sqlmodel.select(
@@ -235,6 +233,7 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: S
     session.add(new_stock)
     session.commit()
     session.refresh(new_stock)
+    cache.set(CacheName.STOCKS, stock_name, new_stock.dict())
     return SuccessResponse(data={"stock_id": new_stock.stock_id})
 
 @app.post(
