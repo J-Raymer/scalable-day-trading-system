@@ -44,7 +44,7 @@ class WalletTransactions(SQLModel, table=True):
 class Stocks(SQLModel, table=True):
     stock_id: int = Field(primary_key=True)
     stock_name: str = Field(unique=True, index=True)
-    price: int = Field(default=0)
+    current_price: int = Field(default=0)
 
 
 class StockPortfolios(SQLModel, table=True):
