@@ -1,6 +1,5 @@
 from typing import List
 from fastapi import HTTPException
-
 from schemas import SuccessResponse
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
 from schemas.RedisClient import RedisClient, CacheName
@@ -68,7 +67,7 @@ def receiveOrder(order: StockOrder, sending_user_id: str):
 def getStockPriceEngine():
     global sellTrees
 
-    cache_hit = cache.get_all_list(CacheName.STOCKS)
+    cache_hit = cache.get_all_list(CacheName.STOCKS, sort_key='stock_id')
 
     if cache_hit:
         print('CACHE HIT IN STOCK PRICE ENGINE', cache_hit)

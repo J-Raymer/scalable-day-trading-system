@@ -1,6 +1,4 @@
-import json
 import sqlmodel
-import redis
 import os
 import dotenv
 from sqlmodel import Session, desc
@@ -77,7 +75,7 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Sess
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
-    cache_hit = cache.get_list(CacheName.WALLET_TX, user_id)
+    cache_hit = cache.get_list(CacheName.WALLET_TX, user_id, sort_key='time_stamp', desc=False)
 
     if cache_hit:
         return SuccessResponse(data=cache_hit)
@@ -160,7 +158,7 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: Session 
 
     username, user_id = x_user_data.split("|")
 
-    cache_hit = cache.get_list(CacheName.STOCK_PORTFOLIO, user_id)
+    cache_hit = cache.get_list(CacheName.STOCK_PORTFOLIO, user_id, sort_key='stock_name')
 
     if cache_hit:
         return SuccessResponse(data=cache_hit)
@@ -201,7 +199,7 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Sessi
 
     username, user_id = x_user_data.split("|")
 
-    cache_hit = cache.get_list(CacheName.STOCK_TX, user_id)
+    cache_hit = cache.get_list(CacheName.STOCK_TX, user_id, sort_key='time_stamp', desc=False)
 
     if cache_hit:
         return SuccessResponse(data=cache_hit)
@@ -243,7 +241,7 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: S
     session.add(new_stock)
     session.commit()
     session.refresh(new_stock)
-    cache.set(CacheName.STOCKS, stock_name, new_stock.dict())
+    cache.set(CacheName.STOCKS, new_stock.stock_id, new_stock.dict())
     return SuccessResponse(data={"stock_id": new_stock.stock_id})
 
 @app.post(

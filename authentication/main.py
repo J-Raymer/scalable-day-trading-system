@@ -1,8 +1,6 @@
-import json
 import bcrypt
 import jwt
 import os
-import redis
 import sqlmodel
 from sqlmodel import func, Session
 from datetime import datetime, timedelta
