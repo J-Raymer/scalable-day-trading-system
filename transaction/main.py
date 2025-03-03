@@ -199,7 +199,7 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Sessi
 
     username, user_id = x_user_data.split("|")
 
-    cache_hit = cache.get_list(CacheName.STOCK_TX, user_id, sort_key='time_stamp', desc=False)
+    cache_hit = cache.get_list(CacheName.STOCK_TX, user_id, sort_key='time_stamp')
 
     if cache_hit:
         return SuccessResponse(data=cache_hit)

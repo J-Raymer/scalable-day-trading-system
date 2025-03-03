@@ -25,9 +25,11 @@ DB_NAME = os.getenv("DB_NAME")
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
+from schemas.RedisClient import RedisClient, CacheName
 
 engine = sqlmodel.create_engine(url)
 
+cache = RedisClient()
 
 def getStockData():
     with sqlmodel.Session(engine) as session:
@@ -69,6 +71,7 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         # subtracts from buyer's wallet balance
         buyerWallet.balance -= buyPrice
         session.add(buyerWallet)
+        cache.update(CacheName.WALLETS, buyOrder.user_id, {"balance": buyerWallet.balance})
 
         # creates wallet transaction for taking money from the buyer
         buyerWalletTxId = addWalletTx(

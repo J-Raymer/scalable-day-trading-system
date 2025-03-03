@@ -51,9 +51,9 @@ class RedisClient:
             return None
         return self.__decode(result)
 
-    def get_list(self, name: CacheName, key: str | int, sort_key: str, desc=True) -> List[dict] | None:
+    def get_list(self, name: CacheName, key: str | int, sort_key: str, reverse=True) -> List[dict] | None:
         """Return a list of dictionaries (useful for formatting something like stock portfolios)
-        use desc=False to sort in ascending order
+        use reverse=False to sort in reverse order
         client.get_list(CacheName.STOCK_PORTFOLIO, user_id)
         [{'stock_id': 1, 'quantity_owned': 100, 'stock_name': 'Smith-Bryan'},
         {'stock_id': 2, 'quantity_owned': 100, 'stock_name': 'Richardson and Sons'}]
@@ -61,18 +61,18 @@ class RedisClient:
         result = self.__client.hget(name, key)
         if not result:
             return None
-        return sorted(list(json.loads(result).values()), key=lambda x: x[sort_key], reverse=desc)
+        return sorted(list(json.loads(result).values()), key=lambda x: x[sort_key], reverse=reverse)
 
-    def get_all_list(self, key: str | int, sort_key: str, desc=True):
+    def get_all_list(self, key: str | int, sort_key: str, reverse=False):
         """Get all items as a list (same as get_all() but it returns a list instead)
         sort_key: the key to SORT the list by (this is separate from the CACHE key)
-        use desc=False to sort in ascending order
+        use reverse=False to sort in reverse order
         client.get_all(CacheNames.STOCKS)
         """
         result = self.__client.hgetall(key)
         if not result:
             return None
-        return sorted(list(self.__decode(result).values()), key=lambda x: x[sort_key], reverse=desc)
+        return sorted(list(self.__decode(result).values()), key=lambda x: x[sort_key], reverse=reverse)
 
     def update(self, name: CacheName, key: str | int, value: dict):
         """Update a value of a cache item, or set if no entry exists
