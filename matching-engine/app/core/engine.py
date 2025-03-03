@@ -96,7 +96,11 @@ def getStockPriceEngine():
 def processSellOrder(sellOrder: SellOrder):
     global sellTrees
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
-    cache.update(CacheName.STOCKS, sellOrder.stock_id, dict(sellOrder))
+    # TODO: We should rename "price" to "current_price" across the app for consistency and to avoid this sort of thing
+    sell_dict = dict(sellOrder)
+    sell_dict['current_price'] = sellOrder.price
+    del sell_dict['price']
+    cache.update(CacheName.STOCKS, sellOrder.stock_id, sell_dict)
 
 
 def processBuyOrder(buyOrder: BuyOrder):
