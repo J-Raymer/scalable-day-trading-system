@@ -64,16 +64,6 @@ def receiveOrder(order: StockOrder, sending_user_id: str):
         return SuccessResponse()
 
 
-
-
-
-
-def add_stock_price(data, id, stock_name, current_price):
-    data.append(
-        StockPrice(stock_id=id, stock_name=stock_name, current_price=current_price)
-    )
-
-
 def getStockPriceEngine():
     global sellTrees
 
@@ -86,13 +76,17 @@ def getStockPriceEngine():
             id = int(stock_id)
             # Need to cast id to int because it's stored as a string
             if sellTrees[id]:
-                add_stock_price(data, id, stock_name, sellTrees[id][0].price)
+                data.append(
+                    StockPrice(stock_id=id, stock_name=stock_name, current_price=sellTrees[id][0].price)
+                )
     else:
         stockList = getStockData()
         for stock in stockList:
             id = stock.stock_id
             if sellTrees[id]:
-                add_stock_price(data, id, stock.stock_name, sellTrees[id][0].price)
+                data.append(
+                    StockPrice(stock_id=id, stock_name=stock.stock_name, current_price=sellTrees[id][0].price)
+                )
     return SuccessResponse(data=data)
 
 
