@@ -1,3 +1,10 @@
 asyncio
 aio_pika
-logging
+sqlmodel
+python-dotenv
+PyJwt
+pydantic
+bcrypt
+fastapi[standard]
+uuid
+psycopg2

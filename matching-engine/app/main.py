@@ -33,6 +33,7 @@ async def startup():
     app.rabbitmq_channel = await app.rabbitmq_connection.channel()
 
     await app.rabbitmq_channel.declare_queue("testQ", auto_delete=True)
+    await app.rabbitmq_channel.declare_queue("testPlaceOrder", auto_delete=True)
 
 
 @app.on_event("shutdown")
@@ -68,6 +69,15 @@ async def rabbitTest():
     },
 )
 async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
+
+    await app.rabbitmq_channel.default_exchange.publish(
+        aio_pika.Message(
+            body=order,
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            content_type="STOCK_ORDER",
+        ),
+        routing_key="testPlaceOrder",
+    )
 
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
