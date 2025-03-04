@@ -220,6 +220,8 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice):
         & (StockPortfolios.stock_id == buyOrder.stock_id)
     )
     buyerStockHolding = session.exec(statement).one_or_none()
+    stock_name_query = sqlmodel.select(Stocks.stock_name).where(Stocks.stock_id == buyOrder.stock_id)
+    stock_name = session.exec(stock_name_query).one()
 
     if not buyerStockHolding:
         newStockHolding = StockPortfolios(
@@ -228,9 +230,24 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice):
             quantity_owned=buyOrder.quantity,
         )
         session.add(newStockHolding)
+        # TODO: Is there some other thing we can do here to get the stock name?
+        portfolio_dict = {
+            newStockHolding.stock_id: {
+                "stock_name": stock_name,
+                **newStockHolding.dict()
+            }
+        }
+        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', portfolio_dict)
     else:
         buyerStockHolding.quantity_owned += buyOrder.quantity
         session.add(buyerStockHolding)
+        portfolio_dict = {
+            buyerStockHolding.id: {
+                "stock_name": stock_name,
+                **buyerStockHolding.dict()
+            }
+        }
+        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', portfolio_dict)
 
     stockTxId = addStockTx(
         session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED

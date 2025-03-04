@@ -164,7 +164,7 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: Session 
 
     if cache_hit:
         print("CACHE HIT IN GET STOCK PORTFOLIO", cache_hit)
-        return SuccessResponse(data=list(cache_hit.values()))
+        return SuccessResponse(data=sorted(list(cache_hit.values()), reverse=True, key=lambda x: x['stock_name']))
 
     statement = (
         sqlmodel.select(
