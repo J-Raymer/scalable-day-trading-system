@@ -20,7 +20,7 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
 app = FastAPI(root_path="/authentication")
 
-# cache = RedisClient()
+cache = RedisClient()
 
 app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
 app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
@@ -114,13 +114,15 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
     session.refresh(new_user)
     token = generate_token(new_user)
     # Username is unique so use that as the key since on login users don't send a user ID.
-    # cache.set(CacheName.USERS,
-    #     new_user.user_name,
-    #           {"id": new_user.id,
-    #                "password": new_user.password,
-    #                "salt": new_user.salt,
-    #                "name": new_user.name})
-    # cache.set(CacheName.WALLETS, new_user.id, {"balance": 0})
+    user_dict = {
+        new_user.user_name: {
+            "id": new_user.id,
+            "password": new_user.password,
+            "salt": new_user.salt,
+            "name": new_user.name
+        }}
+    cache.set(f'{CacheName.USERS}:{new_user.user_name}',user_dict)
+    cache.set(f'{CacheName.WALLETS}:{new_user.id}',{"balance": 0})
     return SuccessResponse(data={"token": token})
 
 
@@ -137,12 +139,13 @@ async def login(user: LoginRequest, session: Session = Depends(get_session)):
         raise HTTPException(status_code=400, detail="Username and password required")
 
     result = None
-    # cache_hit = cache.get(CacheName.USERS, user.user_name)
-    # if cache_hit:
-    #     result = User(user_name=user.user_name, **cache_hit)
-    # else:
-    query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
-    result = session.exec(query).one_or_none()
+    cache_hit = cache.get(f'{CacheName.USERS}:{user.user_name}')
+    if cache_hit:
+        print("CACHE HIT IN /login", cache_hit)
+        result = User(user_name=user.user_name, **cache_hit[user.user_name])
+    else:
+        query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
+        result = session.exec(query).one_or_none()
 
     if not result:
         raise HTTPException(status_code=404, detail="User not found")

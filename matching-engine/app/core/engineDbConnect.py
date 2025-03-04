@@ -29,7 +29,7 @@ from schemas.RedisClient import RedisClient, CacheName
 
 engine = sqlmodel.create_engine(url)
 
-# cache = RedisClient()
+cache = RedisClient()
 
 def getStockData():
     with sqlmodel.Session(engine) as session:
@@ -71,7 +71,7 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         # subtracts from buyer's wallet balance
         buyerWallet.balance -= buyPrice
         session.add(buyerWallet)
-        # cache.update(CacheName.WALLETS, buyOrder.user_id, {"balance": buyerWallet.balance})
+        cache.set(f'{CacheName.WALLETS}:{buyOrder.user_id}',{"balance": buyerWallet.balance})
 
         # creates wallet transaction for taking money from the buyer
         buyerWalletTxId = addWalletTx(

@@ -9,7 +9,7 @@ from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder, CancelOrder
 from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
 from schemas import exception_handlers
-from schemas.RedisClient import RedisClient2
+from schemas.RedisClient import RedisClient
 
 
 app = FastAPI(root_path="/engine")
@@ -64,14 +64,3 @@ async def getStockPrice():
 )
 async def cancelStockTransaction(cancelOrder: CancelOrder):
     return cancelOrderEngine(cancelOrder)
-
-client = RedisClient2()
-
-@app.get("/test")
-async def test():
-    client.set('wallet:1', 'steve', {"balance": 1})
-    cache_hit = client.get('wallet:1')
-    if cache_hit:
-        return SuccessResponse(data=cache_hit)
-    else:
-        return SuccessResponse()

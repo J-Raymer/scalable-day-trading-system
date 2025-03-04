@@ -24,7 +24,7 @@ dotenv.load_dotenv(override=True)
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = int(os.getenv("REDIS_PORT"))
 
-# cache = RedisClient()
+cache = RedisClient()
 
 
 app = FastAPI(root_path="/transaction")
@@ -51,9 +51,10 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: Session =
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
-    # cache_hit = cache.get(CacheName.WALLETS, user_id)
-    # if cache_hit:
-    #     return SuccessResponse(data={"balance": cache_hit['balance']})
+    cache_hit = cache.get(f'{CacheName.WALLETS}:{user_id}')
+    if cache_hit:
+        print("CACHE HIT IN /getWalletBalance", cache_hit)
+        return SuccessResponse(data={"balance": cache_hit['balance']})
 
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
     wallet = session.exec(statement).one_or_none()
@@ -140,7 +141,7 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
     session.add(wallet)
     session.commit()
 
-    # cache.set(CacheName.WALLETS, user_id, {"balance": balance})
+    cache.set(f'{CacheName.WALLETS}:{user_id}', {"balance": balance})
     return SuccessResponse()
 
 
@@ -159,11 +160,11 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: Session 
 
     username, user_id = x_user_data.split("|")
 
-    # cache_hit = cache.get_list(CacheName.STOCK_PORTFOLIO, user_id, sort_key='stock_name')
-    #
-    # if cache_hit:
-    #     print("CACHE HIT IN GET STOCK PORTFOLIO", cache_hit)
-    #     return SuccessResponse(data=cache_hit)
+    cache_hit = cache.get(f'{CacheName.STOCK_PORTFOLIO}:{user_id}')
+
+    if cache_hit:
+        print("CACHE HIT IN GET STOCK PORTFOLIO", cache_hit)
+        return SuccessResponse(data=list(cache_hit.values()))
 
     statement = (
         sqlmodel.select(
@@ -244,7 +245,6 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: S
     session.add(new_stock)
     session.commit()
     session.refresh(new_stock)
-    # cache.set(CacheName.STOCKS, new_stock.stock_id, new_stock.dict())
     return SuccessResponse(data={"stock_id": new_stock.stock_id})
 
 @app.post(
@@ -281,4 +281,12 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
     session.add(new_stock)
     session.commit()
     session.refresh(new_stock)
+    stock_dict = {
+        new_stock.stock_id: {
+           "stock_id": new_stock.stock_id,
+            "quantity_owned": new_stock.quantity_owned,
+            "stock_name": stock_exists.stock_name
+        }
+    }
+    cache.set(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', stock_dict)
     return SuccessResponse(data={"stock": new_stock})
