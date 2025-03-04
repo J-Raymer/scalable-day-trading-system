@@ -20,7 +20,7 @@ from .engineDbConnect import (
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
 
-# cache = RedisClient()
+cache = RedisClient()
 
 
 def receiveOrder(order: StockOrder, sending_user_id: str):
@@ -64,32 +64,35 @@ def receiveOrder(order: StockOrder, sending_user_id: str):
         return SuccessResponse()
 
 
+
+
+
+
+def add_stock_price(data, id, stock_name, current_price):
+    data.append(
+        StockPrice(stock_id=id, stock_name=stock_name, current_price=current_price)
+    )
+
+
 def getStockPriceEngine():
     global sellTrees
 
-    # cache_hit = cache.get_all_list(CacheName.STOCKS, sort_key='stock_name', reverse=True)
-    #
-    # if cache_hit:
-    #     print('CACHE HIT IN STOCK PRICE ENGINE', cache_hit)
-    #     return SuccessResponse(data=cache_hit)
-
-    stockList = getStockData()
+    cache_hit = cache.get(CacheName.STOCKS)
     data = []
 
-    for stock in stockList:
-
-        id = stock.stock_id
-
-        if not sellTrees[id] or len(sellTrees[id]) == 0:
-            continue
-
-        data.append(
-            StockPrice(
-                stock_id=id,
-                stock_name=stock.stock_name,
-                current_price=sellTrees[id][0].price,
-            )
-        )
+    if cache_hit:
+        print('CACHE HIT IN STOCK PRICE ENGINE', cache_hit)
+        for stock_id, stock_name in cache_hit.items():
+            id = int(stock_id)
+            # Need to cast id to int because it's stored as a string
+            if sellTrees[id]:
+                add_stock_price(data, id, stock_name, sellTrees[id][0].price)
+    else:
+        stockList = getStockData()
+        for stock in stockList:
+            id = stock.stock_id
+            if sellTrees[id]:
+                add_stock_price(data, id, stock.stock_name, sellTrees[id][0].price)
     return SuccessResponse(data=data)
 
 

@@ -219,7 +219,6 @@ def gatherStocks(order, user_id, stock_id, stock_amount):
         buy_order_dict = {
             stockTx.stock_tx_id: stockTx.model_dump()
         }
-        print("STOCK TX IS", stockTx)
         cache.update(f'{CacheName.STOCK_TX}:{user_id}', buy_order_dict)
         return stockTx.stock_tx_id
 
@@ -244,7 +243,7 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice)-> StockTransactions:
             quantity_owned=buyOrder.quantity,
         )
         session.add(newStockHolding)
-        # TODO: Is there some other thing we can do here to get the stock name?
+        # TODO: Is there some other thing we can do here to get the stock name? (needs to be sorted by stock_name)
         portfolio_dict = {
             newStockHolding.stock_id: {
                 "stock_name": stock_name,

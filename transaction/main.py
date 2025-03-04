@@ -245,6 +245,8 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: S
     session.add(new_stock)
     session.commit()
     session.refresh(new_stock)
+    # Cache the stock id with the stock name
+    cache.update(CacheName.STOCKS, {new_stock.stock_id: new_stock.stock_name})
     return SuccessResponse(data={"stock_id": new_stock.stock_id})
 
 @app.post(
@@ -288,6 +290,4 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
             "stock_name": stock_exists.stock_name
         }
     }
-    # TODO: Not sure if this is the correct place
-    # cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', stock_dict)
     return SuccessResponse(data={"stock": new_stock})
