@@ -40,6 +40,7 @@ class RedisClient:
         if not result:
             return self.__client.json().set(key, Path.root_path(), value)
         result.update(value)
+        return self.__client.json().set(key, Path.root_path(), result)
 
     def delete(self, key):
         return self.__client.json().delete(key, Path.root_path())

@@ -297,6 +297,13 @@ def cancelTransaction(stockTxId):
         session.add(sellerPortfolio)
 
         session.commit()
+        cancelled_dict = {
+            transactionToBeCancelled.stock_tx_id: transactionToBeCancelled.dict()
+        }
+        cache.update(f'{CacheName.STOCK_TX}:{transactionToBeCancelled.user_id}', cancelled_dict)
+        # portfolio_dict = {
+        #
+        # }
 
 
 def getTransaction(stockTxId):
