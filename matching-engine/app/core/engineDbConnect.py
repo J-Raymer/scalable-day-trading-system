@@ -66,20 +66,19 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             raise HTTPException(status_code=400, detail="buyer lacks funds")
 
         # pay out the stocks
-        buyerStockTxId = payOutStocks(session, buyOrder, buyPrice)
+        buyerStockTx = payOutStocks(session, buyOrder, buyPrice)
 
         # subtracts from buyer's wallet balance
         buyerWallet.balance -= buyPrice
         session.add(buyerWallet)
-        cache.set(f'{CacheName.WALLETS}:{buyOrder.user_id}',{"balance": buyerWallet.balance})
 
         # creates wallet transaction for taking money from the buyer
-        buyerWalletTxId = addWalletTx(
-            session, buyOrder, buyPrice, buyerStockTxId, isDebit=True
+        buyerWalletTx = addWalletTx(
+            session, buyOrder, buyPrice, buyerStockTx.stock_tx_id, isDebit=True
         )
 
         # adds wallet tx id to stock stock_tx_id
-        addWalletTxToStockTx(session, buyerStockTxId, buyerWalletTxId)
+        buyerStockTx = addWalletTxToStockTx(session, buyerStockTx.stock_tx_id, buyerWalletTx.wallet_tx_id)
 
         # TODO stock added to portfolio
         amountSoldTotal = 0
@@ -117,11 +116,11 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             session.add(incompleteTx)
 
             # creates wallet transaction for paying the seller
-            sellerWalletTxId = addWalletTx(
+            sellerWalletTx = addWalletTx(
                 session, sellOrder, sellPrice, sellerStockTxId, isDebit=False
             )
 
-            addWalletTxToStockTx(session, sellerStockTxId, sellerWalletTxId)
+            sellerStockTx = addWalletTxToStockTx(session, sellerStockTxId, sellerWalletTx.wallet_tx_id)
 
             amountSoldTotal += sellPrice
 
@@ -129,9 +128,36 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
 
         session.commit()
+        cache.set(f'{CacheName.WALLETS}:{buyOrder.user_id}',{"balance": buyerWallet.balance})
+        cache.set(f'{CacheName.WALLETS}:{sellOrder.user_id}',{"balance": sellerWallet.balance})
+        buyer_stock_tx_dict = {
+            buyerStockTx.stock_tx_id: {
+                buyerStockTx.dict()
+            }
+        }
+        cache.update(f'{CacheName.STOCK_TX}:{buyerStockTx.user_id}', buyer_stock_tx_dict)
+        seller_stock_tx_dict = {
+            sellerStockTx.stock_tx_id: {
+                sellerStockTx.dict()
+            }
+        }
+        cache.update(f'{CacheName.STOCK_TX}:{sellerStockTx.user_id}', seller_stock_tx_dict)
+        buyer_wallet_tx_dict = {
+            buyerWalletTx.wallet_tx_id: {
+                buyerWalletTx.dict()
+            }
+        }
+        cache.update(f'{CacheName.WALLET_TX}:{buyerWalletTx.user_id}', buyer_wallet_tx_dict)
+        seller_wallet_tx_dict = {
+            sellerWalletTx.wallet_tx_id: {
+                sellerWalletTx.dict()
+            }
+        }
+        cache.update(f'{CacheName.WALLET_TX}:{sellerWalletTx.user_id}', seller_wallet_tx_dict)
 
 
-def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
+
+def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool) -> WalletTransactions:
     time = datetime.now()
     walletTx = WalletTransactions(
         user_id=order.user_id,
@@ -144,11 +170,10 @@ def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool):
     session.add(walletTx)
     session.flush()
     session.refresh(walletTx)
-    # cache.update(CacheName.WALLET_TX, order.user_id, walletTx.dict())
-    return walletTx.wallet_tx_id
+    return walletTx
 
 
-def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
+def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus)-> StockTransactions:
     time = datetime.now()
 
     stockTx = StockTransactions(
@@ -175,11 +200,7 @@ def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus):
     session.add(stockTx)
     session.flush()
     session.refresh(stockTx)
-    # cache_entry = {
-    #     "stock_tx_id": stockTx.dict()
-    # }
-    # cache.update(CacheName.STOCK_TX, order.user_id, stockTx.dict())
-    return stockTx.stock_tx_id
+    return stockTx
 
 
 def gatherStocks(order, user_id, stock_id, stock_amount):
@@ -196,7 +217,7 @@ def gatherStocks(order, user_id, stock_id, stock_amount):
             )
 
         holding.quantity_owned -= stock_amount
-        stockTXID = addStockTx(
+        stockTx = addStockTx(
             session,
             order,
             isBuy=False,
@@ -206,11 +227,16 @@ def gatherStocks(order, user_id, stock_id, stock_amount):
         session.add(holding)
 
         session.commit()
+        buy_order_dict = {
+            stockTx.stock_tx_id: {
+                stockTx.dict()
+            }
+        }
+        cache.update(f'{CacheName.STOCK_TX}:{user_id}', buy_order_dict)
+        return stockTx.stock_tx_id
 
-        return stockTXID
 
-
-def payOutStocks(session, buyOrder: BuyOrder, buyPrice):
+def payOutStocks(session, buyOrder: BuyOrder, buyPrice)-> StockTransactions:
 
     if not buyOrder:
         raise HTTPException(status_code=400, detail="Missing buy order")
@@ -249,11 +275,12 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice):
         }
         cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', portfolio_dict)
 
-    stockTxId = addStockTx(
+    stockTx = addStockTx(
         session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED
     )
 
-    return stockTxId
+
+    return stockTx
 
 
 def cancelTransaction(stockTxId):
@@ -335,7 +362,7 @@ def setToPartiallyComplete(stockTxId, quantity):
         return SuccessResponse()
 
 
-def addWalletTxToStockTx(session, stockTxId, walletTxId):
+def addWalletTxToStockTx(session, stockTxId, walletTxId) -> StockTransactions:
 
     statement = sqlmodel.select(StockTransactions).where(
         StockTransactions.stock_tx_id == stockTxId
@@ -345,3 +372,4 @@ def addWalletTxToStockTx(session, stockTxId, walletTxId):
     stockTx.wallet_tx_id = walletTxId
 
     session.add(stockTx)
+    return stockTx

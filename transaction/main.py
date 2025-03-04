@@ -76,11 +76,11 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Sess
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
-    # cache_hit = cache.get_list(CacheName.WALLET_TX, user_id, sort_key='time_stamp')
-    #
-    # if cache_hit:
-    #     print("Cache Hit in GET wallet transactions")
-    #     return SuccessResponse(data=cache_hit)
+    cache_hit = cache.get(f'{CacheName.WALLET_TX}:{user_id}')
+
+    if cache_hit:
+        print("Cache Hit in GET wallet transactions")
+        return SuccessResponse(data=list(cache_hit.values()))
 
     # Can't pass more than 4 params into select, so have to do it this way, see here
     # https://github.com/fastapi/sqlmodel/issues/92
@@ -202,11 +202,11 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Sessi
 
     username, user_id = x_user_data.split("|")
 
-    # cache_hit = cache.get_list(CacheName.STOCK_TX, user_id, sort_key='time_stamp')
-    #
-    # if cache_hit:
-    #     print('Cache hit in stock transactions')
-    #     return SuccessResponse(data=cache_hit)
+    cache_hit = cache.get(f'{CacheName.STOCK_TX}:{user_id}')
+
+    if cache_hit:
+        print('Cache hit in stock transactions')
+        # return SuccessResponse(data=cache_hit)
 
 
     statement = sqlmodel.select(StockTransactions).where(
@@ -288,5 +288,6 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
             "stock_name": stock_exists.stock_name
         }
     }
-    cache.set(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', stock_dict)
+    # TODO: Not sure if this is the correct place
+    cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', stock_dict)
     return SuccessResponse(data={"stock": new_stock})
