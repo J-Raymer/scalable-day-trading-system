@@ -131,40 +131,31 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         cache.set(f'{CacheName.WALLETS}:{buyOrder.user_id}',{"balance": buyerWallet.balance})
         cache.set(f'{CacheName.WALLETS}:{sellOrder.user_id}',{"balance": sellerWallet.balance})
         buyer_stock_tx_dict = {
-            buyerStockTx.stock_tx_id: {
-                buyerStockTx.dict()
-            }
+            buyerStockTx.stock_tx_id: buyerStockTx.model_dump()
         }
         cache.update(f'{CacheName.STOCK_TX}:{buyerStockTx.user_id}', buyer_stock_tx_dict)
         seller_stock_tx_dict = {
-            sellerStockTx.stock_tx_id: {
-                sellerStockTx.dict()
-            }
+            sellerStockTx.stock_tx_id: sellerStockTx.model_dump()
         }
         cache.update(f'{CacheName.STOCK_TX}:{sellerStockTx.user_id}', seller_stock_tx_dict)
         buyer_wallet_tx_dict = {
-            buyerWalletTx.wallet_tx_id: {
-                buyerWalletTx.dict()
-            }
+            buyerWalletTx.wallet_tx_id: buyerWalletTx.model_dump()
         }
         cache.update(f'{CacheName.WALLET_TX}:{buyerWalletTx.user_id}', buyer_wallet_tx_dict)
         seller_wallet_tx_dict = {
-            sellerWalletTx.wallet_tx_id: {
-                sellerWalletTx.dict()
-            }
+            sellerWalletTx.wallet_tx_id: sellerWalletTx.model_dump()
         }
         cache.update(f'{CacheName.WALLET_TX}:{sellerWalletTx.user_id}', seller_wallet_tx_dict)
 
 
 
 def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool) -> WalletTransactions:
-    time = datetime.now()
+    time = str(datetime.now())
     walletTx = WalletTransactions(
         user_id=order.user_id,
         stock_tx_id=stockTxId,
         is_debit=isDebit,
         amount=orderValue,
-        timestamp=time,
     )
 
     session.add(walletTx)
@@ -174,7 +165,6 @@ def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool) -> WalletT
 
 
 def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus)-> StockTransactions:
-    time = datetime.now()
 
     stockTx = StockTransactions(
         stock_id=order.stock_id,
@@ -183,7 +173,6 @@ def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus)-> St
         order_type=order.order_type,
         quantity=order.quantity,
         parent_stock_tx_id=None,
-        time_stamp=time,
         user_id=order.user_id,
     )
 
@@ -228,10 +217,9 @@ def gatherStocks(order, user_id, stock_id, stock_amount):
 
         session.commit()
         buy_order_dict = {
-            stockTx.stock_tx_id: {
-                stockTx.dict()
-            }
+            stockTx.stock_tx_id: stockTx.model_dump()
         }
+        print("STOCK TX IS", stockTx)
         cache.update(f'{CacheName.STOCK_TX}:{user_id}', buy_order_dict)
         return stockTx.stock_tx_id
 
@@ -260,7 +248,7 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice)-> StockTransactions:
         portfolio_dict = {
             newStockHolding.stock_id: {
                 "stock_name": stock_name,
-                **newStockHolding.dict()
+                **newStockHolding.model_dump()
             }
         }
         cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', portfolio_dict)
@@ -335,7 +323,6 @@ def createChildTransaction(order, parentStockTxId):
             stock_price=order.price,
             quantity=order.quantity,
             parent_stock_tx_id=parentStockTxId,
-            time_stamp=time,
             user_id=order.user_id,
         )
 

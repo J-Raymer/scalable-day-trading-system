@@ -18,6 +18,9 @@ class OrderType(str, Enum):
 def generate_user_id():
     return str(uuid.uuid4())
 
+def generate_timestamp():
+    return str(datetime.now())
+
 class Users(SQLModel, table=True):
     id: str = Field(default_factory=generate_user_id, primary_key=True)
     user_name: str = Field(index=True, unique=True)
@@ -38,7 +41,7 @@ class WalletTransactions(SQLModel, table=True):
     user_id: str = Field(foreign_key="users.id", index=True)
     is_debit: bool
     amount: int
-    time_stamp: datetime = Field(default_factory=datetime.now)
+    time_stamp: str = Field(default_factory=generate_timestamp)
 
 
 class Stocks(SQLModel, table=True):
@@ -63,5 +66,5 @@ class StockTransactions(SQLModel, table=True):
     stock_price: int
     quantity: int = Field(sa_column=Column(BigInteger()))
     parent_stock_tx_id: int | None = Field(foreign_key="stocktransactions.stock_tx_id")
-    time_stamp: datetime = Field(default_factory=datetime.now)
+    time_stamp: str = Field(default_factory=generate_timestamp)
     user_id: str = Field(foreign_key="users.id", index=True)
