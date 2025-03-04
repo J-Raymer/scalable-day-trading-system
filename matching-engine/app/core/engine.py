@@ -20,7 +20,7 @@ from .engineDbConnect import (
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
 
-cache = RedisClient()
+# cache = RedisClient()
 
 
 def receiveOrder(order: StockOrder, sending_user_id: str):
@@ -67,11 +67,11 @@ def receiveOrder(order: StockOrder, sending_user_id: str):
 def getStockPriceEngine():
     global sellTrees
 
-    cache_hit = cache.get_all_list(CacheName.STOCKS, sort_key='stock_name', reverse=True)
-
-    if cache_hit:
-        print('CACHE HIT IN STOCK PRICE ENGINE', cache_hit)
-        return SuccessResponse(data=cache_hit)
+    # cache_hit = cache.get_all_list(CacheName.STOCKS, sort_key='stock_name', reverse=True)
+    #
+    # if cache_hit:
+    #     print('CACHE HIT IN STOCK PRICE ENGINE', cache_hit)
+    #     return SuccessResponse(data=cache_hit)
 
     stockList = getStockData()
     data = []
@@ -100,7 +100,7 @@ def processSellOrder(sellOrder: SellOrder):
     sell_dict = dict(sellOrder)
     sell_dict['current_price'] = sellOrder.price
     del sell_dict['price']
-    cache.update(CacheName.STOCKS, sellOrder.stock_id, sell_dict)
+    # cache.update(CacheName.STOCKS, sellOrder.stock_id, sell_dict)
 
 
 def processBuyOrder(buyOrder: BuyOrder):

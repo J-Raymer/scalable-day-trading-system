@@ -24,7 +24,7 @@ dotenv.load_dotenv(override=True)
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = int(os.getenv("REDIS_PORT"))
 
-cache = RedisClient()
+# cache = RedisClient()
 
 
 app = FastAPI(root_path="/transaction")
@@ -51,9 +51,9 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: Session =
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
-    cache_hit = cache.get(CacheName.WALLETS, user_id)
-    if cache_hit:
-        return SuccessResponse(data={"balance": cache_hit['balance']})
+    # cache_hit = cache.get(CacheName.WALLETS, user_id)
+    # if cache_hit:
+    #     return SuccessResponse(data={"balance": cache_hit['balance']})
 
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
     wallet = session.exec(statement).one_or_none()
@@ -75,10 +75,11 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Sess
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
-    cache_hit = cache.get_list(CacheName.WALLET_TX, user_id, sort_key='time_stamp', desc=False)
-
-    if cache_hit:
-        return SuccessResponse(data=cache_hit)
+    # cache_hit = cache.get_list(CacheName.WALLET_TX, user_id, sort_key='time_stamp')
+    #
+    # if cache_hit:
+    #     print("Cache Hit in GET wallet transactions")
+    #     return SuccessResponse(data=cache_hit)
 
     # Can't pass more than 4 params into select, so have to do it this way, see here
     # https://github.com/fastapi/sqlmodel/issues/92
@@ -139,7 +140,7 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
     session.add(wallet)
     session.commit()
 
-    cache.set(CacheName.WALLETS, user_id, {"balance": balance})
+    # cache.set(CacheName.WALLETS, user_id, {"balance": balance})
     return SuccessResponse()
 
 
@@ -158,10 +159,11 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: Session 
 
     username, user_id = x_user_data.split("|")
 
-    cache_hit = cache.get_list(CacheName.STOCK_PORTFOLIO, user_id, sort_key='stock_name')
-
-    if cache_hit:
-        return SuccessResponse(data=cache_hit)
+    # cache_hit = cache.get_list(CacheName.STOCK_PORTFOLIO, user_id, sort_key='stock_name')
+    #
+    # if cache_hit:
+    #     print("CACHE HIT IN GET STOCK PORTFOLIO", cache_hit)
+    #     return SuccessResponse(data=cache_hit)
 
     statement = (
         sqlmodel.select(
@@ -199,10 +201,11 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Sessi
 
     username, user_id = x_user_data.split("|")
 
-    cache_hit = cache.get_list(CacheName.STOCK_TX, user_id, sort_key='time_stamp')
-
-    if cache_hit:
-        return SuccessResponse(data=cache_hit)
+    # cache_hit = cache.get_list(CacheName.STOCK_TX, user_id, sort_key='time_stamp')
+    #
+    # if cache_hit:
+    #     print('Cache hit in stock transactions')
+    #     return SuccessResponse(data=cache_hit)
 
 
     statement = sqlmodel.select(StockTransactions).where(
@@ -241,7 +244,7 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: S
     session.add(new_stock)
     session.commit()
     session.refresh(new_stock)
-    cache.set(CacheName.STOCKS, new_stock.stock_id, new_stock.dict())
+    # cache.set(CacheName.STOCKS, new_stock.stock_id, new_stock.dict())
     return SuccessResponse(data={"stock_id": new_stock.stock_id})
 
 @app.post(
@@ -278,12 +281,4 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
     session.add(new_stock)
     session.commit()
     session.refresh(new_stock)
-    stock_dict = {
-        new_stock.stock_id: {
-            'stock_id': new_stock.stock_id,
-            'quantity_owned': new_stock.quantity_owned,
-            'stock_name': stock_exists.stock_name
-        }
-    }
-    cache.update(CacheName.STOCK_PORTFOLIO, user_id, stock_dict)
     return SuccessResponse(data={"stock": new_stock})

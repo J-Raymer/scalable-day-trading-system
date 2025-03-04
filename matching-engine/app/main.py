@@ -9,6 +9,7 @@ from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder, CancelOrder
 from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
 from schemas import exception_handlers
+from schemas.RedisClient import RedisClient2
 
 
 app = FastAPI(root_path="/engine")
@@ -17,7 +18,7 @@ dotenv.load_dotenv(override=True)
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = int(os.getenv("REDIS_PORT"))
 
-cache = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+# cache = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 
 
 app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
@@ -63,3 +64,14 @@ async def getStockPrice():
 )
 async def cancelStockTransaction(cancelOrder: CancelOrder):
     return cancelOrderEngine(cancelOrder)
+
+client = RedisClient2()
+
+@app.get("/test")
+async def test():
+    client.set('wallet:1', 'steve', {"balance": 1})
+    cache_hit = client.get('wallet:1')
+    if cache_hit:
+        return SuccessResponse(data=cache_hit)
+    else:
+        return SuccessResponse()

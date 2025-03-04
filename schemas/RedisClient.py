@@ -98,3 +98,38 @@ class RedisClient:
         """
         return self.__client.delete(key)
 
+
+import redis
+from redis.commands.json.path import Path
+import redis.commands.search.aggregation as aggregations
+import redis.commands.search.reducers as reducers
+from redis.commands.search.field import TextField, NumericField, TagField
+from redis.commands.search.indexDefinition import IndexDefinition, IndexType
+from redis.commands.search.query import Query
+import redis.exceptions
+
+class RedisClient2:
+    def __init__(self):
+        dotenv.load_dotenv(override=True)
+        port = os.getenv("REDIS_PORT") or 6379
+        host = os.getenv("REDIS_HOST") or 'cache'
+        self.__client = redis.Redis(host=host, port=port, decode_responses=True)
+
+
+    def get(self, key):
+        """Key should be something like wallet:user_id"""
+        return self.__client.json().get(key)
+
+    def set(self, key, id, value):
+        """client.set(f'wallet_tx:user_id', wallet_tx_id, {...})"""
+        return self.__client.json().set(key, Path.root_path(), {id: value})
+
+
+    def update(self, key, id, value):
+        result = self.__client.json().get(key)
+        if not result:
+            return self.__client.json().set(key, Path.root_path(), value)
+        result.update({id: value})
+
+    def delete(self, key):
+        return self.__client.json().delete(key, Path.root_path())
