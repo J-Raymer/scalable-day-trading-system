@@ -71,10 +71,10 @@ def getStockPriceEngine():
     data = []
 
     if cache_hit:
-        print('CACHE HIT IN STOCK PRICE ENGINE', cache_hit)
+        print('CACHE HIT IN STOCK PRICE ENGINE')
         for stock_id, stock_name in cache_hit.items():
-            id = int(stock_id)
             # Need to cast id to int because it's stored as a string
+            id = int(stock_id)
             if sellTrees[id]:
                 data.append(
                     StockPrice(stock_id=id, stock_name=stock_name, current_price=sellTrees[id][0].price)

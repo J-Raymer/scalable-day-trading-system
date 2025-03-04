@@ -300,9 +300,7 @@ def cancelTransaction(stockTxId):
             transactionToBeCancelled.stock_tx_id: transactionToBeCancelled.dict()
         }
         cache.update(f'{CacheName.STOCK_TX}:{transactionToBeCancelled.user_id}', cancelled_dict)
-        # portfolio_dict = {
-        #
-        # }
+        # TODO: Do we need to update the stock portfolio here?
 
 
 def getTransaction(stockTxId):

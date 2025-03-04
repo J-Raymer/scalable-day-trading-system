@@ -141,7 +141,7 @@ async def login(user: LoginRequest, session: Session = Depends(get_session)):
     result = None
     cache_hit = cache.get(f'{CacheName.USERS}:{user.user_name}')
     if cache_hit:
-        print("CACHE HIT IN /login", cache_hit)
+        print("CACHE HIT IN /login")
         result = User(user_name=user.user_name, **cache_hit[user.user_name])
     else:
         query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
