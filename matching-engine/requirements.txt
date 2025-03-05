@@ -46,4 +46,5 @@ PyJwt
 pydantic
 bcrypt
 fastapi[standard]
-redis
+redis>=5.0
+

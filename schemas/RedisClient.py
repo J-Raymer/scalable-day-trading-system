@@ -36,6 +36,7 @@ class RedisClient:
 
 
     def update(self, key: str, value: dict):
+        """Same as set but it will update the entry rather than replacing it"""
         result = self.__client.json().get(key)
         if not result:
             return self.__client.json().set(key, Path.root_path(), value)

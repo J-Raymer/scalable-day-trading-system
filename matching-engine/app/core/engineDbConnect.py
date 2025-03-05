@@ -1,7 +1,6 @@
-from typing import Tuple, List
-
+from typing import Tuple
 from schemas.common import SuccessResponse
-from schemas.engine import BuyOrder, SellOrder
+from schemas.engine import BuyOrder
 import dotenv
 import os
 import sqlmodel
@@ -48,7 +47,7 @@ def getStockData():
 #
 # Main purpose of writing it like this is to execute taking money from the buyer and giving
 #   it to sellers as one transaction
-def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders: List[SellOrder], buyPrice):
+def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
     time = datetime.now()
     if buyPrice <= 0:
         raise HTTPException(status_code=400, detail="Buy price must be greater than 0")

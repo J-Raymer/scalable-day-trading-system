@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from datetime import datetime
 from typing import Literal, Optional
 
 
@@ -19,7 +18,7 @@ class SellOrder(BaseModel):
     stock_id: int
     quantity: int
     price: int
-    timestamp: datetime
+    timestamp: str
     order_type: Literal["MARKET", "LIMIT"]
     stock_tx_id: Optional[int] = None
 

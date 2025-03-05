@@ -96,7 +96,6 @@ def processSellOrder(sellOrder: SellOrder):
     sell_dict = dict(sellOrder)
     sell_dict['current_price'] = sellOrder.price
     del sell_dict['price']
-    # cache.update(CacheName.STOCKS, sellOrder.stock_id, sell_dict)
 
 
 def processBuyOrder(buyOrder: BuyOrder):
