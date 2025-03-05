@@ -53,7 +53,7 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: Session =
 
     cache_hit = cache.get(f'{CacheName.WALLETS}:{user_id}')
     if cache_hit:
-        print("CACHE HIT IN /getWalletBalance")
+        print("CACHE hit in get wallet ballance")
         return SuccessResponse(data={"balance": cache_hit['balance']})
 
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
@@ -79,7 +79,7 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Sess
     cache_hit = cache.get(f'{CacheName.WALLET_TX}:{user_id}')
 
     if cache_hit:
-        print("Cache Hit in GET wallet transactions ")
+        print("Cache Hit in get wallet transactions ")
         return SuccessResponse(data=list(cache_hit.values()))
 
     # Can't pass more than 4 params into select, so have to do it this way, see here
@@ -163,7 +163,7 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: Session 
     cache_hit = cache.get(f'{CacheName.STOCK_PORTFOLIO}:{user_id}')
 
     if cache_hit:
-        print("CACHE HIT IN GET STOCK PORTFOLIO")
+        print("CACHE hit in get stock portfolio")
         return SuccessResponse(data=sorted(list(cache_hit.values()), reverse=True, key=lambda x: x['stock_name']))
 
     statement = (
@@ -205,7 +205,7 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Sessi
     cache_hit = cache.get(f'{CacheName.STOCK_TX}:{user_id}')
 
     if cache_hit:
-        print('Cache hit in stock transactions')
+        print('Cache hit in get stock transactions')
         return SuccessResponse(data=list(cache_hit.values()))
 
 

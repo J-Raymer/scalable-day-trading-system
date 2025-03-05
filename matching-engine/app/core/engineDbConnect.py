@@ -250,6 +250,7 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice)-> StockTransactions:
                 **newStockHolding.model_dump()
             }
         }
+        # TODO: This will likely need to come after the session.commit() or bad cache data will be returned if the commit fails
         cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', portfolio_dict)
     else:
         buyerStockHolding.quantity_owned += buyOrder.quantity
@@ -300,6 +301,8 @@ def cancelTransaction(stockTxId):
             transactionToBeCancelled.stock_tx_id: transactionToBeCancelled.dict()
         }
         cache.update(f'{CacheName.STOCK_TX}:{transactionToBeCancelled.user_id}', cancelled_dict)
+
+        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{sellerPortfolio.user_id}', {})
         # TODO: Do we need to update the stock portfolio here?
 
 
