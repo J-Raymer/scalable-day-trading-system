@@ -36,7 +36,7 @@ class BuyOrder(BaseModel):
     user_id: str
     stock_id: int
     quantity: int
-    timestamp: datetime
+    timestamp: str
     price: Literal[0]
     order_type: Literal["MARKET", "LIMIT"]
 

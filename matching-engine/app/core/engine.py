@@ -10,7 +10,6 @@ from .engineDbConnect import (
     fundsBuyerToSeller,
     gatherStocks,
     getStockData,
-    payOutStocks,
     cancelTransaction,
     getTransaction,
     createChildTransaction,
@@ -25,7 +24,7 @@ cache = RedisClient()
 
 def receiveOrder(order: StockOrder, sending_user_id: str):
     # grab the details only we know
-    time = datetime.now()
+    time = str(datetime.now())
 
     if order.is_buy:
         processBuyOrder(

@@ -1,7 +1,7 @@
-from typing import Tuple
+from typing import Tuple, List
 
 from schemas.common import SuccessResponse
-from schemas.engine import BuyOrder
+from schemas.engine import BuyOrder, SellOrder
 import dotenv
 import os
 import sqlmodel
@@ -48,7 +48,7 @@ def getStockData():
 #
 # Main purpose of writing it like this is to execute taking money from the buyer and giving
 #   it to sellers as one transaction
-def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
+def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders: List[SellOrder], buyPrice):
     time = datetime.now()
     if buyPrice <= 0:
         raise HTTPException(status_code=400, detail="Buy price must be greater than 0")
@@ -68,7 +68,6 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             raise HTTPException(status_code=400, detail="buyer lacks funds")
 
         # pay out the stocks
-        # TODO: use buy order user id for holding cache here
         buyerStockTx, holding = payOutStocks(session, buyOrder, buyPrice)
 
         # subtracts from buyer's wallet balance
@@ -227,7 +226,23 @@ def gatherStocks(order, user_id, stock_id, stock_amount):
         buy_order_dict = {
             stockTx.stock_tx_id: stockTx.model_dump()
         }
+
+        # Try Querying the stock cache, query db if cache fails
+        stock = cache.get(f'{CacheName.STOCKS}:{stock_id}')
+        if not stock:
+            print("gatherStocks stock_name cache failed")
+            query = sqlmodel.select(Stocks).where(Stocks.stock_id == stock_id)
+            stock = session.exec(query).one()
+        portfolio_dict = {
+            holding.stock_id: {
+                "stock_name": stock.stock_name,
+                **holding.model_dump()
+            }
+        }
         cache.update(f'{CacheName.STOCK_TX}:{user_id}', buy_order_dict)
+        # Don't cache anything if they don't own any
+        if holding.quantity_owned > 0:
+            cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', portfolio_dict)
         return stockTx.stock_tx_id
 
 
