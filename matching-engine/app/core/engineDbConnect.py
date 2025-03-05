@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from schemas.common import SuccessResponse
 from schemas.engine import BuyOrder
 import dotenv
@@ -66,7 +68,8 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             raise HTTPException(status_code=400, detail="buyer lacks funds")
 
         # pay out the stocks
-        buyerStockTx = payOutStocks(session, buyOrder, buyPrice)
+        # TODO: use buy order user id for holding cache here
+        buyerStockTx, holding = payOutStocks(session, buyOrder, buyPrice)
 
         # subtracts from buyer's wallet balance
         buyerWallet.balance -= buyPrice
@@ -128,6 +131,11 @@ def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
 
         session.commit()
+        incomplete_tx_dict = {
+            incompleteTx.stock_tx_id: incompleteTx.model_dump()
+        }
+        cache.update(f'{CacheName.STOCK_TX}:{incompleteTx.user_id}', incomplete_tx_dict)
+        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', holding)
         cache.set(f'{CacheName.WALLETS}:{buyOrder.user_id}',{"balance": buyerWallet.balance})
         cache.set(f'{CacheName.WALLETS}:{sellOrder.user_id}',{"balance": sellerWallet.balance})
         buyer_stock_tx_dict = {
@@ -223,7 +231,7 @@ def gatherStocks(order, user_id, stock_id, stock_amount):
         return stockTx.stock_tx_id
 
 
-def payOutStocks(session, buyOrder: BuyOrder, buyPrice)-> StockTransactions:
+def payOutStocks(session, buyOrder: BuyOrder, buyPrice)-> Tuple[StockTransactions, dict]:
 
     if not buyOrder:
         raise HTTPException(status_code=400, detail="Missing buy order")
@@ -233,9 +241,16 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice)-> StockTransactions:
         & (StockPortfolios.stock_id == buyOrder.stock_id)
     )
     buyerStockHolding = session.exec(statement).one_or_none()
-    stock_name_query = sqlmodel.select(Stocks.stock_name).where(Stocks.stock_id == buyOrder.stock_id)
-    stock_name = session.exec(stock_name_query).one()
 
+    # Try to get from cache first, query database as a fallback safety
+    stock_name = cache.get(f'{CacheName.STOCKS}:{buyOrder.stock_id}')
+    if not stock_name:
+        print("Pay out stocks cache failed")
+        stock_name_query = sqlmodel.select(Stocks.stock_name).where(Stocks.stock_id == buyOrder.stock_id)
+        stock_name = session.exec(stock_name_query).one()
+
+    # The holding is for caching things later.
+    holding = None
     if not buyerStockHolding:
         newStockHolding = StockPortfolios(
             user_id=buyOrder.user_id,
@@ -243,32 +258,28 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice)-> StockTransactions:
             quantity_owned=buyOrder.quantity,
         )
         session.add(newStockHolding)
-        # TODO: Is there some other thing we can do here to get the stock name? (needs to be sorted by stock_name)
-        portfolio_dict = {
+        holding = {
             newStockHolding.stock_id: {
                 "stock_name": stock_name,
                 **newStockHolding.model_dump()
             }
         }
-        # TODO: This will likely need to come after the session.commit() or bad cache data will be returned if the commit fails
-        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', portfolio_dict)
+
     else:
         buyerStockHolding.quantity_owned += buyOrder.quantity
         session.add(buyerStockHolding)
-        portfolio_dict = {
+        holding = {
             buyerStockHolding.id: {
                 "stock_name": stock_name,
-                **buyerStockHolding.dict()
+                **buyerStockHolding.model_dump()
             }
         }
-        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', portfolio_dict)
 
     stockTx = addStockTx(
         session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED
     )
 
-
-    return stockTx
+    return stockTx, holding
 
 
 def cancelTransaction(stockTxId):
@@ -301,8 +312,6 @@ def cancelTransaction(stockTxId):
             transactionToBeCancelled.stock_tx_id: transactionToBeCancelled.dict()
         }
         cache.update(f'{CacheName.STOCK_TX}:{transactionToBeCancelled.user_id}', cancelled_dict)
-
-        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{sellerPortfolio.user_id}', {})
         # TODO: Do we need to update the stock portfolio here?
 
 
