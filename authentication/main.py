@@ -105,7 +105,8 @@ async def register(user: RegisterRequest, session: AsyncSession = Depends(get_se
     query = sqlmodel.select(Users).where(
         func.lower(Users.user_name) == func.lower(user.user_name)
     )
-    existing_user = await session.exec(query).one_or_none()
+    db_result = await session.exec(query)
+    existing_user = db_result.one_or_none()
     if existing_user:
         raise HTTPException(status_code=400, detail="Invalid Payload")
 
@@ -164,7 +165,8 @@ async def login(user: LoginRequest, session: AsyncSession = Depends(get_session)
         result = User(user_name=user.user_name, **cache_hit[user.user_name])
     else:
         query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
-        result = await session.exec(query).one_or_none()
+        db_result = await session.exec(query)
+        result = db_result.one_or_none()
 
     if not result:
         raise HTTPException(status_code=404, detail="User not found")
