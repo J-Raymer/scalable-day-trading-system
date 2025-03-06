@@ -6,5 +6,7 @@ fastapi[standard]
 bcrypt
 pydantic
 redis>=5.0
-
+asyncpg
+sqlalchemy>=1.4.0
+asyncio
 
