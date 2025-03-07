@@ -1,7 +1,4 @@
 from pydantic import BaseModel
-from datetime import datetime
-from dataclasses import dataclass
-from uuid import UUID
 from typing import Literal, Optional
 
 
@@ -16,13 +13,12 @@ class StockOrder(BaseModel):
 # TODO: child sell order
 
 
-@dataclass()
-class SellOrder:
-    user_id: UUID
+class SellOrder(BaseModel):
+    user_id: str
     stock_id: int
     quantity: int
     price: int
-    timestamp: datetime
+    timestamp: str
     order_type: Literal["MARKET", "LIMIT"]
     stock_tx_id: Optional[int] = None
 
@@ -36,10 +32,10 @@ class SellOrder:
 
 
 class BuyOrder(BaseModel):
-    user_id: UUID
+    user_id: str
     stock_id: int
     quantity: int
-    timestamp: datetime
+    timestamp: str
     price: Literal[0]
     order_type: Literal["MARKET", "LIMIT"]
 

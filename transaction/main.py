@@ -1,10 +1,11 @@
 import sqlmodel
+import os
+import dotenv
 from sqlmodel import Session, desc
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from uuid import UUID
 from database import (
     Wallets,
     WalletTransactions,
@@ -16,7 +17,15 @@ from schemas.common import SuccessResponse, ErrorResponse
 from schemas.transaction import AddMoneyRequest, WalletTxResult, PortfolioResult
 from schemas.setup import Stock, StockSetup
 from schemas import exception_handlers
+from schemas.RedisClient import RedisClient, CacheName
 from .db import get_session
+
+dotenv.load_dotenv(override=True)
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = int(os.getenv("REDIS_PORT"))
+
+cache = RedisClient()
+
 
 app = FastAPI(root_path="/transaction")
 
@@ -42,6 +51,11 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: Session =
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
+    cache_hit = cache.get(f'{CacheName.WALLETS}:{user_id}')
+    if cache_hit:
+        print("CACHE hit in get wallet ballance")
+        return SuccessResponse(data={"balance": cache_hit['balance']})
+
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
     wallet = session.exec(statement).one_or_none()
     if not wallet:
@@ -61,6 +75,12 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Sess
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
+
+    cache_hit = cache.get(f'{CacheName.WALLET_TX}:{user_id}')
+
+    if cache_hit:
+        print("Cache Hit in get wallet transactions ")
+        return SuccessResponse(data=list(cache_hit.values()))
 
     # Can't pass more than 4 params into select, so have to do it this way, see here
     # https://github.com/fastapi/sqlmodel/issues/92
@@ -114,16 +134,16 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
         raise HTTPException(status_code=400, detail="Amount must be greater than 0")
 
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
-    wallet = session.exec(statement).one_or_none()
-    if not wallet:
-        new_wallet = Wallets(user_id=UUID(user_id), balance=req.amount)
-        session.add(new_wallet)
-        session.commit()
-        return SuccessResponse()
-    wallet.balance += req.amount
+    wallet = session.exec(statement).one()
+    balance = wallet.balance + req.amount
+    wallet.balance = balance
+
     session.add(wallet)
     session.commit()
+
+    cache.set(f'{CacheName.WALLETS}:{user_id}', {"balance": balance})
     return SuccessResponse()
+
 
 @app.get(
     "/getStockPortfolio",
@@ -134,11 +154,17 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
         409: {"model": ErrorResponse},
     },
 )
-async def get_stock_prices(x_user_data: str = Header(None), session: Session = Depends(get_session)):
+async def get_stock_portfolio(x_user_data: str = Header(None), session: Session = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
 
     username, user_id = x_user_data.split("|")
+
+    cache_hit = cache.get(f'{CacheName.STOCK_PORTFOLIO}:{user_id}')
+
+    if cache_hit:
+        print("CACHE hit in get stock portfolio")
+        return SuccessResponse(data=sorted(list(cache_hit.values()), reverse=True, key=lambda x: x['stock_name']))
 
     statement = (
         sqlmodel.select(
@@ -176,6 +202,13 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Sessi
 
     username, user_id = x_user_data.split("|")
 
+    cache_hit = cache.get(f'{CacheName.STOCK_TX}:{user_id}')
+
+    if cache_hit:
+        print('Cache hit in get stock transactions')
+        return SuccessResponse(data=list(cache_hit.values()))
+
+
     statement = sqlmodel.select(StockTransactions).where(
         StockTransactions.user_id == user_id
     ).order_by(StockTransactions.time_stamp)
@@ -204,7 +237,7 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: S
     if not stock_name:
         raise HTTPException(status_code=400, detail="stock_name required")
 
-    query = session.query(Stocks).where(Stocks.stock_name == stock_name)
+    query = sqlmodel.select(Stocks).where(Stocks.stock_name == stock_name)
     existing_stock = session.exec(query).one_or_none()
     if existing_stock:
         raise HTTPException(status_code=409, detail="Stock already exists")
@@ -212,6 +245,8 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: S
     session.add(new_stock)
     session.commit()
     session.refresh(new_stock)
+    # Cache the stock id with the stock name
+    cache.update(CacheName.STOCKS, {new_stock.stock_id: new_stock.stock_name})
     return SuccessResponse(data={"stock_id": new_stock.stock_id})
 
 @app.post(
@@ -235,7 +270,7 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
     if not (new_stock.stock_id and new_stock.quantity):
         raise HTTPException(status_code=400, detail="Stock ID and quantity required")
 
-    query = session.query(Stocks).where(Stocks.stock_id == new_stock.stock_id)
+    query = sqlmodel.select(Stocks).where(Stocks.stock_id == new_stock.stock_id)
     stock_exists = session.exec(query).one_or_none()
     if not stock_exists:
         raise HTTPException(status_code=404, detail="Stock not found")

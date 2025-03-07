@@ -12,6 +12,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from database import Users, Wallets
 from schemas.common import *
 from schemas import exception_handlers
+from schemas.RedisClient import RedisClient, CacheName
 from .db import get_session
 
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -19,6 +20,7 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
 app = FastAPI(root_path="/authentication")
 
+cache = RedisClient()
 
 app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
 app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
@@ -30,7 +32,7 @@ def generate_token(user: Users):
         {
             "username": user.user_name,
             "name": user.name,
-            "id": str(user.id),
+            "id": user.id,
             "exp": expiration,
         },
         JWT_SECRET,
@@ -111,7 +113,18 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
     session.commit()
     session.refresh(new_user)
     token = generate_token(new_user)
+    # Username is unique so use that as the key since on login users don't send a user ID.
+    user_dict = {
+        new_user.user_name: {
+            "id": new_user.id,
+            "password": new_user.password,
+            "salt": new_user.salt,
+            "name": new_user.name
+        }}
+    cache.set(f'{CacheName.USERS}:{new_user.user_name}',user_dict)
+    cache.set(f'{CacheName.WALLETS}:{new_user.id}',{"balance": 0})
     return SuccessResponse(data={"token": token})
+
 
 @app.post(
     "/login",
@@ -125,15 +138,24 @@ async def login(user: LoginRequest, session: Session = Depends(get_session)):
     if not (user.user_name and user.password):
         raise HTTPException(status_code=400, detail="Username and password required")
 
-    query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
-    result = session.exec(query).one_or_none()
+    result = None
+    cache_hit = cache.get(f'{CacheName.USERS}:{user.user_name}')
+    if cache_hit:
+        print("CACHE hit in login")
+        result = User(user_name=user.user_name, **cache_hit[user.user_name])
+    else:
+        query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
+        result = session.exec(query).one_or_none()
+
     if not result:
         raise HTTPException(status_code=404, detail="User not found")
 
     hashed_password = bcrypt.hashpw(
         user.password.encode("utf-8"), result.salt.encode("utf-8")
     ).decode("utf-8")
+
     if hashed_password != result.password:
         raise HTTPException(status_code=400, detail="Invalid Payload")
+
     token = generate_token(result)
     return SuccessResponse(data={"token": token})
