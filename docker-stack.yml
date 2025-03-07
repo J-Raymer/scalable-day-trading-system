@@ -1,7 +1,7 @@
 version: "3.8"
 services:
-  authentication:
-    image: daytrader-authentication
+  auth:
+    image: daytrader-auth
     environment:
       - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
