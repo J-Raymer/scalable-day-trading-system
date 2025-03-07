@@ -10,7 +10,7 @@ will run all these commands for you **except** the verification that the service
 
 2. Build Docker Images
 
-- `docker build -t daytrader-auth -f authentication/Dockerfile .`
+- `docker build -t daytrader-auth -f auth/Dockerfile .`
 - `docker build -t daytrader-transaction -f transaction/Dockerfile .`
 - `docker build -t daytrader-database -f database/Dockerfile .`
 - `docker build -t daytrader-matching-engine -f matching-engine/Dockerfile .`
