@@ -2,6 +2,7 @@ import bcrypt
 import jwt
 import os
 import asyncio
+from sqlalchemy import func
 from sqlalchemy.future import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from datetime import datetime, timedelta
@@ -102,10 +103,10 @@ async def register(user: RegisterRequest, session: AsyncSession = Depends(get_se
         )
 
     # check for an existing user
-    query = sqlmodel.select(Users).where(
+    query = select(Users).where(
         func.lower(Users.user_name) == func.lower(user.user_name)
     )
-    db_result = await session.exec(query)
+    db_result = await session.execute(query)
     existing_user = db_result.one_or_none()
     if existing_user:
         raise HTTPException(status_code=400, detail="Invalid Payload")
@@ -164,8 +165,8 @@ async def login(user: LoginRequest, session: AsyncSession = Depends(get_session)
         print("CACHE hit in login")
         result = User(user_name=user.user_name, **cache_hit[user.user_name])
     else:
-        query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
-        db_result = await session.exec(query)
+        query = select(Users).where(Users.user_name == user.user_name)
+        db_result = await session.execute(query)
         result = db_result.one_or_none()
 
     if not result:

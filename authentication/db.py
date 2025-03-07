@@ -12,7 +12,13 @@ DB_NAME = os.getenv("DB_NAME")
 DATABASE_URL = f"postgresql+asyncpg://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 
 # Create the database engine with connection pooling
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(
+    DATABASE_URL,
+    pool_size=30,
+    max_overflow=60,
+    pool_timeout=60,
+    echo=True,               
+)
 AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
