@@ -34,7 +34,6 @@ class Wallets(SQLModel, table=True):
     user_id: str = Field(foreign_key="users.id", unique=True, index=True)
     balance: int = Field(default=0, sa_column=Column(BigInteger()))
 
-
 class WalletTransactions(SQLModel, table=True):
     wallet_tx_id: int = Field(default=None, primary_key=True)
     stock_tx_id: int = Field(foreign_key="stocktransactions.stock_tx_id")

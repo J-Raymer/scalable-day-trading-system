@@ -1,8 +1,10 @@
 import bcrypt
 import jwt
 import os
-import sqlmodel
-from sqlmodel import func, Session
+import asyncio
+from sqlalchemy import func
+from sqlalchemy.future import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
@@ -26,6 +28,9 @@ app.add_exception_handler(StarletteHTTPException, exception_handlers.http_except
 app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
 
 
+
+### Auth Functions
+
 def generate_token(user: Users):
     expiration = datetime.now() + timedelta(days=1)
     token = jwt.encode(
@@ -40,6 +45,13 @@ def generate_token(user: Users):
     )
     return token
 
+
+async def hash_password(password: str, salt: bytes):
+    return (await asyncio.to_thread(bcrypt.hashpw, password.encode("utf-8"), salt)).decode("utf-8")
+
+
+
+## Auth Routes
 
 @app.get("/")
 async def home():
@@ -84,35 +96,44 @@ async def validate_token(token: str = Depends(oauth2_scheme)):
         409: {"model": ErrorResponse},
     },
 )
-async def register(user: RegisterRequest, session: Session = Depends(get_session)):
+async def register(user: RegisterRequest, session: AsyncSession = Depends(get_session)):
     if not (user.user_name and user.password and user.name):
         raise HTTPException(
             status_code=400, detail="Invalid Payload"
         )
 
-    query = sqlmodel.select(Users).where(
+    # check for an existing user
+    query = select(Users).where(
         func.lower(Users.user_name) == func.lower(user.user_name)
     )
-    existing_user = session.exec(query).one_or_none()
-
+    db_result = await session.execute(query)
+    existing_user = db_result.one_or_none()
     if existing_user:
         raise HTTPException(status_code=400, detail="Invalid Payload")
 
+
+    # Create a new User in the db
     salt = bcrypt.gensalt()
+    hashed_password = await hash_password(user.password, salt)
     new_user = Users(
         user_name=user.user_name,
-        password=bcrypt.hashpw(user.password.encode("utf-8"), salt).decode("utf-8"),
+        password=hashed_password,
         name=user.name,
         salt=salt.decode("utf-8"),
     )
     session.add(new_user)
-    session.flush()
-    session.refresh(new_user)
+    await session.flush()
+    await session.refresh(new_user)
+
+
+    # Create a new wallet in the db
     new_wallet = Wallets(user_id=new_user.id)
     session.add(new_wallet)
-    session.commit()
-    session.refresh(new_user)
+    await session.commit()
+    await session.refresh(new_user)
+    
     token = generate_token(new_user)
+    
     # Username is unique so use that as the key since on login users don't send a user ID.
     user_dict = {
         new_user.user_name: {
@@ -134,7 +155,7 @@ async def register(user: RegisterRequest, session: Session = Depends(get_session
         404: {"model": ErrorResponse},
     },
 )
-async def login(user: LoginRequest, session: Session = Depends(get_session)):
+async def login(user: LoginRequest, session: AsyncSession = Depends(get_session)):
     if not (user.user_name and user.password):
         raise HTTPException(status_code=400, detail="Username and password required")
 
@@ -144,15 +165,14 @@ async def login(user: LoginRequest, session: Session = Depends(get_session)):
         print("CACHE hit in login")
         result = User(user_name=user.user_name, **cache_hit[user.user_name])
     else:
-        query = sqlmodel.select(Users).where(Users.user_name == user.user_name)
-        result = session.exec(query).one_or_none()
+        query = select(Users).where(Users.user_name == user.user_name)
+        db_result = await session.execute(query)
+        result = db_result.one_or_none()
 
     if not result:
         raise HTTPException(status_code=404, detail="User not found")
 
-    hashed_password = bcrypt.hashpw(
-        user.password.encode("utf-8"), result.salt.encode("utf-8")
-    ).decode("utf-8")
+    hashed_password = await hash_password(user.password, result.salt.encode("utf-8"))
 
     if hashed_password != result.password:
         raise HTTPException(status_code=400, detail="Invalid Payload")
