@@ -4,7 +4,7 @@
 docker swarm init
 
 # Build all the services
-services=("authentication" "transaction" "database" "matching-engine" "api-gateway" "frontend")
+services=("auth" "transaction" "database" "matching-engine" "api-gateway" "frontend")
 
 for service in "${services[@]}"; do
   echo "Building $service..."
