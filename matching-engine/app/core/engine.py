@@ -1,8 +1,7 @@
 from typing import List
 from fastapi import HTTPException
-from uuid import UUID
-
 from schemas import SuccessResponse
+from schemas.RedisClient import RedisClient, CacheName
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
 from datetime import datetime
 from collections import defaultdict, deque
@@ -11,7 +10,6 @@ from .engineDbConnect import (
     fundsBuyerToSeller,
     gatherStocks,
     getStockData,
-    payOutStocks,
     cancelTransaction,
     getTransaction,
     createChildTransaction,
@@ -21,11 +19,12 @@ from .engineDbConnect import (
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
 
+cache = RedisClient()
 
-# TODO: UUID might need to be a string
-def receiveOrder(order: StockOrder, sending_user_id: UUID):
+
+def receiveOrder(order: StockOrder, sending_user_id: str):
     # grab the details only we know
-    time = datetime.now()
+    time = str(datetime.now())
 
     if order.is_buy:
         processBuyOrder(
@@ -67,29 +66,36 @@ def receiveOrder(order: StockOrder, sending_user_id: UUID):
 def getStockPriceEngine():
     global sellTrees
 
-    stockList = getStockData()
+    cache_hit = cache.get(CacheName.STOCKS)
     data = []
 
-    for stock in stockList:
-
-        id = stock.stock_id
-
-        if not sellTrees[id] or len(sellTrees[id]) == 0:
-            continue
-
-        data.append(
-            StockPrice(
-                stock_id=id,
-                stock_name=stock.stock_name,
-                current_price=sellTrees[id][0].price,
-            )
-        )
+    if cache_hit:
+        print('CACHE hit in get stock price')
+        for stock_id, stock_name in cache_hit.items():
+            # Need to cast id to int because it's stored as a string
+            id = int(stock_id)
+            if sellTrees[id]:
+                data.append(
+                    StockPrice(stock_id=id, stock_name=stock_name, current_price=sellTrees[id][0].price)
+                )
+    else:
+        stockList = getStockData()
+        for stock in stockList:
+            id = stock.stock_id
+            if sellTrees[id]:
+                data.append(
+                    StockPrice(stock_id=id, stock_name=stock.stock_name, current_price=sellTrees[id][0].price)
+                )
     return SuccessResponse(data=data)
 
 
 def processSellOrder(sellOrder: SellOrder):
     global sellTrees
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
+    # TODO: We should rename "price" to "current_price" across the app for consistency and to avoid this sort of thing
+    sell_dict = dict(sellOrder)
+    sell_dict['current_price'] = sellOrder.price
+    del sell_dict['price']
 
 
 def processBuyOrder(buyOrder: BuyOrder):

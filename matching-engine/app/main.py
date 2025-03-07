@@ -1,4 +1,6 @@
-from uuid import UUID
+import redis
+import os
+import dotenv
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.exceptions import RequestValidationError
@@ -7,9 +9,16 @@ from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder, CancelOrder
 from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
 from schemas import exception_handlers
+from schemas.RedisClient import RedisClient
 
 
 app = FastAPI(root_path="/engine")
+
+dotenv.load_dotenv(override=True)
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = int(os.getenv("REDIS_PORT"))
+
+# cache = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 
 
 app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
@@ -36,7 +45,7 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
-    return receiveOrder(order, UUID(user_id))
+    return receiveOrder(order, user_id)
 
 # TODO: Is the below comment still the case? Maybe move to transaction service and cache the prices?
 # Don't need this in the matching engine, nice for testing

@@ -24,12 +24,14 @@ export const UpdateWalletDialog = ({
 }: UpdateWalletDialogProps) => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [error, setError] = useState<undefined | string>(undefined);
+  const [amount, setAmount] = useState('');
 
   const updateWallet = useUpdateWallet({
     mutationConfig: {
       onSuccess: () => {
         setIsOpen(false);
         setError(undefined);
+        setAmount('');
       },
       onError: (err) => {
         setError(err.response?.data.detail ?? 'An unknown error occurred');
@@ -37,7 +39,6 @@ export const UpdateWalletDialog = ({
       },
     },
   });
-  const [amount, setAmount] = useState('');
 
   const handleSubmit = async () => {
     const amountAsNum = Number(amount);
