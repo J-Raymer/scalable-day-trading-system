@@ -1,4 +1,4 @@
-# build.ps1
+# docker-build.ps1
 
 # Initialize the swarm
 docker swarm init
