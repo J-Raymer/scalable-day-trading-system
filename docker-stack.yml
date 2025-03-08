@@ -5,8 +5,8 @@ services:
     environment:
       - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
-      - HOST=${HOST}
-      - POSTGRES_PORT=${DOCKER_PORT}
+      - HOST=pgbouncer
+      - POSTGRES_PORT=6432
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
@@ -24,8 +24,8 @@ services:
     environment:
       - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
-      - HOST=${HOST}
-      - POSTGRES_PORT=${DOCKER_PORT}
+      - HOST=pgbouncer
+      - POSTGRES_PORT=6432
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
@@ -83,8 +83,8 @@ services:
     environment:
       - USERNAME=${DB_USERNAME}
       - PASSWORD=${PASSWORD}
-      - HOST=${HOST}
-      - POSTGRES_PORT=${DOCKER_PORT}
+      - HOST=pgbouncer
+      - POSTGRES_PORT=6432
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
@@ -144,11 +144,25 @@ services:
       restart_policy:
         condition: on-failure
 
+  pgbouncer:
+    image: edoburu/pgbouncer
+    environment:
+      - DATABASE_URL=postgres://${DB_USERNAME}:${PASSWORD}@db:5432/${DB_NAME}
+    ports:
+      - "6432:6432"
+    volumes:
+      - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini
+      - ./userlist.txt:/etc/pgbouncer/userlist.txt
+    networks:
+      - day_trader_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
 volumes:
   db_data:
   redis_data:
-
 
 networks:
   day_trader_network:

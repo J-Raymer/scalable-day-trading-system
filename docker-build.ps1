@@ -11,6 +11,11 @@ foreach ($service in $services) {
     docker build -t "daytrader-$service" -f "$service/Dockerfile" .
 }
 
+# Load environment variables from .env file
+# Get-Content .env | ForEach-Object {
+#     $name, $value = $_ -split '='
+#     [System.Environment]::SetEnvironmentVariable($name, $value)
+# }
 
 # Deploy the swarm
 docker stack deploy -c docker-stack.yml daytrader
