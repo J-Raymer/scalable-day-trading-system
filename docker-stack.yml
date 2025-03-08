@@ -67,6 +67,7 @@ services:
       - ${HOST_PORT}:${DOCKER_PORT} # TODO: This should be removed
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
     networks:
       - day_trader_network
     healthcheck:
