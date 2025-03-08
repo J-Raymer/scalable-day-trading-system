@@ -153,6 +153,8 @@ services:
     volumes:
       - ./pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini
       - ./userlist.txt:/etc/pgbouncer/userlist.txt
+      # - ./server.crt:/etc/pgbouncer/server.crt
+      # - ./server.key:/etc/pgbouncer/server.key
     networks:
       - day_trader_network
     deploy:
