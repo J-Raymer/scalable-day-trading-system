@@ -70,8 +70,6 @@ services:
 #      - ./postgresql.conf:/etc/postgresql/postgresql.conf
     networks:
       - day_trader_network
-#    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
-    command: ["postgres", "-c", "max_connections=2000"]
 
     deploy:
       replicas: 1
