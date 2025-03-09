@@ -16,6 +16,10 @@ from schemas.common import *
 from schemas import exception_handlers
 from schemas.RedisClient import RedisClient, CacheName
 from .db import get_session
+import logging
+logging.basicConfig()
+logging.getLogger("sqlalchemy.engine").setLevel(logging.DEBUG)
+import hashlib
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
@@ -114,10 +118,10 @@ async def register(user: RegisterRequest, session: AsyncSession = Depends(get_se
 
     # Create a new User in the db
     salt = bcrypt.gensalt()
-    hashed_password = await hash_password(user.password, salt)
+    # hashed_password = await hash_password(user.password, salt)
     new_user = Users(
         user_name=user.user_name,
-        password=hashed_password,
+        password=hashlib.sha256(salt + user.password.encode('utf-8')).hexdigest(),
         name=user.name,
         salt=salt.decode("utf-8"),
     )
@@ -169,13 +173,13 @@ async def login(user: LoginRequest, session: AsyncSession = Depends(get_session)
         query_result = db_result.one_or_none()
         if query_result:
             result= query_result[0]
-        print("CACHE miss in login, result is   ", result)
+        print("CACHE miss in login, result is and user is", result, user.user_name)
 
 
     if not result:
         raise HTTPException(status_code=404, detail="User not found")
-
-    hashed_password = await hash_password(user.password, result.salt.encode("utf-8"))
+    hashed_password = hashlib.sha256((result.salt.encode('utf-8') + user.password.encode('utf-8'))).hexdigest()
+    # hashed_password = await hash_password(user.password, result.salt.encode("utf-8"))
 
     if hashed_password != result.password:
         raise HTTPException(status_code=400, detail="Invalid Payload")
