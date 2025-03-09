@@ -1,4 +1,3 @@
-import bcrypt
 import jwt
 import os
 import asyncio
@@ -50,8 +49,12 @@ def generate_token(user: Users):
     return token
 
 
-async def hash_password(password: str, salt: bytes):
-    return (await asyncio.to_thread(bcrypt.hashpw, password.encode("utf-8"), salt)).decode("utf-8")
+
+# TODO: If the hash slows things down again we can try using this
+async def hash_password(password: str, salt: bytes) -> str:
+    return await asyncio.to_thread(
+        lambda: hashlib.sha256(salt + password.encode("utf-8")).hexdigest()
+    )
 
 
 
@@ -115,20 +118,19 @@ async def register(user: RegisterRequest, session: AsyncSession = Depends(get_se
     if existing_user:
         raise HTTPException(status_code=400, detail="Invalid Payload")
 
-
     # Create a new User in the db
-    salt = bcrypt.gensalt()
+    salt = os.urandom(16)
     # hashed_password = await hash_password(user.password, salt)
     new_user = Users(
         user_name=user.user_name,
         password=hashlib.sha256(salt + user.password.encode('utf-8')).hexdigest(),
         name=user.name,
-        salt=salt.decode("utf-8"),
+        salt=salt.hex(), # Needs to be a string to serialize it in the cache
     )
+
     session.add(new_user)
     await session.flush()
     await session.refresh(new_user)
-
 
     # Create a new wallet in the db
     new_wallet = Wallets(user_id=new_user.id)
@@ -178,8 +180,7 @@ async def login(user: LoginRequest, session: AsyncSession = Depends(get_session)
 
     if not result:
         raise HTTPException(status_code=404, detail="User not found")
-    hashed_password = hashlib.sha256((result.salt.encode('utf-8') + user.password.encode('utf-8'))).hexdigest()
-    # hashed_password = await hash_password(user.password, result.salt.encode("utf-8"))
+    hashed_password = hashlib.sha256((bytes.fromhex(result.salt) + user.password.encode('utf-8'))).hexdigest()
 
     if hashed_password != result.password:
         raise HTTPException(status_code=400, detail="Invalid Payload")
