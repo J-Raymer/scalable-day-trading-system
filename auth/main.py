@@ -162,12 +162,15 @@ async def login(user: LoginRequest, session: AsyncSession = Depends(get_session)
     result = None
     cache_hit = cache.get(f'{CacheName.USERS}:{user.user_name}')
     if cache_hit:
-        print("CACHE hit in login")
         result = User(user_name=user.user_name, **cache_hit[user.user_name])
     else:
         query = select(Users).where(Users.user_name == user.user_name)
         db_result = await session.execute(query)
-        result = db_result.one_or_none()
+        query_result = db_result.one_or_none()
+        if query_result:
+            result= query_result[0]
+        print("CACHE miss in login, result is   ", result)
+
 
     if not result:
         raise HTTPException(status_code=404, detail="User not found")
