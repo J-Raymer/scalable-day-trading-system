@@ -14,8 +14,8 @@ DATABASE_URL = f"postgresql+asyncpg://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NA
 # Create the database engine with connection pooling
 engine = create_async_engine(
     DATABASE_URL,
-    pool_size=800,
-    max_overflow=1000,
+    pool_size=2000,
+    max_overflow=4000,
     pool_timeout=60,
     echo=True,               
 )

@@ -57,7 +57,7 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: Session =
         return SuccessResponse(data={"balance": cache_hit['balance']})
 
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
-    wallet = session.exec(statement).one_or_none()
+    wallet = await session.execute(statement).one_or_none()
     if not wallet:
         raise HTTPException(status_code=404, detail="Wallet not found")
     return SuccessResponse(data={"balance": wallet.balance})
@@ -100,7 +100,7 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Sess
         .where(WalletTransactions.user_id == user_id)
         .order_by(WalletTransactions.time_stamp)
     )
-    result = session.exec(statement).all()
+    result = await session.execute(statement).all()
     wallet_transactions = list(
         map(
             lambda tx: WalletTxResult(
@@ -134,7 +134,7 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
         raise HTTPException(status_code=400, detail="Amount must be greater than 0")
 
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
-    wallet = session.exec(statement).one()
+    wallet = await session.execute(statement).one()
     balance = wallet.balance + req.amount
     wallet.balance = balance
 
@@ -176,7 +176,7 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: Session 
         .where(StockPortfolios.user_id == user_id)
         .order_by(desc(Stocks.stock_name))
     )
-    result = session.exec(statement).all()
+    result = await session.execute(statement).all()
     portfolio = list(
         map(
             lambda stock: PortfolioResult(
@@ -212,7 +212,7 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Sessi
     statement = sqlmodel.select(StockTransactions).where(
         StockTransactions.user_id == user_id
     ).order_by(StockTransactions.time_stamp)
-    result = session.exec(statement).all()
+    result = await session.execute(statement).all()
     return SuccessResponse(data=result)
 
 @app.post(
@@ -238,7 +238,7 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: S
         raise HTTPException(status_code=400, detail="stock_name required")
 
     query = sqlmodel.select(Stocks).where(Stocks.stock_name == stock_name)
-    existing_stock = session.exec(query).one_or_none()
+    existing_stock = await session.execute(query).one_or_none()
     if existing_stock:
         raise HTTPException(status_code=409, detail="Stock already exists")
     new_stock = Stocks(stock_name=stock_name)
@@ -271,7 +271,7 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
         raise HTTPException(status_code=400, detail="Stock ID and quantity required")
 
     query = sqlmodel.select(Stocks).where(Stocks.stock_id == new_stock.stock_id)
-    stock_exists = session.exec(query).one_or_none()
+    stock_exists = await session.execute(query).one_or_none()
     if not stock_exists:
         raise HTTPException(status_code=404, detail="Stock not found")
 
