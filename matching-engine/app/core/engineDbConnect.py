@@ -283,7 +283,7 @@ def payOutStocks(session, buyOrder: BuyOrder, buyPrice)-> Tuple[StockTransaction
         buyerStockHolding.quantity_owned += buyOrder.quantity
         session.add(buyerStockHolding)
         holding = {
-            buyerStockHolding.id: {
+            buyerStockHolding.user_id: {
                 "stock_name": stock_name,
                 **buyerStockHolding.model_dump()
             }
