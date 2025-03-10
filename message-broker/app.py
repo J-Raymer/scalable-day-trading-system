@@ -1,7 +1,10 @@
 import asyncio
-import aio_pika
 import sys
+import os
+from fastapi import FastAPI, Header, HTTPException
+import aio_pika
 
+app = FastAPI(root_path="/message-broker")
 
 async def process_task(message):
     print("callback called")
@@ -13,11 +16,12 @@ async def process_task(message):
         print("stock order received")
 
     # Process the task (your business logic here)
-    print(task_data)
-    sys.stdout.flush()
+    print("message received", flush=True)
+    print(task_data, flush=True)
+    # sys.stdout.flush()
 
-
-async def main():
+@app.on_event("startup")
+async def startup():
     # Connect to RabbitMQ
     print("rmq test init")
 
