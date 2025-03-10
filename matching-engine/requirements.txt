@@ -2,8 +2,8 @@ sqlmodel
 python-dotenv
 PyJwt
 pydantic
-bcrypt
 fastapi[standard]
+redis>=5.0
 aio_pika
 asyncio
 uuid

@@ -1,5 +1,4 @@
 import os
-from typing import override
 import dotenv
 from sqlmodel import SQLModel, create_engine
 
