@@ -32,8 +32,6 @@ async def main():
             await asyncio.sleep(10)
             attempts += 1
 
-            print("connection failed")
-
         else:
             async with connection:
                 channel = await connection.channel()

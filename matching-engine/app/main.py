@@ -86,7 +86,7 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
 
     await app.rabbitmq_channel.default_exchange.publish(
         aio_pika.Message(
-            body=order,
+            body=order.model_dump_json().encode(),
             delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
             content_type="STOCK_ORDER",
         ),
@@ -97,7 +97,6 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
     return receiveOrder(order, user_id)
-
 
 
 # TODO: Is the below comment still the case? Maybe move to transaction service and cache the prices?
