@@ -2,8 +2,6 @@ import sqlmodel
 import os
 import dotenv
 from sqlmodel import Session, desc
-import asyncio
-from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
@@ -48,7 +46,7 @@ async def home():
         404: {"model": ErrorResponse},
     },
 )
-async def get_wallet_balance(x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
+async def get_wallet_balance(x_user_data: str = Header(None), session: Session = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
@@ -59,8 +57,7 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: AsyncSess
         return SuccessResponse(data={"balance": cache_hit['balance']})
 
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
-    db_result = await session.execute(statement)
-    wallet = db_result.one_or_none()
+    wallet = session.exec(statement).one_or_none()
     if not wallet:
         raise HTTPException(status_code=404, detail="Wallet not found")
     return SuccessResponse(data={"balance": wallet.balance})
@@ -74,7 +71,7 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: AsyncSess
         403: {"model": ErrorResponse},
     },
 )
-async def get_wallet_transactions(x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
+async def get_wallet_transactions(x_user_data: str = Header(None), session: Session = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
@@ -103,8 +100,7 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Asyn
         .where(WalletTransactions.user_id == user_id)
         .order_by(WalletTransactions.time_stamp)
     )
-    db_result = await session.execute(statement)
-    result = db_result.all()
+    result = session.exec(statement).all()
     wallet_transactions = list(
         map(
             lambda tx: WalletTxResult(
@@ -129,7 +125,7 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Asyn
         409: {"model": ErrorResponse},
     },
 )
-async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
+async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(None), session: Session = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
@@ -138,8 +134,7 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
         raise HTTPException(status_code=400, detail="Amount must be greater than 0")
 
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
-    db_result = await session.execute(statement)
-    wallet = db_result.scalar_one_or_none()
+    wallet = session.exec(statement).one()
     balance = wallet.balance + req.amount
     wallet.balance = balance
 
@@ -159,7 +154,7 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
         409: {"model": ErrorResponse},
     },
 )
-async def get_stock_portfolio(x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
+async def get_stock_portfolio(x_user_data: str = Header(None), session: Session = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
 
@@ -181,8 +176,7 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: AsyncSes
         .where(StockPortfolios.user_id == user_id)
         .order_by(desc(Stocks.stock_name))
     )
-    db_result = await session.execute(statement)
-    result = db_result.all()
+    result = session.exec(statement).all()
     portfolio = list(
         map(
             lambda stock: PortfolioResult(
@@ -202,7 +196,7 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: AsyncSes
         409: {"model": ErrorResponse},
     },
 )
-async def get_stock_transactions(x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
+async def get_stock_transactions(x_user_data: str = Header(None), session: Session = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
 
@@ -218,8 +212,7 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Async
     statement = sqlmodel.select(StockTransactions).where(
         StockTransactions.user_id == user_id
     ).order_by(StockTransactions.time_stamp)
-    db_result = await session.execute(statement)
-    result = db_result.all()
+    result = session.exec(statement).all()
     return SuccessResponse(data=result)
 
 @app.post(
@@ -233,7 +226,7 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Async
         409: {"model": ErrorResponse},
     },
 )
-async def create_stock(stock: Stock, x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
+async def create_stock(stock: Stock, x_user_data: str = Header(None), session: Session = Depends(get_session)):
 
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
@@ -245,8 +238,7 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: A
         raise HTTPException(status_code=400, detail="stock_name required")
 
     query = sqlmodel.select(Stocks).where(Stocks.stock_name == stock_name)
-    db_result = await session.execute(query)
-    existing_stock = db_result.one_or_none()
+    existing_stock = session.exec(query).one_or_none()
     if existing_stock:
         raise HTTPException(status_code=409, detail="Stock already exists")
     new_stock = Stocks(stock_name=stock_name)
@@ -269,7 +261,7 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: A
         409: {"model": ErrorResponse},
     },
 )
-async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
+async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(None), session: Session = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
 
@@ -279,7 +271,7 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
         raise HTTPException(status_code=400, detail="Stock ID and quantity required")
 
     query = sqlmodel.select(Stocks).where(Stocks.stock_id == new_stock.stock_id)
-    stock_exists = await session.execute(query).one_or_none()
+    stock_exists = session.exec(query).one_or_none()
     if not stock_exists:
         raise HTTPException(status_code=404, detail="Stock not found")
 
