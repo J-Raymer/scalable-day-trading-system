@@ -11,6 +11,7 @@ async def process_task(message):
 
     # Decode message
     task_data = message.body.decode()
+    user_id = message.headers["user_id"]
 
     if message.content_type == "STOCK_ORDER":
         print("stock order received")
