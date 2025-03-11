@@ -46,4 +46,5 @@ PyJwt
 pydantic
 fastapi[standard]
 redis>=5.0
-
+asyncio
+asyncpg
