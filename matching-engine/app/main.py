@@ -48,13 +48,12 @@ async def process_task(message):
 
     # Decode message
     task_data = message.body.decode()
-    user_id = message.headers["user_id"]
+    if message.headers:
+        user_id = message.headers["user_id"]
 
     
 
     if message.content_type == "STOCK_ORDER":
-        print("stock order received")
-        print(user_id)
         response = receiveOrder(StockOrder.model_validate_json(task_data), user_id) 
 
         await app.exchange.publish(
@@ -66,9 +65,18 @@ async def process_task(message):
         )
 
     elif message.content_type == "CANCEL_ORDER":
-        print("cancel order received")
-        print(user_id)
         response = cancelOrderEngine(CancelOrder.model_validate_json(task_data)) 
+
+        await app.exchange.publish(
+            Message(
+                body=response.model_dump_json().encode(),
+                correlation_id=message.correlation_id,
+            ),
+            routing_key=message.reply_to
+        )
+
+    elif message.content_type == "GET_PRICES":
+        response = getStockPriceEngine() 
 
         await app.exchange.publish(
             Message(

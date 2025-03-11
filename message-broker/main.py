@@ -23,6 +23,10 @@ async def startup():
 
     await app.rabbitmq_channel.declare_queue("testPlaceOrder", auto_delete=True)
 
+@app.on_event("shutdown")
+async def shutdown():
+    await app.rabbitmq_connection.close()
+
 # engine calls
 @app.post(
     "/placeStockOrder",
@@ -117,3 +121,38 @@ async def cancelStockOrder(order: CancelOrder, x_user_data: str = Header(None)):
     except:
         return ErrorResponse.model_validate_json(data)
 
+@app.get("/getStockPrices")
+async def getStockPrice():
+
+    callback_queue = await app.rabbitmq_channel.declare_queue(exclusive=True)
+    #loop = asyncio.get_running_loop()
+    #future = loop.create_future()
+    correlation_id = str(uuid.uuid4())
+
+    await app.rabbitmq_channel.default_exchange.publish(
+        aio_pika.Message(
+            body="Null".encode(),
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            content_type="GET_PRICES",
+            correlation_id=correlation_id,
+            reply_to=callback_queue.name
+        ),
+        routing_key="testPlaceOrder",
+    )
+
+    messageQ = asyncio.Queue()
+
+    async def printResponse(message):
+        print(message.body, flush=True)
+
+        await messageQ.put(message.body)
+
+    
+    await callback_queue.consume(printResponse)
+
+    data = await asyncio.wait_for(messageQ.get(), timeout=5.0)
+
+    try:
+        return SuccessResponse.model_validate_json(data)
+    except:
+        return ErrorResponse.model_validate_json(data)
