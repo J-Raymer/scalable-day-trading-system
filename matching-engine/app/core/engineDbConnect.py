@@ -4,6 +4,7 @@ from schemas.engine import BuyOrder
 import dotenv
 import os
 import sqlmodel
+from sqlalchemy.pool import NullPool  # Disable connection pooling
 from fastapi import HTTPException
 from sqlmodel import desc
 from database import (
@@ -25,10 +26,11 @@ PORT = os.getenv("POSTGRES_PORT")
 DB_NAME = os.getenv("DB_NAME")
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
-url = f"postgresql://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
+url = f"postgresql://{USERNAME}:{PASSWORD}@pgbouncer:6432/{DB_NAME}"
 from schemas.RedisClient import RedisClient, CacheName
 
-engine = sqlmodel.create_engine(url)
+# Disable connection pooling (use PgBouncer instead)
+engine = sqlmodel.create_engine(url, echo=False, poolclass=NullPool)
 
 cache = RedisClient()
 
