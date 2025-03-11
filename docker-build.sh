@@ -4,12 +4,13 @@
 docker swarm init
 
 # Build all the services
-services=("auth" "transaction" "database" "matching-engine" "api-gateway" "frontend")
+services=("auth" "transaction" "database" "matching-engine" "api-gateway" "frontend" "message-broker")
 
 for service in "${services[@]}"; do
   echo "Building $service..."
   docker build -t "daytrader-$service" -f "$service/Dockerfile" .
 done
+
 
 # Load environment variables from .env file
 export $(cat .env | xargs)
