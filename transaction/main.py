@@ -53,10 +53,10 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: AsyncSess
 
     cache_hit = cache.get(f'{CacheName.WALLETS}:{user_id}')
     if cache_hit:
-        print("CACHE hit in get wallet balance")
         return SuccessResponse(data={"balance": cache_hit['balance']})
 
     async with session.begin():
+        print("CACHE MISS in get wallet balance")
         statement = select(Wallets).where(Wallets.user_id == user_id)
         result = await session.execute(statement)
         wallet = result.scalar_one_or_none()
@@ -82,10 +82,10 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Asyn
 
     cache_hit = cache.get(f'{CacheName.WALLET_TX}:{user_id}')
     if cache_hit:
-        print("Cache Hit in get wallet transactions")
         return SuccessResponse(data=list(cache_hit.values()))
 
     async with session.begin():
+        print("Cache MISS in get wallet transactions")
         statement = select(WalletTransactions).join(
             StockTransactions,
             WalletTransactions.stock_tx_id == StockTransactions.stock_tx_id,
@@ -146,10 +146,10 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: AsyncSes
 
     cache_hit = cache.get(f'{CacheName.STOCK_PORTFOLIO}:{user_id}')
     if cache_hit:
-        print("CACHE hit in get stock portfolio")
         return SuccessResponse(data=sorted(list(cache_hit.values()), reverse=True, key=lambda x: x['stock_name']))
 
     async with session.begin():
+        print("CACHE MISS in get stock portfolio")
         statement = (
             select(StockPortfolios, Stocks.stock_name)
             .join(Stocks, StockPortfolios.stock_id == Stocks.stock_id)
@@ -180,10 +180,10 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Async
 
     cache_hit = cache.get(f'{CacheName.STOCK_TX}:{user_id}')
     if cache_hit:
-        print('Cache hit in get stock transactions')
         return SuccessResponse(data=list(cache_hit.values()))
 
     async with session.begin():
+        print('Cache MISS in get stock transactions')
         statement = select(StockTransactions).where(StockTransactions.user_id == user_id).order_by(StockTransactions.time_stamp)
         result = await session.execute(statement)
         stock_transactions = result.scalars().all()

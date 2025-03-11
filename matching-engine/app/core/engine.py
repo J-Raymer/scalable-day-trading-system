@@ -70,7 +70,6 @@ async def getStockPriceEngine():
     data = []
 
     if cache_hit:
-        print('CACHE hit in get stock price')
         for stock_id, stock_name in cache_hit.items():
             # Need to cast id to int because it's stored as a string
             id = int(stock_id)
@@ -79,6 +78,7 @@ async def getStockPriceEngine():
                     StockPrice(stock_id=id, stock_name=stock_name, current_price=sellTrees[id][0].price)
                 )
     else:
+        print('CACHE MISS in get stock price')
         stockList = await getStockData()
         for stock in stockList:
             id = stock.stock_id
