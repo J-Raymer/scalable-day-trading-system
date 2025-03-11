@@ -159,7 +159,9 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: AsyncSes
         result = await session.execute(statement)
         portfolio = result.all()
 
-    return SuccessResponse(data=[PortfolioResult(stock_id=stock[0].stock_id, stock_name=stock[1], quantity_owned=stock[0].quantity_owned) for stock in portfolio if stock[0].quantity_owned > 0])
+    data = [PortfolioResult(stock_id=stock[0].stock_id, stock_name=stock[1], quantity_owned=stock[0].quantity_owned) for stock in portfolio if stock[0].quantity_owned > 0]
+    data.sort(reverse=True, key=lambda stock: stock.stock_name)
+    return SuccessResponse(data=data)
 
 @app.get(
     "/getStockTransactions",
