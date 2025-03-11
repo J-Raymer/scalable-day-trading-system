@@ -1,3 +1,4 @@
+import asyncio
 import redis
 import os
 import dotenv
@@ -7,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder, CancelOrder
-from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
+from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine, orderProcessWorkerStart
 from schemas import exception_handlers
 from schemas.RedisClient import RedisClient
 
@@ -21,6 +22,11 @@ REDIS_PORT = int(os.getenv("REDIS_PORT"))
 
 app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
 app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
+
+
+@app.on_event("startup")
+async def startup_worker():
+    asyncio.create_task(orderProcessWorkerStart())
 
 @app.get("/")
 async def home():
@@ -47,8 +53,6 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
         raise HTTPException(status_code=400, detail="Invalid user data format in headers")
     return await receiveOrder(order, user_id)
 
-# TODO: Is the below comment still the case? Maybe move to transaction service and cache the prices?
-# Don't need this in the matching engine, nice for testing
 @app.get("/getStockPrices")
 async def getStockPrice():
     return await getStockPriceEngine()

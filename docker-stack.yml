@@ -34,7 +34,7 @@ services:
     networks:
       - day_trader_network
     deploy:
-      replicas: 1
+      replicas: 2
       restart_policy:
         condition: on-failure
 

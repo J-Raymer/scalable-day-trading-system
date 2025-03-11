@@ -50,6 +50,152 @@ async def getStockData():
 #
 # Main purpose of writing it like this is to execute taking money from the buyer and giving
 #   it to sellers as one transaction
+sync def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
+    try:
+        time = datetime.now()
+        if buyPrice <= 0:
+            raise HTTPException(status_code=400, detail="Buy price must be greater than 0")
+
+        if len(sellOrders) <= 0:
+            raise HTTPException(status_code=400, detail="Missing sell orders")
+
+        if not buyOrder:
+            raise HTTPException(status_code=400, detail="Missing buy order")
+
+        async with async_session_maker() as session:
+
+            statement = sqlmodel.select(Wallets).where(Wallets.user_id == buyOrder.user_id)
+            buyerWallet = await session.execute(statement)
+            buyerWallet = buyerWallet.scalar_one_or_none()
+
+            if buyerWallet.balance < buyPrice:
+                raise HTTPException(status_code=400, detail="buyer lacks funds")
+
+            # pay out the stocks
+            buyerStockTx, holding = await payOutStocks(session, buyOrder, buyPrice)
+
+            # subtracts from buyer's wallet balance
+            buyerWallet.balance -= buyPrice
+            session.add(buyerWallet)
+
+            # creates wallet transaction for taking money from the buyer
+            buyerWalletTx = await addWalletTx(
+                session, buyOrder, buyPrice, buyerStockTx.stock_tx_id, isDebit=True
+            )
+
+            # adds wallet tx id to stock stock_tx_id
+            buyerStockTx = await addWalletTxToStockTx(session, buyerStockTx.stock_tx_id, buyerWalletTx.wallet_tx_id)
+
+            # TODO stock added to portfolio
+            amountSoldTotal = 0
+
+            # create a place to store every single cache update
+            cache_updates = {}
+
+
+            for sellOrderTouple in sellOrders:
+                sellOrder, sellQuantity = sellOrderTouple
+
+                # calculates price using the price per stock and the *actual* amount sold
+                sellPrice = sellOrder.price * sellQuantity
+
+                # get the sellers wallet
+                statement = sqlmodel.select(Wallets).where(
+                    Wallets.user_id == sellOrder.user_id
+                )
+                sellerWallet = await session.execute(statement)
+                sellerWallet = sellerWallet.scalar_one_or_none()
+
+                # adds money to sellers wallet
+                sellerWallet.balance += sellPrice
+                session.add(sellerWallet)
+
+                # updates the sell order transaction to completed
+                sellerStockTxId = sellOrder.stock_tx_id
+
+                statement = sqlmodel.select(StockTransactions).where(
+                    StockTransactions.stock_tx_id == sellerStockTxId
+                )
+                incompleteTx = await session.execute(statement)
+                incompleteTx = incompleteTx.scalar_one_or_none()
+
+                if not incompleteTx:
+                    raise HTTPException(
+                        status_code=500, detail="Missing Sell Transaction to update"
+                    )
+
+                incompleteTx.order_status = OrderStatus.COMPLETED
+
+                session.add(incompleteTx)
+
+                # creates wallet transaction for paying the seller
+                sellerWalletTx = await addWalletTx(
+                    session, sellOrder, sellPrice, sellerStockTxId, isDebit=False
+                )
+
+                # QUESTION: why do we do this call instead of just adding it to incompleteTx?? when you see this DM me (David) and tell me im smart or stupid.
+                sellerStockTx = await addWalletTxToStockTx(session, sellerStockTxId, sellerWalletTx.wallet_tx_id)
+
+                amountSoldTotal += sellPrice
+
+                # Create cache entries for each of the sellers items
+                seller_wallet_balance_data = {"balance": sellerWallet.balance}
+                seller_stock_tx_data = {sellerStockTx.stock_tx_id: incompleteTx.model_dump()}
+                seller_wallet_tx_data = {sellerWalletTx.wallet_tx_id: sellerWalletTx.model_dump()}
+
+                # Add this particular sellers cache entries to the updates dict
+                cache_updates[f'{CacheName.WALLETS}:{sellOrder.user_id}'] = seller_wallet_balance_data 
+                cache_updates[f'{CacheName.STOCK_TX}:{sellOrder.user_id}'] = seller_stock_tx_data
+                cache_updates[f'{CacheName.WALLET_TX}:{sellOrder.user_id}'] = seller_wallet_tx_data
+
+            if not amountSoldTotal == buyPrice:
+                raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
+
+            await session.commit()
+
+
+            
+            # After Commit()
+            try:
+                # Update Buyer Cache entries
+                cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', holding)
+                cache.set(f'{CacheName.WALLETS}:{buyOrder.user_id}', {"balance": buyerWallet.balance})
+                buyer_stock_tx_dict = {
+                    buyerStockTx.stock_tx_id: buyerStockTx.model_dump()
+                }
+                cache.update(f'{CacheName.STOCK_TX}:{buyerStockTx.user_id}', buyer_stock_tx_dict)
+                buyer_wallet_tx_dict = {
+                    buyerWalletTx.wallet_tx_id: buyerWalletTx.model_dump()
+                }
+                cache.update(f'{CacheName.WALLET_TX}:{buyerWalletTx.user_id}', buyer_wallet_tx_dict)
+
+                # Update each Sellers Cache entries
+                for cache_key, cache_value in cache_updates.items():
+                    if cache_key.startswith(f'{CacheName.STOCK_TX}:') or cache_key.startswith(f'{CacheName.WALLET_TX}:'):
+                        cache.update(cache_key, cache_value)
+                    else:
+                        cache.set(cache_key, cache_value)
+            except Exception as e:
+                # Fuck I hope this works
+                print(f"Cache update failed in FBTS: {str(e)}")
+
+
+
+            #incomplete_tx_dict = {
+            #    incompleteTx.stock_tx_id: incompleteTx.model_dump()
+            #}
+            #cache.update(f'{CacheName.STOCK_TX}:{incompleteTx.user_id}', incomplete_tx_dict)
+            #cache.set(f'{CacheName.WALLETS}:{sellOrder.user_id}', {"balance": sellerWallet.balance})
+            #seller_stock_tx_dict = {
+            #    sellerStockTx.stock_tx_id: sellerStockTx.model_dump()
+            #}
+            #cache.update(f'{CacheName.STOCK_TX}:{sellerStockTx.user_id}', seller_stock_tx_dict)
+            #seller_wallet_tx_dict = {
+            #    sellerWalletTx.wallet_tx_id: sellerWalletTx.model_dump()
+            #}
+            #cache.update(f'{CacheName.WALLET_TX}:{sellerWalletTx.user_id}', seller_wallet_tx_dict)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
     try:
         time = datetime.now()
@@ -89,12 +235,17 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             # TODO stock added to portfolio
             amountSoldTotal = 0
 
+            # create a place to store every single cache update
+            cache_updates = {}
+
+
             for sellOrderTouple in sellOrders:
                 sellOrder, sellQuantity = sellOrderTouple
 
                 # calculates price using the price per stock and the *actual* amount sold
                 sellPrice = sellOrder.price * sellQuantity
 
+                # get the sellers wallet
                 statement = sqlmodel.select(Wallets).where(
                     Wallets.user_id == sellOrder.user_id
                 )
@@ -128,39 +279,67 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
                     session, sellOrder, sellPrice, sellerStockTxId, isDebit=False
                 )
 
+                # QUESTION: why do we do this call instead of just adding it to incompleteTx?? when you see this DM me (David) and tell me im smart or stupid.
                 sellerStockTx = await addWalletTxToStockTx(session, sellerStockTxId, sellerWalletTx.wallet_tx_id)
 
                 amountSoldTotal += sellPrice
+
+                # Create cache entries for each of the sellers items
+                seller_wallet_balance_data = {"balance": sellerWallet.balance}
+                seller_stock_tx_data = {sellerStockTx.stock_tx_id: incompleteTx.model_dump()}
+                seller_wallet_tx_data = {sellerWalletTx.wallet_tx_id: sellerWalletTx.model_dump()}
+
+                # Add this particular sellers cache entries to the updates dict
+                cache_updates[f'{CacheName.WALLETS}:{sellOrder.user_id}'] = seller_wallet_balance_data 
+                cache_updates[f'{CacheName.STOCK_TX}:{sellOrder.user_id}'] = seller_stock_tx_data
+                cache_updates[f'{CacheName.WALLET_TX}:{sellOrder.user_id}'] = seller_wallet_tx_data
 
             if not amountSoldTotal == buyPrice:
                 raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
 
             await session.commit()
+
+
             
-            # Update cache after committing the transaction
-            incomplete_tx_dict = {
-                incompleteTx.stock_tx_id: incompleteTx.model_dump()
-            }
-            cache.update(f'{CacheName.STOCK_TX}:{incompleteTx.user_id}', incomplete_tx_dict)
-            cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', holding)
-            cache.set(f'{CacheName.WALLETS}:{buyOrder.user_id}', {"balance": buyerWallet.balance})
-            cache.set(f'{CacheName.WALLETS}:{sellOrder.user_id}', {"balance": sellerWallet.balance})
-            buyer_stock_tx_dict = {
-                buyerStockTx.stock_tx_id: buyerStockTx.model_dump()
-            }
-            cache.update(f'{CacheName.STOCK_TX}:{buyerStockTx.user_id}', buyer_stock_tx_dict)
-            seller_stock_tx_dict = {
-                sellerStockTx.stock_tx_id: sellerStockTx.model_dump()
-            }
-            cache.update(f'{CacheName.STOCK_TX}:{sellerStockTx.user_id}', seller_stock_tx_dict)
-            buyer_wallet_tx_dict = {
-                buyerWalletTx.wallet_tx_id: buyerWalletTx.model_dump()
-            }
-            cache.update(f'{CacheName.WALLET_TX}:{buyerWalletTx.user_id}', buyer_wallet_tx_dict)
-            seller_wallet_tx_dict = {
-                sellerWalletTx.wallet_tx_id: sellerWalletTx.model_dump()
-            }
-            cache.update(f'{CacheName.WALLET_TX}:{sellerWalletTx.user_id}', seller_wallet_tx_dict)
+            # After Commit()
+            try:
+                # Update Buyer Cache entries
+                cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', holding)
+                cache.set(f'{CacheName.WALLETS}:{buyOrder.user_id}', {"balance": buyerWallet.balance})
+                buyer_stock_tx_dict = {
+                    buyerStockTx.stock_tx_id: buyerStockTx.model_dump()
+                }
+                cache.update(f'{CacheName.STOCK_TX}:{buyerStockTx.user_id}', buyer_stock_tx_dict)
+                buyer_wallet_tx_dict = {
+                    buyerWalletTx.wallet_tx_id: buyerWalletTx.model_dump()
+                }
+                cache.update(f'{CacheName.WALLET_TX}:{buyerWalletTx.user_id}', buyer_wallet_tx_dict)
+
+                # Update each Sellers Cache entries
+                for cache_key, cache_value in cache_updates.items():
+                    if cache_key.startswith(f'{CacheName.STOCK_TX}:') or cache_key.startswith(f'{CacheName.WALLET_TX}:'):
+                        cache.update(cache_key, cache_value)
+                    else:
+                        cache.set(cache_key, cache_value)
+            except Exception as e:
+                # Fuck I hope this works
+                print(f"Cache update failed in FBTS: {str(e)}")
+
+
+
+            #incomplete_tx_dict = {
+            #    incompleteTx.stock_tx_id: incompleteTx.model_dump()
+            #}
+            #cache.update(f'{CacheName.STOCK_TX}:{incompleteTx.user_id}', incomplete_tx_dict)
+            #cache.set(f'{CacheName.WALLETS}:{sellOrder.user_id}', {"balance": sellerWallet.balance})
+            #seller_stock_tx_dict = {
+            #    sellerStockTx.stock_tx_id: sellerStockTx.model_dump()
+            #}
+            #cache.update(f'{CacheName.STOCK_TX}:{sellerStockTx.user_id}', seller_stock_tx_dict)
+            #seller_wallet_tx_dict = {
+            #    sellerWalletTx.wallet_tx_id: sellerWalletTx.model_dump()
+            #}
+            #cache.update(f'{CacheName.WALLET_TX}:{sellerWalletTx.user_id}', seller_wallet_tx_dict)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -271,7 +450,10 @@ async def payOutStocks(session, buyOrder: BuyOrder, buyPrice) -> Tuple[StockTran
     buyerStockHolding = buyerStockHolding.scalar_one_or_none()
 
     # Try to get from cache first, query database as a fallback safety
-    stock_name = cache.get(f'{CacheName.STOCKS}:{buyOrder.stock_id}')
+    stock_name_data = cache.get(CacheName.STOCKS})
+    if stock_data and buyOrder.stock_id in stock_data:
+        stock_name = stock_data[str(buyOrder.stock_id)]
+    
     if not stock_name:
         print("Pay out stocks cache failed")
         stock_name_query = sqlmodel.select(Stocks.stock_name).where(Stocks.stock_id == buyOrder.stock_id)

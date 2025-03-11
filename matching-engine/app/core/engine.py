@@ -1,3 +1,4 @@
+import asyncio
 from typing import List
 from fastapi import HTTPException
 from schemas import SuccessResponse
@@ -21,7 +22,32 @@ buyQueues = defaultdict(deque)
 
 cache = RedisClient()
 
+orderQueue = asyncio.Queue()
+
+async def orderProcessWorkerStart():
+    while True:
+        try:
+            print("Trying to get the next job... ")
+            orderTuple = await asyncio.wait_for(orderQueue.get(), timeout=1)
+            order, user_id = orderTuple
+            try:
+                await processOrder(order, user_id)
+            except Exception as e:
+                print(str(e))
+            print("Job done")
+        except asyncio.TimeoutError:
+            print("QGF! Failed to get the next job in time")
+
+
 async def receiveOrder(order: StockOrder, sending_user_id: str):
+    try:
+        print("adding to the queue...")
+        await asyncio.wait_for(orderQueue.put((order, sending_user_id)), timeout=1)
+    except asyncio.TimeoutError:
+        print("QPF! Failed to push into the queue in time")
+    return SuccessResponse()
+
+async def processOrder(order: StockOrder, sending_user_id: str):
     try:
         time = str(datetime.now())
 
