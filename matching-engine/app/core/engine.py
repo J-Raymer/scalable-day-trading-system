@@ -70,7 +70,7 @@ def getStockPriceEngine():
     data = []
 
     if cache_hit:
-        print('CACHE hit in get stock price')
+        #print('CACHE hit in get stock price')
         for stock_id, stock_name in cache_hit.items():
             # Need to cast id to int because it's stored as a string
             id = int(stock_id)
