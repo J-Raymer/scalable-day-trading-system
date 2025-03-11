@@ -1,11 +1,12 @@
-import sqlmodel
 import os
 import dotenv
-from sqlmodel import Session, desc
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from database import (
     Wallets,
     WalletTransactions,
@@ -26,7 +27,6 @@ REDIS_PORT = int(os.getenv("REDIS_PORT"))
 
 cache = RedisClient()
 
-
 app = FastAPI(root_path="/transaction")
 
 app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
@@ -46,20 +46,24 @@ async def home():
         404: {"model": ErrorResponse},
     },
 )
-async def get_wallet_balance(x_user_data: str = Header(None), session: Session = Depends(get_session)):
+async def get_wallet_balance(x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
     cache_hit = cache.get(f'{CacheName.WALLETS}:{user_id}')
     if cache_hit:
-        print("CACHE hit in get wallet ballance")
+        print("CACHE hit in get wallet balance")
         return SuccessResponse(data={"balance": cache_hit['balance']})
 
-    statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
-    wallet = session.exec(statement).one_or_none()
+    async with session.begin():
+        statement = select(Wallets).where(Wallets.user_id == user_id)
+        result = await session.execute(statement)
+        wallet = result.scalar_one_or_none()
+    
     if not wallet:
         raise HTTPException(status_code=404, detail="Wallet not found")
+    
     return SuccessResponse(data={"balance": wallet.balance})
 
 @app.get(
@@ -71,49 +75,25 @@ async def get_wallet_balance(x_user_data: str = Header(None), session: Session =
         403: {"model": ErrorResponse},
     },
 )
-async def get_wallet_transactions(x_user_data: str = Header(None), session: Session = Depends(get_session)):
+async def get_wallet_transactions(x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
     cache_hit = cache.get(f'{CacheName.WALLET_TX}:{user_id}')
-
     if cache_hit:
-        print("Cache Hit in get wallet transactions ")
+        print("Cache Hit in get wallet transactions")
         return SuccessResponse(data=list(cache_hit.values()))
 
-    # Can't pass more than 4 params into select, so have to do it this way, see here
-    # https://github.com/fastapi/sqlmodel/issues/92
-    columns = [
-        WalletTransactions.wallet_tx_id,
-        WalletTransactions.is_debit,
-        WalletTransactions.amount,
-        WalletTransactions.time_stamp,
-        StockTransactions.stock_tx_id,
-    ]
-    statement = (
-        sqlmodel.select(*columns)
-        .join(
+    async with session.begin():
+        statement = select(WalletTransactions).join(
             StockTransactions,
             WalletTransactions.stock_tx_id == StockTransactions.stock_tx_id,
-        )
-        .where(WalletTransactions.user_id == user_id)
-        .order_by(WalletTransactions.time_stamp)
-    )
-    result = session.exec(statement).all()
-    wallet_transactions = list(
-        map(
-            lambda tx: WalletTxResult(
-                wallet_tx_id=tx[0],
-                is_debit=tx[1],
-                amount=tx[2],
-                time_stamp=tx[3],
-                stock_tx_id=tx[4],
-            ),
-            result,
-        )
-    )
-    return SuccessResponse(data=wallet_transactions)
+        ).where(WalletTransactions.user_id == user_id).order_by(WalletTransactions.time_stamp)
+        result = await session.execute(statement)
+        wallet_transactions = result.scalars().all()
+
+    return SuccessResponse(data=[WalletTxResult.from_orm(tx) for tx in wallet_transactions])
 
 @app.post(
     "/addMoneyToWallet",
@@ -125,7 +105,7 @@ async def get_wallet_transactions(x_user_data: str = Header(None), session: Sess
         409: {"model": ErrorResponse},
     },
 )
-async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(None), session: Session = Depends(get_session)):
+async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
@@ -133,17 +113,21 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
     if req.amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be greater than 0")
 
-    statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
-    wallet = session.exec(statement).one()
-    balance = wallet.balance + req.amount
-    wallet.balance = balance
+    async with session.begin():
+        statement = select(Wallets).where(Wallets.user_id == user_id)
+        result = await session.execute(statement)
+        wallet = result.scalar_one_or_none()
+
+    if not wallet:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+
+    wallet.balance += req.amount
 
     session.add(wallet)
-    session.commit()
+    await session.commit()
 
-    cache.set(f'{CacheName.WALLETS}:{user_id}', {"balance": balance})
+    cache.set(f'{CacheName.WALLETS}:{user_id}', {"balance": wallet.balance})
     return SuccessResponse()
-
 
 @app.get(
     "/getStockPortfolio",
@@ -154,38 +138,28 @@ async def add_money_to_wallet(req: AddMoneyRequest, x_user_data: str = Header(No
         409: {"model": ErrorResponse},
     },
 )
-async def get_stock_portfolio(x_user_data: str = Header(None), session: Session = Depends(get_session)):
+async def get_stock_portfolio(x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
 
     username, user_id = x_user_data.split("|")
 
     cache_hit = cache.get(f'{CacheName.STOCK_PORTFOLIO}:{user_id}')
-
     if cache_hit:
         print("CACHE hit in get stock portfolio")
         return SuccessResponse(data=sorted(list(cache_hit.values()), reverse=True, key=lambda x: x['stock_name']))
 
-    statement = (
-        sqlmodel.select(
-            StockPortfolios.stock_id,
-            Stocks.stock_name,
-            StockPortfolios.quantity_owned,
+    async with session.begin():
+        statement = (
+            select(StockPortfolios, Stocks.stock_name)
+            .join(Stocks, StockPortfolios.stock_id == Stocks.stock_id)
+            .where(StockPortfolios.user_id == user_id)
+            .order_by(Stocks.stock_name)
         )
-        .join(Stocks, StockPortfolios.stock_id == Stocks.stock_id)
-        .where(StockPortfolios.user_id == user_id)
-        .order_by(desc(Stocks.stock_name))
-    )
-    result = session.exec(statement).all()
-    portfolio = list(
-        map(
-            lambda stock: PortfolioResult(
-                stock_id=stock[0], stock_name=stock[1], quantity_owned=stock[2]
-            ),
-            filter(lambda stock: stock[2] > 0, result)
-        )
-    )
-    return SuccessResponse(data=portfolio)
+        result = await session.execute(statement)
+        portfolio = result.all()
+
+    return SuccessResponse(data=[PortfolioResult(stock_id=stock[0].stock_id, stock_name=stock[1], quantity_owned=stock[0].quantity_owned) for stock in portfolio if stock[0].quantity_owned > 0])
 
 @app.get(
     "/getStockTransactions",
@@ -196,24 +170,23 @@ async def get_stock_portfolio(x_user_data: str = Header(None), session: Session 
         409: {"model": ErrorResponse},
     },
 )
-async def get_stock_transactions(x_user_data: str = Header(None), session: Session = Depends(get_session)):
+async def get_stock_transactions(x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
 
     username, user_id = x_user_data.split("|")
 
     cache_hit = cache.get(f'{CacheName.STOCK_TX}:{user_id}')
-
     if cache_hit:
         print('Cache hit in get stock transactions')
         return SuccessResponse(data=list(cache_hit.values()))
 
+    async with session.begin():
+        statement = select(StockTransactions).where(StockTransactions.user_id == user_id).order_by(StockTransactions.time_stamp)
+        result = await session.execute(statement)
+        stock_transactions = result.scalars().all()
 
-    statement = sqlmodel.select(StockTransactions).where(
-        StockTransactions.user_id == user_id
-    ).order_by(StockTransactions.time_stamp)
-    result = session.exec(statement).all()
-    return SuccessResponse(data=result)
+    return SuccessResponse(data=stock_transactions)
 
 @app.post(
     "/createStock",
@@ -226,25 +199,27 @@ async def get_stock_transactions(x_user_data: str = Header(None), session: Sessi
         409: {"model": ErrorResponse},
     },
 )
-async def create_stock(stock: Stock, x_user_data: str = Header(None), session: Session = Depends(get_session)):
-
+async def create_stock(stock: Stock, x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
     username, user_id = x_user_data.split("|")
 
     stock_name = stock.stock_name
-
     if not stock_name:
         raise HTTPException(status_code=400, detail="stock_name required")
 
-    query = sqlmodel.select(Stocks).where(Stocks.stock_name == stock_name)
-    existing_stock = session.exec(query).one_or_none()
+    async with session.begin():
+        query = select(Stocks).where(Stocks.stock_name == stock_name)
+        result = await session.execute(query)
+        existing_stock = result.scalar_one_or_none()
+
     if existing_stock:
         raise HTTPException(status_code=409, detail="Stock already exists")
+
     new_stock = Stocks(stock_name=stock_name)
     session.add(new_stock)
-    session.commit()
-    session.refresh(new_stock)
+    await session.commit()
+
     # Cache the stock id with the stock name
     cache.update(CacheName.STOCKS, {new_stock.stock_id: new_stock.stock_name})
     return SuccessResponse(data={"stock_id": new_stock.stock_id})
@@ -261,7 +236,7 @@ async def create_stock(stock: Stock, x_user_data: str = Header(None), session: S
         409: {"model": ErrorResponse},
     },
 )
-async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(None), session: Session = Depends(get_session)):
+async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")
 
@@ -270,17 +245,16 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
     if not (new_stock.stock_id and new_stock.quantity):
         raise HTTPException(status_code=400, detail="Stock ID and quantity required")
 
-    query = sqlmodel.select(Stocks).where(Stocks.stock_id == new_stock.stock_id)
-    stock_exists = session.exec(query).one_or_none()
+    async with session.begin():
+        query = select(Stocks).where(Stocks.stock_id == new_stock.stock_id)
+        result = await session.execute(query)
+        stock_exists = result.scalar_one_or_none()
+
     if not stock_exists:
         raise HTTPException(status_code=404, detail="Stock not found")
 
-    new_stock = StockPortfolios(
-        user_id=user_id,
-        stock_id=new_stock.stock_id,
-        quantity_owned=new_stock.quantity,
-    )
-    session.add(new_stock)
-    session.commit()
-    session.refresh(new_stock)
-    return SuccessResponse(data={"stock": new_stock})
+    stock_portfolio = StockPortfolios(user_id=user_id, stock_id=new_stock.stock_id, quantity_owned=new_stock.quantity)
+    session.add(stock_portfolio)
+    await session.commit()
+
+    return SuccessResponse(data={"stock": stock_portfolio})
