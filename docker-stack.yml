@@ -69,10 +69,10 @@ services:
       - day_trader_network
     command: [
       "postgres",
-      "-c", "max_connections=1000",
+      "-c", "max_connections=2000",
       "-c", "work_mem=16MB",
-      "-c", "shared_buffers=2GB",
-      "-c", "effective_cache_size=6GB",
+      "-c", "shared_buffers=3GB",
+      "-c", "effective_cache_size=8GB",
       "-c", "maintenance_work_mem=512MB",
       "-c", "random_page_cost=1.1"
     ]
