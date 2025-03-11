@@ -12,6 +12,7 @@ from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
 from schemas import exception_handlers
 from schemas.RedisClient import RedisClient
 import aio_pika
+from aio_pika import Message
 import asyncio
 import sys
 
@@ -49,6 +50,8 @@ async def process_task(message):
     task_data = message.body.decode()
     user_id = message.headers["user_id"]
 
+    
+
     if message.content_type == "STOCK_ORDER":
         print("stock order received")
         print(user_id)
@@ -57,6 +60,15 @@ async def process_task(message):
     # Process the task (your business logic here)
     print("message received", flush=True)
     print(task_data, flush=True)
+
+    #send response
+    await app.exchange.publish(
+        Message(
+            body="response TEST!".encode(),
+            correlation_id=message.correlation_id,
+        ),
+        routing_key=message.reply_to
+    )
     # sys.stdout.flush()
 
 @app.on_event("startup")
@@ -77,13 +89,19 @@ async def startup():
 
         else:
             async with connection:
-                channel = await connection.channel()
+                app.channel = await connection.channel()
 
                 # Declare queue
-                queue = await channel.declare_queue("testPlaceOrder", auto_delete=True)
+                queue = await app.channel.declare_queue("testPlaceOrder", auto_delete=True)
+
+                app.exchange = app.channel.default_exchange
+
+                
 
                 # Start consuming
                 await queue.consume(process_task, no_ack=True)
+
+                
 
                 sys.stdout.flush()
 

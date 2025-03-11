@@ -1,3 +1,4 @@
 asyncio
 aio_pika
 fastapi[standard]
+uuid
