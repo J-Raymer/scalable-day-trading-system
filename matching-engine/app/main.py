@@ -65,6 +65,19 @@ async def process_task(message):
             routing_key=message.reply_to
         )
 
+    elif message.content_type == "CANCEL_ORDER":
+        print("cancel order received")
+        print(user_id)
+        response = cancelOrderEngine(CancelOrder.model_validate_json(task_data)) 
+
+        await app.exchange.publish(
+            Message(
+                body=response.model_dump_json().encode(),
+                correlation_id=message.correlation_id,
+            ),
+            routing_key=message.reply_to
+        )
+
 
 @app.on_event("startup")
 async def startup():
