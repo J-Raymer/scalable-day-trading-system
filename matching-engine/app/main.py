@@ -44,7 +44,7 @@ app.add_exception_handler(
 )
 
 async def process_task(message):
-    print("callback called")
+    #print("callback called")
 
     # Decode message
     task_data = message.body.decode()
@@ -130,37 +130,3 @@ async def startup():
 async def shutdown():
     await app.rabbitmq_connection.close()
 
-
-@app.get("/")
-async def home():
-    return RedirectResponse(url="/engine/docs", status_code=302)
-
-
-# Rabbitmq test call
-@app.get("/rabbit")
-async def rabbitTest():
-    await app.rabbitmq_channel.default_exchange.publish(
-        aio_pika.Message(
-            body="Hello World".encode(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT
-        ),
-        routing_key="testQ",
-    )
-
-
-# TODO: Is the below comment still the case? Maybe move to transaction service and cache the prices?
-# Don't need this in the matching engine, nice for testing
-@app.get("/getStockPrices")
-async def getStockPrice():
-    return getStockPriceEngine()
-
-
-@app.post(
-    "/cancelStockTransaction",
-    responses={
-        200: {"model": SuccessResponse},
-        400: {"model": ErrorResponse},
-        404: {"model": ErrorResponse},
-    },
-)
-async def cancelStockTransaction(cancelOrder: CancelOrder):
-    return cancelOrderEngine(cancelOrder)

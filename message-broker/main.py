@@ -78,7 +78,6 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
 
     return SuccessResponse.model_validate_json(response.decode())
 
-    
 
 @app.post(
     "/cancelStockTransaction",
