@@ -55,21 +55,16 @@ async def process_task(message):
     if message.content_type == "STOCK_ORDER":
         print("stock order received")
         print(user_id)
-        print(receiveOrder(StockOrder.model_validate_json(task_data), user_id))
+        response = receiveOrder(StockOrder.model_validate_json(task_data), user_id) 
 
-    # Process the task (your business logic here)
-    print("message received", flush=True)
-    print(task_data, flush=True)
+        await app.exchange.publish(
+            Message(
+                body=response.model_dump_json().encode(),
+                correlation_id=message.correlation_id,
+            ),
+            routing_key=message.reply_to
+        )
 
-    #send response
-    await app.exchange.publish(
-        Message(
-            body="response TEST!".encode(),
-            correlation_id=message.correlation_id,
-        ),
-        routing_key=message.reply_to
-    )
-    # sys.stdout.flush()
 
 @app.on_event("startup")
 async def startup():
@@ -129,34 +124,6 @@ async def rabbitTest():
         ),
         routing_key="testQ",
     )
-
-
-# engine calls
-@app.post(
-    "/placeStockOrder",
-    responses={
-        200: {"model": SuccessResponse},
-        400: {"model": ErrorResponse},
-        401: {"model": ErrorResponse},
-        403: {"model": ErrorResponse},
-        404: {"model": ErrorResponse},
-    },
-)
-async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
-
-    await app.rabbitmq_channel.default_exchange.publish(
-        aio_pika.Message(
-            body=order.model_dump_json().encode(),
-            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-            content_type="STOCK_ORDER",
-        ),
-        routing_key="testPlaceOrder",
-    )
-
-    if not x_user_data:
-        raise HTTPException(status_code=400, detail="User data is missing in headers")
-    username, user_id = x_user_data.split("|")
-    return receiveOrder(order, user_id)
 
 
 # TODO: Is the below comment still the case? Maybe move to transaction service and cache the prices?

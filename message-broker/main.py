@@ -40,8 +40,8 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
     username, user_id = x_user_data.split("|")
 
     callback_queue = await app.rabbitmq_channel.declare_queue(exclusive=True)
-    loop = asyncio.get_running_loop()
-    future = loop.create_future()
+    #loop = asyncio.get_running_loop()
+    #future = loop.create_future()
     correlation_id = str(uuid.uuid4())
 
     await app.rabbitmq_channel.default_exchange.publish(
@@ -56,14 +56,18 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
         routing_key="testPlaceOrder",
     )
 
+    messageQ = asyncio.Queue()
 
     async def printResponse(message):
-        print(message, flush=True)
+        print(message.body, flush=True)
 
-        app.response = SuccessResponse() 
+        await messageQ.put(message.body)
 
     
     await callback_queue.consume(printResponse)
 
-    return app.response
+    data = await asyncio.wait_for(messageQ.get(), timeout=5.0)
+
+
+    return SuccessResponse.model_validate_json(data)
     #return receiveOrder(order, user_id)
