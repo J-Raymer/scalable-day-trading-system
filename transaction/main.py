@@ -260,11 +260,11 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
     await session.commit()
 
     # We need to get the stock name because it is required in getStockPortfolio
-    cache_hit = cache.get(f'{CacheName.STOCKS}:{new_stock.stock_id}')
+    cache_hit = cache.get(CacheName.STOCKS)
     if cache_hit:
         portfolio_item = {
             user_id: {
-                "stock_name": cache_hit['stock_name']
+                "stock_name": cache_hit[new_stock.stock_id]['stock_name']
                 **stock_portfolio.model_dump()
             }
         }
