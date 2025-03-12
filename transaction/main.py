@@ -264,7 +264,8 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
     if cache_hit:
         portfolio_item = {
             user_id: {
-                "stock_name": cache_hit[new_stock.stock_id]['stock_name']
+                # The key is the id and the value is the name
+                "stock_name": cache_hit[str(new_stock.stock_id)],
                 **stock_portfolio.model_dump()
             }
         }
