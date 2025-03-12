@@ -259,4 +259,13 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
     session.add(stock_portfolio)
     await session.commit()
 
+    cache_hit = cache.get(CacheName.STOCKS)
+    if cache_hit:
+        portfolio_item = {
+            user_id: {
+                "stock_name": cache_hit['stock_name']
+                **stock_portfolio.model_dump()
+            }
+        }
+        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', portfolio_item)
     return SuccessResponse(data={"stock": stock_portfolio})
