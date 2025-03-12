@@ -2,8 +2,19 @@
 
 ### Updated setup using docker swarm
 
-The easiest way to initialize the docker swarm is to run the `docker-build.sh` script as it
-will run all these commands for you **except** the verification that the services are running. If you don't want to be lazy like me then you can run everything manually following the steps below.
+#### Suggested Run instructions
+
+1. Run all services
+
+`./docker-build.sh`
+
+2. Clean up all services and volumes
+
+`./docker-down.sh`
+
+> All services and volumes must be cleared before running additional tests
+
+#### Manual Run Instructions
 
 1. Initialize Docker Swarm
    `docker swarm init`
@@ -18,7 +29,8 @@ will run all these commands for you **except** the verification that the service
 - `docker build -t daytrader-frontend -f frontend/Dockerfile .`
 
 3. **DO NOT SKIP THIS STEP** Load the environment variables from the .env file. This ONLY lasts in your current terminal
-if you close it and open another you'll have to pass this again.
+   if you close it and open another you'll have to pass this again.
+
 - `export $(cat .env | xargs)`
 
 4. Deploy the Docker Stack
@@ -30,10 +42,16 @@ if you close it and open another you'll have to pass this again.
 - `docker stack services daytrader`
 
 6. Leaving the swarm
- - To leave the swarm run `docker swarm leave`, you may need to pass the `--force` flag.
 
-7. **Optional:** Destroy the database if you want to start with a clean one for running test scripts
- - `docker volume rm daytrader_db_data`
+- `docker swarm leave --force`
+
+7. Delete the volumes
+
+- `docker volume rm daytrader_db_data`
+
+#### Frontend
+
+The frontend is hosted at [localhost:5763](http://localhost:5173)
 
 ### API Documentation
 
