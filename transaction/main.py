@@ -269,4 +269,7 @@ async def add_stock_to_user(new_stock: StockSetup, x_user_data: str = Header(Non
             }
         }
         cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', portfolio_item)
+    else:
+        # TODO: call database to get stock name and update cache
+        print("CACHE MISS in add stock to user, getting stock name")
     return SuccessResponse(data={"stock": stock_portfolio})
