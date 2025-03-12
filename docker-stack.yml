@@ -135,11 +135,16 @@ services:
     ports: # TODO: remove this port
       - ${REDIS_PORT}:${REDIS_PORT}
       - "8200:8200"
-    volumes:
-      - redis_data:/data
-    # Save to disk every 60 seconds if 1 key modified
-    #https://stackoverflow.com/questions/75604897/how-to-enable-redis-search-and-redis-json-on-redis-stack-docker-image
-    command: ["redis-server", "--protected-mode", "no", "--save", "60", "1", "--loglevel", "warning", "--loadmodule", "/opt/redis-stack/lib/rejson.so"]
+    command: [
+      "redis-server",
+      "--protected-mode", "no",
+      "--loglevel", "warning",
+      "--loadmodule", "/opt/redis-stack/lib/rejson.so",
+      "--maxmemory", "1GB",
+      "--maxmemory-policy", "allkeys-lru",
+      "--appendonly", "no",
+      "--save", "" 
+    ]
     networks:
       - day_trader_network
     deploy:
