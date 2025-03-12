@@ -1,5 +1,6 @@
 from typing import List
-from fastapi import HTTPException
+
+# from fastapi import HTTPException
 from schemas import SuccessResponse
 from schemas.RedisClient import RedisClient, CacheName
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
@@ -13,13 +14,14 @@ from .engineDbConnect import (
     cancelTransaction,
     getTransaction,
     createChildTransaction,
-    setToPartiallyComplete
+    setToPartiallyComplete,
 )
 
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
 
 cache = RedisClient()
+
 
 async def receiveOrder(order: StockOrder, sending_user_id: str):
     try:
@@ -63,6 +65,7 @@ async def receiveOrder(order: StockOrder, sending_user_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 async def getStockPriceEngine():
     global sellTrees
 
@@ -75,31 +78,42 @@ async def getStockPriceEngine():
             id = int(stock_id)
             if sellTrees[id]:
                 data.append(
-                    StockPrice(stock_id=id, stock_name=stock_name, current_price=sellTrees[id][0].price)
+                    StockPrice(
+                        stock_id=id,
+                        stock_name=stock_name,
+                        current_price=sellTrees[id][0].price,
+                    )
                 )
     else:
-        print('CACHE MISS in get stock price')
+        print("CACHE MISS in get stock price")
         stockList = await getStockData()
         for stock in stockList:
             id = stock.stock_id
             if sellTrees[id]:
                 data.append(
-                    StockPrice(stock_id=id, stock_name=stock.stock_name, current_price=sellTrees[id][0].price)
+                    StockPrice(
+                        stock_id=id,
+                        stock_name=stock.stock_name,
+                        current_price=sellTrees[id][0].price,
+                    )
                 )
     return SuccessResponse(data=data)
+
 
 async def processSellOrder(sellOrder: SellOrder):
     global sellTrees
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
     # TODO: We should rename "price" to "current_price" across the app for consistency and to avoid this sort of thing
     sell_dict = dict(sellOrder)
-    sell_dict['current_price'] = sellOrder.price
-    del sell_dict['price']
+    sell_dict["current_price"] = sellOrder.price
+    del sell_dict["price"]
+
 
 async def processBuyOrder(buyOrder: BuyOrder):
     buyQueues[buyOrder.stock_id].append(buyOrder)
 
     await matchBuy(buyOrder)
+
 
 # Matches buy orders to sell orders with partial buy handling
 # poppedSellOrders stores touples containing (sellOrder popped from heap, quantity sold)
@@ -122,6 +136,7 @@ async def matchBuy(buyOrder: BuyOrder):
         raise HTTPException(status_code=500, detail=str(e))
     else:
         sellTrees[buyOrder.stock_id] = newSellTree
+
 
 async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree):
 
@@ -154,18 +169,20 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
 
         # create a child sell order
         childSellOrder = SellOrder(
-            user_id = minSellOrder.user_id,
-            stock_id = minSellOrder.stock_id,
-            quantity = buyQuantity,
-            price = minSellOrder.price,
-            timestamp = minSellOrder.timestamp,
-            order_type = minSellOrder.order_type
+            user_id=minSellOrder.user_id,
+            stock_id=minSellOrder.stock_id,
+            quantity=buyQuantity,
+            price=minSellOrder.price,
+            timestamp=minSellOrder.timestamp,
+            order_type=minSellOrder.order_type,
         )
 
         # create a child transaction that is IN_PROGRESS, with the parent stock tx id
-        childTxId = await createChildTransaction(childSellOrder, minSellOrder.stock_tx_id)
+        childTxId = await createChildTransaction(
+            childSellOrder, minSellOrder.stock_tx_id
+        )
         childSellOrder.stock_tx_id = childTxId
-        
+
         res = await getTransaction(childTxId)
 
         if not res:
@@ -186,12 +203,14 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
 
         return await matchBuyRecursive(buyOrder, poppedSellOrders, tempTree)
 
+
 def calculateMarketBuy(sellOrderList):
     price = 0
     for i in sellOrderList:
         # price += sell price * quantity sold
         price += i[0].price * i[1]
     return price
+
 
 async def cancelOrderEngine(cancelOrder: CancelOrder):
     transactionId = cancelOrder.stock_tx_id

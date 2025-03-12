@@ -2,126 +2,92 @@ import redis
 import os
 import dotenv
 from aio_pika.abc import DeliveryMode
-from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import RedirectResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder, CancelOrder
 from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
-from schemas import exception_handlers
+
+# from schemas import exception_handlers
 from schemas.RedisClient import RedisClient
 import aio_pika
 from aio_pika import Message
 import asyncio
-import sys
 
-app = FastAPI(root_path="/engine")
 
 dotenv.load_dotenv(override=True)
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = int(os.getenv("REDIS_PORT"))
 
-# cache = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+exchange = None
+channel = None
+connection = None
 
-app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
-app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
-
-
-async def getRabbitConnection():
-    return await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/")
-
-
-app.add_exception_handler(
-    StarletteHTTPException, exception_handlers.http_exception_handler
-)
-app.add_exception_handler(
-    RequestValidationError, exception_handlers.validation_exception_handler
-)
 
 async def process_task(message):
-    #print("callback called")
+    global exchange
 
-    # Decode message
+    if not exchange or not channel:
+        print("no exchange exchange")
+        return
+
     task_data = message.body.decode()
     if message.headers:
         user_id = message.headers["user_id"]
 
-    
-
     if message.content_type == "STOCK_ORDER":
-        response = await receiveOrder(StockOrder.model_validate_json(task_data), user_id) 
+        response = await receiveOrder(
+            StockOrder.model_validate_json(task_data), user_id
+        )
 
-        await app.exchange.publish(
+        await exchange.publish(
             Message(
                 body=response.model_dump_json().encode(),
                 correlation_id=message.correlation_id,
             ),
-            routing_key=message.reply_to
+            routing_key=message.reply_to,
         )
 
     elif message.content_type == "CANCEL_ORDER":
-        response = await cancelOrderEngine(CancelOrder.model_validate_json(task_data)) 
+        response = await cancelOrderEngine(CancelOrder.model_validate_json(task_data))
 
-        await app.exchange.publish(
+        await exchange.publish(
             Message(
                 body=response.model_dump_json().encode(),
                 correlation_id=message.correlation_id,
             ),
-            routing_key=message.reply_to
+            routing_key=message.reply_to,
         )
 
     elif message.content_type == "GET_PRICES":
-        response = await getStockPriceEngine() 
+        response = await getStockPriceEngine()
 
-        await app.exchange.publish(
+        await exchange.publish(
             Message(
                 body=response.model_dump_json().encode(),
                 correlation_id=message.correlation_id,
             ),
-            routing_key=message.reply_to
+            routing_key=message.reply_to,
         )
 
 
-@app.on_event("startup")
-async def startup():
+async def main():
     # Connect to RabbitMQ
-    print("rmq test init")
+    global exchange, channel
 
-    attempts = 0
-    while attempts < 10:
-        try:
-            connection = await aio_pika.connect_robust(
-                "amqp://guest:guest@rabbitmq:5672/"
-            )
-        except:
-            print("connection failed, retrying")
-            await asyncio.sleep(10)
-            attempts += 1
+    connection = await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/")
 
-        else:
-            async with connection:
-                app.channel = await connection.channel()
+    async with connection:
+        channel = await connection.channel()
 
-                # Declare queue
-                queue = await app.channel.declare_queue("testPlaceOrder", auto_delete=True)
+        # Declare queue
+        queue = await channel.declare_queue("testPlaceOrder", auto_delete=True)
 
-                app.exchange = app.channel.default_exchange
+        exchange = channel.default_exchange
 
-                
+        # Start consuming
+        await queue.consume(process_task, no_ack=True)
 
-                # Start consuming
-                await queue.consume(process_task, no_ack=True)
-
-                
-
-                sys.stdout.flush()
-
-                await asyncio.sleep(10)
-
-                await asyncio.Future()
+        await asyncio.Future()
 
 
-@app.on_event("shutdown")
-async def shutdown():
-    await app.rabbitmq_connection.close()
+if __name__ == "__main__":
+    asyncio.run(main())
