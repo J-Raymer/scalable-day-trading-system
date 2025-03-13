@@ -1,5 +1,4 @@
 from typing import List
-from starlette.exceptions import HTTPException
 from schemas import SuccessResponse, RabbitError
 from schemas.RedisClient import RedisClient, CacheName
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
@@ -55,14 +54,16 @@ async def receiveOrder(order: StockOrder, sending_user_id: str):
             incomingSellOrder.stock_tx_id = transactionId
 
             if incomingSellOrder.stock_tx_id is None:
-                raise HTTPException(
-                    status_code=400, detail="error assigning id to sell order"
-                )
+                # raise HTTPException(
+                #     status_code=400, detail="error assigning id to sell order"
+                # )
+                raise ValueError(400, "error assigned id to sell order")
 
             await processSellOrder(incomingSellOrder)
             return SuccessResponse()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # raise HTTPException(status_code=500, detail=str(e))
+        raise ValueError(500, str(e))
 
 
 async def getStockPriceEngine():
@@ -130,7 +131,8 @@ async def matchBuy(buyOrder: BuyOrder):
         # takes money out of the buyers wallet
         await fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # raise HTTPException(status_code=500, detail=str(e))
+        raise ValueError(500, str(e))
     else:
         sellTrees[buyOrder.stock_id] = newSellTree
 
@@ -138,9 +140,10 @@ async def matchBuy(buyOrder: BuyOrder):
 async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree):
 
     if len(tempTree) == 0:
-        raise HTTPException(
-            status_code=400, detail="not enough sell volume to fill buy order"
-        )
+        # raise HTTPException(
+        #     status_code=400, detail="not enough sell volume to fill buy order"
+        # )
+        raise ValueError(400, "not enough sell volume to fill buy order")
 
     minSellOrder = heappop(tempTree)
 
@@ -183,7 +186,8 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
         res = await getTransaction(childTxId)
 
         if not res:
-            raise HTTPException(status_code=400, detail="transaction not in db")
+            # raise HTTPException(status_code=400, detail="transaction not in db")
+            raise ValueError(400, "transaction not in db")
 
         poppedSellOrders.append((childSellOrder, buyQuantity))
 

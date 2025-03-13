@@ -42,7 +42,7 @@ async def process_task(message):
             success = "SUCCESS"
         except ValueError as e:
             response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success - "ERROR"
+            success = "ERROR"
         finally:
             await exchange.publish(
                 Message(
