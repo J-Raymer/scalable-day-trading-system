@@ -8,3 +8,4 @@ asyncpg
 aio_pika
 uuid
 psycopg2
+starlette

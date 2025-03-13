@@ -27,12 +27,17 @@ class ErrorResponse(BaseModel):
     detail: str
 
 
+class RabbitError(BaseModel):
+    status_code: int
+    detail: str
+
+
 # Should not use this as a returned object to the user. Used for the register caching.
 class User(BaseModel):
     """Should not use this as a returned object to the user. Used for the register caching."""
+
     id: str
     user_name: str
     name: str
     password: str | None
     salt: str | None
-

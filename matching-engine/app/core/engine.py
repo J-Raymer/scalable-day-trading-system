@@ -1,7 +1,6 @@
 from typing import List
-
-# from fastapi import HTTPException
-from schemas import SuccessResponse
+from starlette.exceptions import HTTPException
+from schemas import SuccessResponse, RabbitError
 from schemas.RedisClient import RedisClient, CacheName
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
 from datetime import datetime
@@ -130,8 +129,6 @@ async def matchBuy(buyOrder: BuyOrder):
 
         # takes money out of the buyers wallet
         await fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
-    except HTTPException as e:
-        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     else:
@@ -217,6 +214,9 @@ async def cancelOrderEngine(cancelOrder: CancelOrder):
     # Search heap for order
 
     transaction = await getTransaction(transactionId)
+    if not transaction:
+        # raise HTTPException(status_code=401, detail="transaction not found")
+        raise ValueError(500, "transcation not found")
     global sellTrees
 
     tree = sellTrees[transaction.stock_id]
