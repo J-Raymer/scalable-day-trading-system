@@ -39,14 +39,16 @@ async def process_task(message):
             response = await receiveOrder(
                 StockOrder.model_validate_json(task_data), user_id
             )
-        except HTTPException as e:
-            response = ErrorResponse(detail=e.detail)
-
+            success = "SUCCESS"
+        except ValueError as e:
+            response = RabbitError(status_code=e.args[0], detail=e.args[1])
+            success - "ERROR"
         finally:
             await exchange.publish(
                 Message(
                     body=response.model_dump_json().encode(),
                     correlation_id=message.correlation_id,
+                    content_type=success,
                 ),
                 routing_key=message.reply_to,
             )
@@ -72,15 +74,21 @@ async def process_task(message):
             )
 
     elif message.content_type == "GET_PRICES":
-        response = await getStockPriceEngine()
-
-        await exchange.publish(
-            Message(
-                body=response.model_dump_json().encode(),
-                correlation_id=message.correlation_id,
-            ),
-            routing_key=message.reply_to,
-        )
+        try:
+            response = await getStockPriceEngine()
+            success = "SUCCESS"
+        except ValueError as e:
+            response = RabbitError(status_code=e.args[0], detail=e.args[1])
+            success = "ERROR"
+        finally:
+            await exchange.publish(
+                Message(
+                    body=response.model_dump_json().encode(),
+                    correlation_id=message.correlation_id,
+                    content_type=success,
+                ),
+                routing_key=message.reply_to,
+            )
 
 
 async def main():
