@@ -1,7 +1,6 @@
 sqlmodel
 python-dotenv
 PyJwt
-pydantic
 redis>=5.0
 asyncio
 asyncpg

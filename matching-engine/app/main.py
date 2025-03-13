@@ -1,4 +1,3 @@
-import redis
 import os
 import dotenv
 from aio_pika.abc import DeliveryMode

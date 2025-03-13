@@ -22,48 +22,44 @@ cache = RedisClient()
 
 
 async def receiveOrder(order: StockOrder, sending_user_id: str):
-    try:
-        time = str(datetime.now())
+    time = str(datetime.now())
 
-        if order.is_buy:
-            await processBuyOrder(
-                BuyOrder(
-                    user_id=sending_user_id,
-                    stock_id=order.stock_id,
-                    quantity=order.quantity,
-                    timestamp=time,
-                    order_type=order.order_type,
-                    price=0,
-                )
-            )
-            return SuccessResponse()
-
-        else:
-            incomingSellOrder = SellOrder(
+    if order.is_buy:
+        await processBuyOrder(
+            BuyOrder(
                 user_id=sending_user_id,
                 stock_id=order.stock_id,
                 quantity=order.quantity,
-                price=order.price,
                 timestamp=time,
                 order_type=order.order_type,
+                price=0,
             )
-            transactionId = await gatherStocks(
-                incomingSellOrder, sending_user_id, order.stock_id, order.quantity
-            )
+        )
+        return SuccessResponse()
 
-            incomingSellOrder.stock_tx_id = transactionId
+    else:
+        incomingSellOrder = SellOrder(
+            user_id=sending_user_id,
+            stock_id=order.stock_id,
+            quantity=order.quantity,
+            price=order.price,
+            timestamp=time,
+            order_type=order.order_type,
+        )
+        transactionId = await gatherStocks(
+            incomingSellOrder, sending_user_id, order.stock_id, order.quantity
+        )
 
-            if incomingSellOrder.stock_tx_id is None:
-                # raise HTTPException(
-                #     status_code=400, detail="error assigning id to sell order"
-                # )
-                raise ValueError(400, "error assigned id to sell order")
+        incomingSellOrder.stock_tx_id = transactionId
 
-            await processSellOrder(incomingSellOrder)
-            return SuccessResponse()
-    except Exception as e:
-        # raise HTTPException(status_code=500, detail=str(e))
-        raise ValueError(500, str(e))
+        if incomingSellOrder.stock_tx_id is None:
+            # raise HTTPException(
+            #     status_code=400, detail="error assigning id to sell order"
+            # )
+            raise ValueError(400, "error assigned id to sell order")
+
+        await processSellOrder(incomingSellOrder)
+        return SuccessResponse()
 
 
 async def getStockPriceEngine():
@@ -121,20 +117,14 @@ async def processBuyOrder(buyOrder: BuyOrder):
 async def matchBuy(buyOrder: BuyOrder):
     global sellTrees
 
-    try:
-        tempTree = sellTrees[buyOrder.stock_id].copy()
-        # returns a list of touples (SellOrderFilled, AmountSold)
-        ordersFilled, newSellTree = await matchBuyRecursive(buyOrder, [], tempTree)
+    tempTree = sellTrees[buyOrder.stock_id].copy()
+    # returns a list of touples (SellOrderFilled, AmountSold)
+    ordersFilled, newSellTree = await matchBuyRecursive(buyOrder, [], tempTree)
 
-        orderPrice = calculateMarketBuy(ordersFilled)
+    orderPrice = calculateMarketBuy(ordersFilled)
 
-        # takes money out of the buyers wallet
-        await fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
-    except Exception as e:
-        # raise HTTPException(status_code=500, detail=str(e))
-        raise ValueError(e.args[0], str(e))
-    else:
-        sellTrees[buyOrder.stock_id] = newSellTree
+    # takes money out of the buyers wallet
+    await fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
 
 
 async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree):
