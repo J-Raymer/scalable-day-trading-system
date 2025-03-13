@@ -7,8 +7,6 @@ import sqlmodel
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool  # Disable connection pooling
-
-# from fastapi import HTTPException
 from sqlmodel import desc
 from database import (
     Stocks,
@@ -59,17 +57,12 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
     time = datetime.now()
 
     if buyPrice <= 0:
-        # raise HTTPException(
-        #     status_code=400, detail="Buy price must be greater than 0"
-        # )
         raise ValueError(400, "Buy price must be greater than 0")
 
     if len(sellOrders) <= 0:
-        # raise HTTPException(status_code=400, detail="Missing sell orders")
         raise ValueError(400, "Missing sell orders")
 
     if not buyOrder:
-        # raise HTTPException(status_code=400, detail="Missing buy order")
         raise ValueError(400, "Missing buy order")
 
     async with async_session_maker() as session:
@@ -79,7 +72,6 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         buyerWallet = buyerWallet.scalar_one_or_none()
 
         if buyerWallet.balance < buyPrice:
-            # raise HTTPException(status_code=400, detail="buyer lacks funds")
             raise ValueError(400, "buyer lacks funds")
 
         # pay out the stocks
@@ -128,9 +120,6 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             incompleteTx = incompleteTx.scalar_one_or_none()
 
             if not incompleteTx:
-                # raise HTTPException(
-                #     status_code=500, detail="Missing Sell Transaction to update"
-                # )
                 raise ValueError(500, "Missing sell transaction to update")
 
             incompleteTx.order_status = OrderStatus.COMPLETED
@@ -149,7 +138,6 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             amountSoldTotal += sellPrice
 
         if not amountSoldTotal == buyPrice:
-            # raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
             raise ValueError(400, "Buyer seller mismatch")
 
         await session.commit()
@@ -243,9 +231,6 @@ async def gatherStocks(order, user_id, stock_id, stock_amount):
         holding = holding.scalar_one_or_none()
 
         if not holding or holding.quantity_owned < stock_amount:
-            # raise HTTPException(
-            #     status_code=500, detail="You cannot sell stocks you don't own"
-            # )
             raise ValueError(500, "you cannot sell stocks you dont own")
 
         holding.quantity_owned -= stock_amount
@@ -288,7 +273,6 @@ async def payOutStocks(
 ) -> Tuple[StockTransactions, dict]:
 
     if not buyOrder:
-        # raise HTTPException(status_code=400, detail="Missing buy order")
         raise ValueError(400, "Missing buy order")
 
     statement = sqlmodel.select(StockPortfolios).where(

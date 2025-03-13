@@ -53,9 +53,6 @@ async def receiveOrder(order: StockOrder, sending_user_id: str):
         incomingSellOrder.stock_tx_id = transactionId
 
         if incomingSellOrder.stock_tx_id is None:
-            # raise HTTPException(
-            #     status_code=400, detail="error assigning id to sell order"
-            # )
             raise ValueError(400, "error assigned id to sell order")
 
         await processSellOrder(incomingSellOrder)
@@ -130,9 +127,6 @@ async def matchBuy(buyOrder: BuyOrder):
 async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree):
 
     if len(tempTree) == 0:
-        # raise HTTPException(
-        #     status_code=400, detail="not enough sell volume to fill buy order"
-        # )
         raise ValueError(400, "not enough sell volume to fill buy order")
 
     minSellOrder = heappop(tempTree)
@@ -176,7 +170,6 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
         res = await getTransaction(childTxId)
 
         if not res:
-            # raise HTTPException(status_code=400, detail="transaction not in db")
             raise ValueError(400, "transaction not in db")
 
         poppedSellOrders.append((childSellOrder, buyQuantity))
@@ -209,7 +202,6 @@ async def cancelOrderEngine(cancelOrder: CancelOrder):
 
     transaction = await getTransaction(transactionId)
     if not transaction:
-        # raise HTTPException(status_code=401, detail="transaction not found")
         raise ValueError(500, "transcation not found")
     global sellTrees
 
