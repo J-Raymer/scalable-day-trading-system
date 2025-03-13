@@ -82,7 +82,12 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
         order.model_dump_json().encode(), "STOCK_ORDER", {"user_id": user_id}
     )
 
-    return SuccessResponse.model_validate_json(response.decode())
+    if response.content_type == "SUCCESS":
+
+        return SuccessResponse.model_validate_json(response.body.decode())
+
+    error = RabbitError.model_validate_json(response.body.decode())
+    raise HTTPException(status_code=error.status_code, detail=error.detail)
 
 
 @app.post(
@@ -114,5 +119,10 @@ async def getStockPrice():
 
     response = await rpcCall("".encode(), "GET_PRICES", None)
 
-    return SuccessResponse.model_validate_json(response.decode())
+    if response.content_type == "SUCCESS":
+
+        return SuccessResponse.model_validate_json(response.body.decode())
+
+    error = RabbitError.model_validate_json(response.body.decode())
+    raise HTTPException(status_code=error.status_code, detail=error.detail)
 

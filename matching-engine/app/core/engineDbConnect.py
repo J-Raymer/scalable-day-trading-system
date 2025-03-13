@@ -194,7 +194,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             )
     except Exception as e:
         # raise HTTPException(status_code=500, detail=str(e))
-    raise ValueError(500, str(e))
+        raise ValueError(500, str(e))
 
 
 async def addWalletTx(

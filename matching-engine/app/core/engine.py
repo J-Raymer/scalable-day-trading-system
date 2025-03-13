@@ -132,7 +132,7 @@ async def matchBuy(buyOrder: BuyOrder):
         await fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
     except Exception as e:
         # raise HTTPException(status_code=500, detail=str(e))
-        raise ValueError(500, str(e))
+        raise ValueError(e.args[0], str(e))
     else:
         sellTrees[buyOrder.stock_id] = newSellTree
 
