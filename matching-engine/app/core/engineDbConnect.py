@@ -7,7 +7,6 @@ import sqlmodel
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool  # Disable connection pooling
-from fastapi import HTTPException
 from sqlmodel import desc
 from database import (
     Stocks,
@@ -32,9 +31,12 @@ from schemas.RedisClient import RedisClient, CacheName
 
 # Disable connection pooling (use PgBouncer instead)
 engine = create_async_engine(url, echo=False, poolclass=NullPool)
-async_session_maker = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+async_session_maker = sessionmaker(
+    bind=engine, class_=AsyncSession, expire_on_commit=False
+)
 
 cache = RedisClient()
+
 
 async def getStockData():
     async with async_session_maker() as session:
@@ -44,6 +46,7 @@ async def getStockData():
         if result:
             return result.scalars().all()
 
+
 # takes buy order and list of sell orders
 # connects to database and checks if buyer has funds
 # takes funds from buyer and distributes to seller(s)
@@ -51,120 +54,129 @@ async def getStockData():
 # Main purpose of writing it like this is to execute taking money from the buyer and giving
 #   it to sellers as one transaction
 async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
-    try:
-        time = datetime.now()
-        if buyPrice <= 0:
-            raise HTTPException(status_code=400, detail="Buy price must be greater than 0")
+    time = datetime.now()
 
-        if len(sellOrders) <= 0:
-            raise HTTPException(status_code=400, detail="Missing sell orders")
+    if buyPrice <= 0:
+        raise ValueError(400, "Buy price must be greater than 0")
 
-        if not buyOrder:
-            raise HTTPException(status_code=400, detail="Missing buy order")
+    if len(sellOrders) <= 0:
+        raise ValueError(400, "Missing sell orders")
 
-        async with async_session_maker() as session:
+    if not buyOrder:
+        raise ValueError(400, "Missing buy order")
 
-            statement = sqlmodel.select(Wallets).where(Wallets.user_id == buyOrder.user_id)
-            buyerWallet = await session.execute(statement)
-            buyerWallet = buyerWallet.scalar_one_or_none()
+    async with async_session_maker() as session:
 
-            if buyerWallet.balance < buyPrice:
-                raise HTTPException(status_code=400, detail="buyer lacks funds")
+        statement = sqlmodel.select(Wallets).where(Wallets.user_id == buyOrder.user_id)
+        buyerWallet = await session.execute(statement)
+        buyerWallet = buyerWallet.scalar_one_or_none()
 
-            # pay out the stocks
-            buyerStockTx, holding = await payOutStocks(session, buyOrder, buyPrice)
+        if buyerWallet.balance < buyPrice:
+            raise ValueError(400, "buyer lacks funds")
 
-            # subtracts from buyer's wallet balance
-            buyerWallet.balance -= buyPrice
-            session.add(buyerWallet)
+        # pay out the stocks
+        buyerStockTx, holding = await payOutStocks(session, buyOrder, buyPrice)
 
-            # creates wallet transaction for taking money from the buyer
-            buyerWalletTx = await addWalletTx(
-                session, buyOrder, buyPrice, buyerStockTx.stock_tx_id, isDebit=True
+        # subtracts from buyer's wallet balance
+        buyerWallet.balance -= buyPrice
+        session.add(buyerWallet)
+
+        # creates wallet transaction for taking money from the buyer
+        buyerWalletTx = await addWalletTx(
+            session, buyOrder, buyPrice, buyerStockTx.stock_tx_id, isDebit=True
+        )
+
+        # adds wallet tx id to stock stock_tx_id
+        buyerStockTx = await addWalletTxToStockTx(
+            session, buyerStockTx.stock_tx_id, buyerWalletTx.wallet_tx_id
+        )
+
+        # TODO stock added to portfolio
+        amountSoldTotal = 0
+
+        for sellOrderTouple in sellOrders:
+            sellOrder, sellQuantity = sellOrderTouple
+
+            # calculates price using the price per stock and the *actual* amount sold
+            sellPrice = sellOrder.price * sellQuantity
+
+            statement = sqlmodel.select(Wallets).where(
+                Wallets.user_id == sellOrder.user_id
+            )
+            sellerWallet = await session.execute(statement)
+            sellerWallet = sellerWallet.scalar_one_or_none()
+
+            # adds money to sellers wallet
+            sellerWallet.balance += sellPrice
+            session.add(sellerWallet)
+
+            # updates the sell order transaction to completed
+            sellerStockTxId = sellOrder.stock_tx_id
+
+            statement = sqlmodel.select(StockTransactions).where(
+                StockTransactions.stock_tx_id == sellerStockTxId
+            )
+            incompleteTx = await session.execute(statement)
+            incompleteTx = incompleteTx.scalar_one_or_none()
+
+            if not incompleteTx:
+                raise ValueError(500, "Missing sell transaction to update")
+
+            incompleteTx.order_status = OrderStatus.COMPLETED
+
+            session.add(incompleteTx)
+
+            # creates wallet transaction for paying the seller
+            sellerWalletTx = await addWalletTx(
+                session, sellOrder, sellPrice, sellerStockTxId, isDebit=False
             )
 
-            # adds wallet tx id to stock stock_tx_id
-            buyerStockTx = await addWalletTxToStockTx(session, buyerStockTx.stock_tx_id, buyerWalletTx.wallet_tx_id)
+            sellerStockTx = await addWalletTxToStockTx(
+                session, sellerStockTxId, sellerWalletTx.wallet_tx_id
+            )
 
-            # TODO stock added to portfolio
-            amountSoldTotal = 0
+            amountSoldTotal += sellPrice
 
-            for sellOrderTouple in sellOrders:
-                sellOrder, sellQuantity = sellOrderTouple
+        if not amountSoldTotal == buyPrice:
+            raise ValueError(400, "Buyer seller mismatch")
 
-                # calculates price using the price per stock and the *actual* amount sold
-                sellPrice = sellOrder.price * sellQuantity
+        await session.commit()
 
-                statement = sqlmodel.select(Wallets).where(
-                    Wallets.user_id == sellOrder.user_id
-                )
-                sellerWallet = await session.execute(statement)
-                sellerWallet = sellerWallet.scalar_one_or_none()
+        # Update cache after committing the transaction
+        incomplete_tx_dict = {incompleteTx.stock_tx_id: incompleteTx.model_dump()}
+        cache.update(f"{CacheName.STOCK_TX}:{incompleteTx.user_id}", incomplete_tx_dict)
+        cache.update(f"{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}", holding)
+        cache.set(
+            f"{CacheName.WALLETS}:{buyOrder.user_id}",
+            {"balance": buyerWallet.balance},
+        )
+        cache.set(
+            f"{CacheName.WALLETS}:{sellOrder.user_id}",
+            {"balance": sellerWallet.balance},
+        )
+        buyer_stock_tx_dict = {buyerStockTx.stock_tx_id: buyerStockTx.model_dump()}
+        cache.update(
+            f"{CacheName.STOCK_TX}:{buyerStockTx.user_id}", buyer_stock_tx_dict
+        )
+        seller_stock_tx_dict = {sellerStockTx.stock_tx_id: sellerStockTx.model_dump()}
+        cache.update(
+            f"{CacheName.STOCK_TX}:{sellerStockTx.user_id}", seller_stock_tx_dict
+        )
+        buyer_wallet_tx_dict = {buyerWalletTx.wallet_tx_id: buyerWalletTx.model_dump()}
+        cache.update(
+            f"{CacheName.WALLET_TX}:{buyerWalletTx.user_id}", buyer_wallet_tx_dict
+        )
+        seller_wallet_tx_dict = {
+            sellerWalletTx.wallet_tx_id: sellerWalletTx.model_dump()
+        }
+        cache.update(
+            f"{CacheName.WALLET_TX}:{sellerWalletTx.user_id}", seller_wallet_tx_dict
+        )
 
-                # adds money to sellers wallet
-                sellerWallet.balance += sellPrice
-                session.add(sellerWallet)
 
-                # updates the sell order transaction to completed
-                sellerStockTxId = sellOrder.stock_tx_id
-
-                statement = sqlmodel.select(StockTransactions).where(
-                    StockTransactions.stock_tx_id == sellerStockTxId
-                )
-                incompleteTx = await session.execute(statement)
-                incompleteTx = incompleteTx.scalar_one_or_none()
-
-                if not incompleteTx:
-                    raise HTTPException(
-                        status_code=500, detail="Missing Sell Transaction to update"
-                    )
-
-                incompleteTx.order_status = OrderStatus.COMPLETED
-
-                session.add(incompleteTx)
-
-                # creates wallet transaction for paying the seller
-                sellerWalletTx = await addWalletTx(
-                    session, sellOrder, sellPrice, sellerStockTxId, isDebit=False
-                )
-
-                sellerStockTx = await addWalletTxToStockTx(session, sellerStockTxId, sellerWalletTx.wallet_tx_id)
-
-                amountSoldTotal += sellPrice
-
-            if not amountSoldTotal == buyPrice:
-                raise HTTPException(status_code=400, detail="Buyer/Seller mismatch")
-
-            await session.commit()
-            
-            # Update cache after committing the transaction
-            incomplete_tx_dict = {
-                incompleteTx.stock_tx_id: incompleteTx.model_dump()
-            }
-            cache.update(f'{CacheName.STOCK_TX}:{incompleteTx.user_id}', incomplete_tx_dict)
-            cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', holding)
-            cache.set(f'{CacheName.WALLETS}:{buyOrder.user_id}', {"balance": buyerWallet.balance})
-            cache.set(f'{CacheName.WALLETS}:{sellOrder.user_id}', {"balance": sellerWallet.balance})
-            buyer_stock_tx_dict = {
-                buyerStockTx.stock_tx_id: buyerStockTx.model_dump()
-            }
-            cache.update(f'{CacheName.STOCK_TX}:{buyerStockTx.user_id}', buyer_stock_tx_dict)
-            seller_stock_tx_dict = {
-                sellerStockTx.stock_tx_id: sellerStockTx.model_dump()
-            }
-            cache.update(f'{CacheName.STOCK_TX}:{sellerStockTx.user_id}', seller_stock_tx_dict)
-            buyer_wallet_tx_dict = {
-                buyerWalletTx.wallet_tx_id: buyerWalletTx.model_dump()
-            }
-            cache.update(f'{CacheName.WALLET_TX}:{buyerWalletTx.user_id}', buyer_wallet_tx_dict)
-            seller_wallet_tx_dict = {
-                sellerWalletTx.wallet_tx_id: sellerWalletTx.model_dump()
-            }
-            cache.update(f'{CacheName.WALLET_TX}:{sellerWalletTx.user_id}', seller_wallet_tx_dict)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-async def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool) -> WalletTransactions:
+async def addWalletTx(
+    session, order, orderValue, stockTxId, isDebit: bool
+) -> WalletTransactions:
     time = str(datetime.now())
     walletTx = WalletTransactions(
         user_id=order.user_id,
@@ -178,7 +190,10 @@ async def addWalletTx(session, order, orderValue, stockTxId, isDebit: bool) -> W
     await session.refresh(walletTx)
     return walletTx
 
-async def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus) -> StockTransactions:
+
+async def addStockTx(
+    session, order, isBuy: bool, price: int, state: OrderStatus
+) -> StockTransactions:
 
     stockTx = StockTransactions(
         stock_id=order.stock_id,
@@ -205,63 +220,60 @@ async def addStockTx(session, order, isBuy: bool, price: int, state: OrderStatus
     await session.refresh(stockTx)
     return stockTx
 
+
 async def gatherStocks(order, user_id, stock_id, stock_amount):
-    try:
-        async with async_session_maker() as session:
-            statement = sqlmodel.select(StockPortfolios).where(
-                (StockPortfolios.user_id == user_id)
-                & (StockPortfolios.stock_id == stock_id)
-            )
-            holding = await session.execute(statement)
-            holding = holding.scalar_one_or_none()
+    async with async_session_maker() as session:
+        statement = sqlmodel.select(StockPortfolios).where(
+            (StockPortfolios.user_id == user_id)
+            & (StockPortfolios.stock_id == stock_id)
+        )
+        holding = await session.execute(statement)
+        holding = holding.scalar_one_or_none()
 
-            if not holding or holding.quantity_owned < stock_amount:
-                raise HTTPException(
-                    status_code=500, detail="You cannot sell stocks you don't own"
-                )
+        if not holding or holding.quantity_owned < stock_amount:
+            raise ValueError(500, "you cannot sell stocks you dont own")
 
-            holding.quantity_owned -= stock_amount
-            stockTx = await addStockTx(
-                session,
-                order,
-                isBuy=False,
-                price=order.price,
-                state=OrderStatus.IN_PROGRESS,
-            )
-            session.add(holding)
+        holding.quantity_owned -= stock_amount
+        stockTx = await addStockTx(
+            session,
+            order,
+            isBuy=False,
+            price=order.price,
+            state=OrderStatus.IN_PROGRESS,
+        )
+        session.add(holding)
 
-            await session.commit()
-            
-            # Update cache after committing the transaction
-            buy_order_dict = {
-                stockTx.stock_tx_id: stockTx.model_dump()
+        await session.commit()
+
+        # Update cache after committing the transaction
+        buy_order_dict = {stockTx.stock_tx_id: stockTx.model_dump()}
+
+        # Try Querying the stock cache, query db if cache fails
+        stock = cache.get(f"{CacheName.STOCKS}:{stock_id}")
+        if not stock:
+            print("gatherStocks stock_name cache failed")
+            query = sqlmodel.select(Stocks).where(Stocks.stock_id == stock_id)
+            stock = await session.execute(query)
+            stock = stock.scalar_one()
+        portfolio_dict = {
+            holding.stock_id: {
+                "stock_name": stock.stock_name,
+                **holding.model_dump(),
             }
+        }
+        cache.update(f"{CacheName.STOCK_TX}:{user_id}", buy_order_dict)
+        # Don't cache anything if they don't own any
+        if holding.quantity_owned > 0:
+            cache.update(f"{CacheName.STOCK_PORTFOLIO}:{user_id}", portfolio_dict)
+        return stockTx.stock_tx_id
 
-            # Try Querying the stock cache, query db if cache fails
-            stock = cache.get(f'{CacheName.STOCKS}:{stock_id}')
-            if not stock:
-                print("gatherStocks stock_name cache failed")
-                query = sqlmodel.select(Stocks).where(Stocks.stock_id == stock_id)
-                stock = await session.execute(query)
-                stock = stock.scalar_one()
-            portfolio_dict = {
-                holding.stock_id: {
-                    "stock_name": stock.stock_name,
-                    **holding.model_dump()
-                }
-            }
-            cache.update(f'{CacheName.STOCK_TX}:{user_id}', buy_order_dict)
-            # Don't cache anything if they don't own any
-            if holding.quantity_owned > 0:
-                cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', portfolio_dict)
-            return stockTx.stock_tx_id
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-async def payOutStocks(session, buyOrder: BuyOrder, buyPrice) -> Tuple[StockTransactions, dict]:
+async def payOutStocks(
+    session, buyOrder: BuyOrder, buyPrice
+) -> Tuple[StockTransactions, dict]:
 
     if not buyOrder:
-        raise HTTPException(status_code=400, detail="Missing buy order")
+        raise ValueError(400, "Missing buy order")
 
     statement = sqlmodel.select(StockPortfolios).where(
         (StockPortfolios.user_id == buyOrder.user_id)
@@ -271,10 +283,12 @@ async def payOutStocks(session, buyOrder: BuyOrder, buyPrice) -> Tuple[StockTran
     buyerStockHolding = buyerStockHolding.scalar_one_or_none()
 
     # Try to get from cache first, query database as a fallback safety
-    stock_name = cache.get(f'{CacheName.STOCKS}:{buyOrder.stock_id}')
+    stock_name = cache.get(f"{CacheName.STOCKS}:{buyOrder.stock_id}")
     if not stock_name:
         print("Pay out stocks cache failed")
-        stock_name_query = sqlmodel.select(Stocks.stock_name).where(Stocks.stock_id == buyOrder.stock_id)
+        stock_name_query = sqlmodel.select(Stocks.stock_name).where(
+            Stocks.stock_id == buyOrder.stock_id
+        )
         stock_name = await session.execute(stock_name_query)
         stock_name = stock_name.scalar_one()
 
@@ -290,7 +304,7 @@ async def payOutStocks(session, buyOrder: BuyOrder, buyPrice) -> Tuple[StockTran
         holding = {
             newStockHolding.stock_id: {
                 "stock_name": stock_name,
-                **newStockHolding.model_dump()
+                **newStockHolding.model_dump(),
             }
         }
 
@@ -300,7 +314,7 @@ async def payOutStocks(session, buyOrder: BuyOrder, buyPrice) -> Tuple[StockTran
         holding = {
             buyerStockHolding.user_id: {
                 "stock_name": stock_name,
-                **buyerStockHolding.model_dump()
+                **buyerStockHolding.model_dump(),
             }
         }
 
@@ -309,6 +323,7 @@ async def payOutStocks(session, buyOrder: BuyOrder, buyPrice) -> Tuple[StockTran
     )
 
     return stockTx, holding
+
 
 async def cancelTransaction(stockTxId):
     async with async_session_maker() as session:
@@ -332,13 +347,16 @@ async def cancelTransaction(stockTxId):
         session.add(sellerPortfolio)
 
         await session.commit()
-        
+
         # Update cache after committing the transaction
         cancelled_dict = {
             transactionToBeCancelled.stock_tx_id: transactionToBeCancelled.model_dump()
         }
-        cache.update(f'{CacheName.STOCK_TX}:{transactionToBeCancelled.user_id}', cancelled_dict)
+        cache.update(
+            f"{CacheName.STOCK_TX}:{transactionToBeCancelled.user_id}", cancelled_dict
+        )
         # TODO: Do we need to update the stock portfolio here?
+
 
 async def getTransaction(stockTxId):
     async with async_session_maker() as session:
@@ -347,6 +365,7 @@ async def getTransaction(stockTxId):
         )
         result = await session.execute(statement)
         return result.scalar_one_or_none()
+
 
 async def createChildTransaction(order, parentStockTxId):
     async with async_session_maker() as session:
@@ -369,6 +388,7 @@ async def createChildTransaction(order, parentStockTxId):
         await session.commit()
         return childTx.stock_tx_id
 
+
 async def setToPartiallyComplete(stockTxId, quantity):
     async with async_session_maker() as session:
         statement = sqlmodel.select(StockTransactions).where(
@@ -383,6 +403,7 @@ async def setToPartiallyComplete(stockTxId, quantity):
         session.add(transactionToChange)
         await session.commit()
         return SuccessResponse()
+
 
 async def addWalletTxToStockTx(session, stockTxId, walletTxId) -> StockTransactions:
 
