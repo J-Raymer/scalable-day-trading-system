@@ -28,7 +28,7 @@ DB_NAME = os.getenv("DB_NAME")
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 url = f"postgresql+asyncpg://{USERNAME}:{PASSWORD}@pgbouncer:6432/{DB_NAME}"
-from schemas.RedisClient import RedisClient, CacheName
+from schemas.redis.RedisClient import RedisClient, CacheName
 
 # Disable connection pooling (use PgBouncer instead)
 engine = create_async_engine(url, echo=False, poolclass=NullPool)

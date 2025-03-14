@@ -1,16 +1,12 @@
-import redis
 import os
 import dotenv
 from aio_pika.abc import DeliveryMode
-from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from schemas.common import SuccessResponse, ErrorResponse
 from schemas.engine import StockOrder, CancelOrder
 from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
-from schemas import exception_handlers
-from schemas.RedisClient import RedisClient
+from schemas.exceptions import exception_handlers
 import aio_pika
 from aio_pika import Message
 import asyncio

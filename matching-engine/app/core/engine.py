@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import HTTPException
-from schemas import SuccessResponse
-from schemas.RedisClient import RedisClient, CacheName
+from schemas.common import SuccessResponse
+from schemas.redis.RedisClient import RedisClient, CacheName
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
 from datetime import datetime
 from collections import defaultdict, deque

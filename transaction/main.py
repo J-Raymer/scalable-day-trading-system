@@ -16,9 +16,9 @@ from database import (
 )
 from schemas.common import SuccessResponse, ErrorResponse
 from schemas.transaction import AddMoneyRequest, WalletTxResult, PortfolioResult
-from schemas.setup import Stock, StockSetup
-from schemas import exception_handlers
-from schemas.RedisClient import RedisClient, CacheName
+from schemas.setup.setup import Stock, StockSetup
+from schemas.exceptions import exception_handlers
+from schemas.redis.RedisClient import RedisClient, CacheName
 from .db import get_session
 
 dotenv.load_dotenv(override=True)
