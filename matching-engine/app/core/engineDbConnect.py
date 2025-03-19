@@ -17,6 +17,7 @@ from database import (
     OrderStatus,
 )
 from datetime import datetime
+from schemas.redis.RedisClient import RedisClient, CacheName
 
 dotenv.load_dotenv(override=True)
 USERNAME = os.getenv("USERNAME")
@@ -27,7 +28,6 @@ DB_NAME = os.getenv("DB_NAME")
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 url = f"postgresql+asyncpg://{USERNAME}:{PASSWORD}@pgbouncer:6432/{DB_NAME}"
-from schemas.redis.RedisClient import RedisClient, CacheName
 
 # Disable connection pooling (use PgBouncer instead)
 engine = create_async_engine(url, echo=False, poolclass=NullPool)
