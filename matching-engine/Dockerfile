@@ -15,4 +15,4 @@ COPY schemas/exceptions /app/schemas/exceptions
 COPY schemas/redis /app/schemas/redis
 
 
-CMD ["python3", "-m", "uvicorn", "matching-engine.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--proxy-headers"]
+CMD ["python3", "-m", "matching-engine.app.main"]
