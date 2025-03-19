@@ -1,11 +1,10 @@
 sqlmodel
 python-dotenv
 PyJwt
-pydantic
-fastapi[standard]
 redis>=5.0
 asyncio
 asyncpg
 aio_pika
 uuid
 psycopg2
+starlette
