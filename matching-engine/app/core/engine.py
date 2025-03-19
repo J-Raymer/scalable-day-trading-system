@@ -1,6 +1,4 @@
 from typing import List
-from schemas import RabbitError
-from fastapi import HTTPException
 from schemas.common import SuccessResponse
 from schemas.redis.RedisClient import RedisClient, CacheName
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
