@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY message-broker /app/message-broker/
 RUN pip install --no-cache-dir -r /app/message-broker/requirements.txt
-COPY schemas /app/schemas
+COPY schemas/__init__.py /app/schemas/__init__.py
+COPY schemas/engine /app/schemas/engine
+COPY schemas/common /app/schemas/common
 
 CMD ["python3", "-m", "uvicorn", "message-broker.main:app", "--host", "0.0.0.0", "--port", "8009", "--proxy-headers"]

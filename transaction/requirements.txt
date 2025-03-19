@@ -1,7 +1,6 @@
 python-dotenv
 psycopg2
 sqlmodel
-PyJwt
 fastapi[standard]
 pydantic
 redis>=5.0

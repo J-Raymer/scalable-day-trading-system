@@ -12,8 +12,8 @@ from fastapi.security import OAuth2PasswordBearer
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from database import Users, Wallets
 from schemas.common import *
-from schemas import exception_handlers
-from schemas.RedisClient import RedisClient, CacheName
+from schemas.exceptions import exception_handlers
+from schemas.redis.RedisClient import RedisClient, CacheName
 from .db import get_session
 import logging
 logging.basicConfig()
