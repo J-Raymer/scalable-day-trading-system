@@ -1,10 +1,8 @@
 sqlmodel
 python-dotenv
-PyJwt
 redis>=5.0
 asyncio
 asyncpg
 aio_pika
-uuid
 psycopg2
 starlette
