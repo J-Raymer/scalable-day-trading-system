@@ -249,15 +249,19 @@ async def gatherStocks(order, user_id, stock_id, stock_amount):
         buy_order_dict = {stockTx.stock_tx_id: stockTx.model_dump()}
 
         # Try Querying the stock cache, query db if cache fails
-        stock = cache.get(f"{CacheName.STOCKS}:{stock_id}")
-        if not stock:
+        # Returns a dictionary of {stock_id: stock_name}
+        stocks_dictionary = cache.get(CacheName.STOCKS)
+        # get the stock name
+        stock_name = stocks_dictionary.get(str(stock_id))
+        if not stock_name:
             print("gatherStocks stock_name cache failed")
             query = sqlmodel.select(Stocks).where(Stocks.stock_id == stock_id)
             stock = await session.execute(query)
             stock = stock.scalar_one()
+            stock_name = stock.stock_name
         portfolio_dict = {
             holding.stock_id: {
-                "stock_name": stock.stock_name,
+                "stock_name": stock_name,
                 **holding.model_dump(),
             }
         }
@@ -283,7 +287,9 @@ async def payOutStocks(
     buyerStockHolding = buyerStockHolding.scalar_one_or_none()
 
     # Try to get from cache first, query database as a fallback safety
-    stock_name = cache.get(f"{CacheName.STOCKS}:{buyOrder.stock_id}")
+    # returns a {stock_id: stock_name} dictionary
+    stocks_dict = cache.get(CacheName.STOCKS)
+    stock_name = stocks_dict.get(str(buyOrder.stock_id))
     if not stock_name:
         print("Pay out stocks cache failed")
         stock_name_query = sqlmodel.select(Stocks.stock_name).where(
