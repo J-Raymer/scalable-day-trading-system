@@ -55,7 +55,7 @@ async def process_task(message):
     elif message.content_type == "CANCEL_ORDER":
         try:
             response = await cancelOrderEngine(
-                CancelOrder.model_validate_json(task_data)
+                CancelOrder.model_validate_json(task_data), user_id
             )
             success = "SUCCESS"
         except ValueError as e:

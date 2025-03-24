@@ -196,7 +196,8 @@ def calculateMarketBuy(sellOrderList):
     return price
 
 
-async def cancelOrderEngine(cancelOrder: CancelOrder):
+async def cancelOrderEngine(cancelOrder: CancelOrder, user_id: str):
+
     transactionId = cancelOrder.stock_tx_id
     # Search heap for order
 
@@ -208,11 +209,13 @@ async def cancelOrderEngine(cancelOrder: CancelOrder):
     tree = sellTrees[transaction.stock_id]
 
     for sellOrder in tree:
-
         if sellOrder.stock_tx_id == transactionId:
-            tree.remove(sellOrder)
-            heapify(tree)
-            break
+            if sellOrder.user_id != user_id:
+                raise ValueError(500, "You cannot cancel an order that is not yours")
+            else:
+                tree.remove(sellOrder)
+                heapify(tree)
+                break
 
     # set transaction status to cancelled
     await cancelTransaction(transactionId)
