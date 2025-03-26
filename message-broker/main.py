@@ -1,36 +1,55 @@
 import asyncio
-import sys
-import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Header, HTTPException
 from schemas.common import SuccessResponse, ErrorResponse, RabbitError
 from schemas.engine import StockOrder, CancelOrder
 import aio_pika
 import uuid
 
-app = FastAPI(root_path="/message-broker")
-
 futures = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global callback_queue, rabbitmq_channel, rabbitmq_connection
+
+    rabbitmq_connection = await getRabbitConnection()
+    rabbitmq_channel = await rabbitmq_connection.channel()
+    callback_queue = await rabbitmq_channel.declare_queue(exclusive=True)
+
+    await callback_queue.consume(processResponse)
+
+    await rabbitmq_channel.declare_queue("matching-engine", auto_delete=True)
+
+    # waits here until app shutdown
+    yield
+
+    if rabbitmq_connection:
+        await rabbitmq_connection.close()
+
+
+app = FastAPI(root_path="/message-broker", lifespan=lifespan)
 
 
 async def getRabbitConnection():
     return await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/")
 
 
-async def rpcCall(body, content, header):
+async def rpcCall(body, content, header, q_name):
     correlation_id = str(uuid.uuid4())
     future = asyncio.Future()
     futures[correlation_id] = future
 
-    await app.rabbitmq_channel.default_exchange.publish(
+    await rabbitmq_channel.default_exchange.publish(
         aio_pika.Message(
             body=body,
             headers=header,
             delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
             content_type=content,
             correlation_id=correlation_id,
-            reply_to=app.callback_queue.name,
+            reply_to=callback_queue.name,
         ),
-        routing_key="testPlaceOrder",
+        routing_key=q_name,
     )
 
     return await future
@@ -41,25 +60,6 @@ async def processResponse(message):
         if message.correlation_id in futures:
             future = futures.pop(message.correlation_id)
             future.set_result(message)
-
-
-@app.on_event("startup")
-async def startup():
-    app.rabbitmq_connection = await getRabbitConnection()
-    app.rabbitmq_channel = await app.rabbitmq_connection.channel()
-    app.callback_queue = await app.rabbitmq_channel.declare_queue(exclusive=True)
-    app.messageQ = asyncio.Queue()
-
-    await app.callback_queue.consume(processResponse)
-
-    # print("startup", flush=True)
-
-    await app.rabbitmq_channel.declare_queue("testPlaceOrder", auto_delete=True)
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    await app.rabbitmq_connection.close()
 
 
 # engine calls
@@ -79,7 +79,10 @@ async def placeStockOrder(order: StockOrder, x_user_data: str = Header(None)):
     username, user_id = x_user_data.split("|")
 
     response = await rpcCall(
-        order.model_dump_json().encode(), "STOCK_ORDER", {"user_id": user_id}
+        order.model_dump_json().encode(),
+        "STOCK_ORDER",
+        {"user_id": user_id},
+        "matching-engine",
     )
 
     if response.content_type == "SUCCESS":
@@ -104,7 +107,10 @@ async def cancelStockOrder(order: CancelOrder, x_user_data: str = Header(None)):
     username, user_id = x_user_data.split("|")
 
     response = await rpcCall(
-        order.model_dump_json().encode(), "CANCEL_ORDER", {"user_id": user_id}
+        order.model_dump_json().encode(),
+        "CANCEL_ORDER",
+        {"user_id": user_id},
+        "matching-engine",
     )
 
     if response.content_type == "SUCCESS":
@@ -117,7 +123,7 @@ async def cancelStockOrder(order: CancelOrder, x_user_data: str = Header(None)):
 @app.get("/getStockPrices")
 async def getStockPrice():
 
-    response = await rpcCall("".encode(), "GET_PRICES", None)
+    response = await rpcCall("".encode(), "GET_PRICES", None, "matching-engine")
 
     if response.content_type == "SUCCESS":
 
@@ -125,4 +131,3 @@ async def getStockPrice():
 
     error = RabbitError.model_validate_json(response.body.decode())
     raise HTTPException(status_code=error.status_code, detail=error.detail)
-
