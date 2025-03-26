@@ -118,12 +118,34 @@ async def matchBuy(buyOrder: BuyOrder):
     # returns a list of touples (SellOrderFilled, AmountSold)
     ordersFilled, newSellTree = await matchBuyRecursive(buyOrder, [], tempTree)
 
+    sellTrees[buyOrder.stock_id] = newSellTree
+
     orderPrice = calculateMarketBuy(ordersFilled)
 
     # takes money out of the buyers wallet
     await fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
 
 
+
+# This function tries to match up the buy order quantity with enough sell orders to match.
+# It may take any number of sell orders from <1 to N. Where any sell order can be
+# divided to match the quantity exactly (hence <1).
+# Divided orders operate accordingly:
+#   - Parent Order: quantity is reduced by the amount required to match the remining buy order balance. 
+#   - Child  Order: created with that same quantity to be added to the returned list of orders.
+# 
+# Inputs:   
+#           - @buyOrder : the buy order
+#           - @[]       : an empty list (for recursion) to populate with the returning sell orders
+#           - @tempTree : the heap for <stock_id> we are buying from
+# Outputs:
+#           - (SellOrderFilled, AmountSold) tuples
+#           - newSellTree 
+# Errors:
+#           - 400
+#             -> ValueError(400, "transaction not in db")
+#             -> ValueError(400, "not enough sell volume to fill buy order")
+#
 async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree):
 
     if len(tempTree) == 0:
@@ -131,15 +153,37 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
 
     minSellOrder = heappop(tempTree)
 
+    ## Check to make sure the buying user isn't buying from themselves
+    skipped_orders = []
+
+    while tempTree:
+        minSellOrder = heappop(tempTree)
+
+        if buyOrder.user_id == minSellOrder.user_id:
+            skipped_orders.append(minSellOrder)
+            continue
+        else:
+            break # this line happens when we find an order from a different user
+
+    if not tempTree and all(order.user_id == buyOrder.user_id for order in skipped_orders):
+        for order in skipped_orders:
+            heappush(tempTree, order)
+        raise ValueError(400, "not enough sell volume from other users to fufill order")
+
+    for order in skipped_orders:
+        heappush(tempTree, order)
+    ## End check
+
     buyQuantity = buyOrder.quantity
     sellQuantity = minSellOrder.quantity
 
-    # Case where sell order quantity == buy order quantity
+    # Case 1: sell order quantity == buy order quantity
     if sellQuantity == buyQuantity:
         poppedSellOrders.append((minSellOrder, minSellOrder.quantity))
         return poppedSellOrders, tempTree
 
-    # Case where first sell order quantity > buy order quantity
+    # Case 2: sell order quantity > buy order quantity
+    # (create a child transaction)
     if sellQuantity > buyQuantity:
 
         # remove buy quantity from sell order
@@ -176,9 +220,8 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
 
         return poppedSellOrders, tempTree
 
-    # Case where sell order quantity < buy order quantity
-    # removes quantity of sell order from buy order and pops that sell order from heap
-    # then calls matchBuy again with updated buy order and poppedSellOrders list
+    # Case 3: sell order quantity < buy order quantity
+    # (we need more sell orders so we recurse)
     if sellQuantity < buyQuantity:
 
         buyOrder.quantity = buyOrder.quantity - minSellOrder.quantity
