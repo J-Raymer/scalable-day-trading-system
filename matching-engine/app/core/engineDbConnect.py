@@ -57,12 +57,15 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
     time = datetime.now()
 
     if buyPrice <= 0:
+        print("negative buy price")
         raise ValueError(400, "Buy price must be greater than 0")
 
     if len(sellOrders) <= 0:
+        print("no sellers")
         raise ValueError(400, "Missing sell orders")
 
     if not buyOrder:
+        print("no buy order")
         raise ValueError(400, "Missing buy order")
 
     async with async_session_maker() as session:
@@ -72,6 +75,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         buyerWallet = buyerWallet.scalar_one_or_none()
 
         if buyerWallet.balance < buyPrice:
+            print("buy lacks funds")
             raise ValueError(400, "buyer lacks funds")
 
         # pay out the stocks
@@ -120,6 +124,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             incompleteTx = incompleteTx.scalar_one_or_none()
 
             if not incompleteTx:
+                print("missing sell transaction")
                 raise ValueError(500, "Missing sell transaction to update")
 
             incompleteTx.order_status = OrderStatus.COMPLETED
@@ -138,10 +143,11 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             amountSoldTotal += sellPrice
 
         if not amountSoldTotal == buyPrice:
+            print("somehow we didnt do math right")
             raise ValueError(400, "Buyer seller mismatch")
 
         await session.commit()
-
+'''
         # Update cache after committing the transaction
         incomplete_tx_dict = {incompleteTx.stock_tx_id: incompleteTx.model_dump()}
         cache.update(f"{CacheName.STOCK_TX}:{incompleteTx.user_id}", incomplete_tx_dict)
@@ -172,7 +178,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         cache.update(
             f"{CacheName.WALLET_TX}:{sellerWalletTx.user_id}", seller_wallet_tx_dict
         )
-
+'''
 
 async def addWalletTx(
     session, order, orderValue, stockTxId, isDebit: bool
@@ -273,6 +279,7 @@ async def payOutStocks(
 ) -> Tuple[StockTransactions, dict]:
 
     if not buyOrder:
+        print("no buyer in payOutStocks")
         raise ValueError(400, "Missing buy order")
 
     statement = sqlmodel.select(StockPortfolios).where(

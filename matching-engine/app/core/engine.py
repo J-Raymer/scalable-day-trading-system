@@ -14,6 +14,7 @@ from .engineDbConnect import (
     createChildTransaction,
     setToPartiallyComplete,
 )
+import copy
 
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
@@ -53,6 +54,7 @@ async def receiveOrder(order: StockOrder, sending_user_id: str):
         incomingSellOrder.stock_tx_id = transactionId
 
         if incomingSellOrder.stock_tx_id is None:
+            print("no incomingSellOrder.stock_tx_id")
             raise ValueError(400, "error assigned id to sell order")
 
         await processSellOrder(incomingSellOrder)
@@ -114,8 +116,22 @@ async def processBuyOrder(buyOrder: BuyOrder):
 async def matchBuy(buyOrder: BuyOrder):
     global sellTrees
 
-    tempTree = sellTrees[buyOrder.stock_id].copy()
+    tempTree = copy.deepcopy(sellTrees[buyOrder.stock_id])
     # returns a list of touples (SellOrderFilled, AmountSold)
+
+    #TODO REMOVE AFTER TESTING
+    count = 0
+    check = False
+    for sellOrder in tempTree:
+        if sellOrder.user_id != buyOrder.user_id:
+            print(f"found a seller after {count} orders in the heap")
+            check = True
+        else:
+            count = count + 1
+    if not check:
+        print(f"only found {buyOrder.user_id} in the heap")
+
+
     ordersFilled, newSellTree = await matchBuyRecursive(buyOrder, [], tempTree)
 
     sellTrees[buyOrder.stock_id] = newSellTree
@@ -149,9 +165,8 @@ async def matchBuy(buyOrder: BuyOrder):
 async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree):
 
     if len(tempTree) == 0:
+        print("no more sell orders in the heap")
         raise ValueError(400, "not enough sell volume to fill buy order")
-
-    minSellOrder = heappop(tempTree)
 
     ## Check to make sure the buying user isn't buying from themselves
     skipped_orders = []
@@ -165,9 +180,10 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
         else:
             break # this line happens when we find an order from a different user
 
-    if not tempTree and all(order.user_id == buyOrder.user_id for order in skipped_orders):
+    if not tempTree and skipped_orders and all(order.user_id == buyOrder.user_id for order in skipped_orders):
         for order in skipped_orders:
             heappush(tempTree, order)
+        print("not enough sell orders from other users for this order: " + str(buyOrder.user_id))
         raise ValueError(400, "not enough sell volume from other users to fufill order")
 
     for order in skipped_orders:
@@ -214,6 +230,7 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
         res = await getTransaction(childTxId)
 
         if not res:
+            print("selltransaction from initial gather not in db")
             raise ValueError(400, "transaction not in db")
 
         poppedSellOrders.append((childSellOrder, buyQuantity))
@@ -241,11 +258,13 @@ def calculateMarketBuy(sellOrderList):
 
 async def cancelOrderEngine(cancelOrder: CancelOrder, user_id: str):
 
+    print("Cancelling an Order")
     transactionId = cancelOrder.stock_tx_id
     # Search heap for order
 
     transaction = await getTransaction(transactionId)
     if not transaction:
+        print("No Transaction Found")
         raise ValueError(500, "transcation not found")
     global sellTrees
 
@@ -254,6 +273,7 @@ async def cancelOrderEngine(cancelOrder: CancelOrder, user_id: str):
     for sellOrder in tree:
         if sellOrder.stock_tx_id == transactionId:
             if sellOrder.user_id != user_id:
+                print("You cannot cancel an order that is not yours")
                 raise ValueError(500, "You cannot cancel an order that is not yours")
             else:
                 tree.remove(sellOrder)

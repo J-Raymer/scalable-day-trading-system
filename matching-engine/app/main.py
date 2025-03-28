@@ -1,5 +1,3 @@
-import os
-import dotenv
 from aio_pika.abc import DeliveryMode
 from schemas.common import SuccessResponse, ErrorResponse, RabbitError
 from schemas.engine import StockOrder, CancelOrder
@@ -7,15 +5,9 @@ from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
 from starlette.exceptions import HTTPException
 
 # from schemas import exception_handlers
-from schemas.RedisClient import RedisClient
 import aio_pika
 from aio_pika import Message
 import asyncio
-
-
-dotenv.load_dotenv(override=True)
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT"))
 
 exchange = None
 channel = None
