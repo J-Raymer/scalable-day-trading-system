@@ -142,3 +142,13 @@ async def add_stock_to_user(
         content="ADD_STOCK",
         q_name=queue_name,
     )
+
+
+@router.get("/getStockPrices")
+async def getStockPrice():
+    return await sendRequest(
+        x_user_data="NO_AUTH",
+        body="",
+        content="GET_PRICES",
+        q_name="matching-engine",
+    )

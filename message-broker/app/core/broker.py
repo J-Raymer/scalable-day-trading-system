@@ -8,6 +8,11 @@ from pydantic import ValidationError
 futures = {}
 
 
+# Takes data from the FastAPI get/post request and sends the rabbitmq message
+# x_user_data and body are passed straight from the request
+# get requests pass "" for the body
+# content identifies the message once it's recieved by the service its headed to (STOCK_ORDER, CANCEL_ORDER...)
+# q_name is the name of the queue the message will be placed in (matching-engine, transaction...)
 async def sendRequest(x_user_data, body, content, q_name):
     if not x_user_data:
         raise HTTPException(status_code=400, detail="User data is missing in headers")

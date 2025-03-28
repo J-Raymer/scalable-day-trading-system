@@ -12,6 +12,6 @@ async def lifespan(app: FastAPI):
     await broker_shutdown()
 
 
-app = FastAPI(root_path="/message-broker", lifespan=lifespan)
-app.include_router(me_router)
-app.include_router(ts_router)
+app = FastAPI(lifespan=lifespan)
+app.include_router(router=me_router, prefix="/engine")
+app.include_router(router=ts_router)  # add the prefix back after changing nginx
