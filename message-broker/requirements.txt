@@ -2,3 +2,4 @@ asyncio
 aio_pika
 fastapi[standard]
 uuid
+sqlalchemy>=1.4.0
