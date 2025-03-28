@@ -14,4 +14,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(router=me_router, prefix="/engine")
-app.include_router(router=ts_router)  # add the prefix back after changing nginx
+app.include_router(
+    router=ts_router, prefix="/transaction"
+)  # add the prefix back after changing nginx

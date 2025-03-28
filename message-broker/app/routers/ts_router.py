@@ -53,6 +53,7 @@ async def add_money_to_wallet(
     req: AddMoneyRequest,
     x_user_data: str = Header(None),
 ):
+    print("call recieved", flush=True)
     return await sendRequest(
         x_user_data=x_user_data,
         body=req.model_dump_json(),

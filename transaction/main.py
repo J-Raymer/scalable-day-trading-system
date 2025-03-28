@@ -1,4 +1,6 @@
 import asyncio
+
+from pydantic import ValidationError
 from .transactions import *
 import os
 import dotenv
@@ -26,6 +28,7 @@ connection = None
 
 async def process_task(message):
     global exchange
+    print("message recieved", flush=True)
 
     if not exchange or not channel:
         print("no exchange exchange")
@@ -153,10 +156,13 @@ async def process_task(message):
                 ),
                 routing_key=message.reply_to,
             )
+    else:
+        raise ValidationError("content id match failed")
 
 
 async def main():
     # Connect to RabbitMQ
+    print("main running", flush=True)
     global exchange, channel
 
     connection = await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/")
