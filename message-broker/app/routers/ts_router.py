@@ -1,16 +1,11 @@
-from schemas.common import ErrorResponse, SuccessResponse, RabbitError
+from schemas.common import ErrorResponse, SuccessResponse
 from schemas.setup import Stock, StockSetup
-from schemas.engine import StockOrder, CancelOrder
 from schemas.transaction import AddMoneyRequest
 from ..core.broker import *
-from fastapi import APIRouter, Header, HTTPException, Depends
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import RedirectResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Header
 
 router = APIRouter()
+queue_name = "transaction"
 
 
 @router.get(
@@ -23,8 +18,10 @@ router = APIRouter()
         404: {"model": ErrorResponse},
     },
 )
-async def get_wallet_balance():
-    pass
+async def get_wallet_balance(x_user_data: str = Header(None)):
+    return await sendRequest(
+        x_user_data=x_user_data, body="", content="GET_WALLET", q_name=queue_name
+    )
 
 
 @router.get(
@@ -36,13 +33,10 @@ async def get_wallet_balance():
         403: {"model": ErrorResponse},
     },
 )
-async def get_wallet_transactions(
-    x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)
-):
-    if not x_user_data:
-        raise HTTPException(status_code=400, detail="User data is missing in headers")
-    username, user_id = x_user_data.split("|")
-    pass
+async def get_wallet_transactions(x_user_data: str = Header(None)):
+    return await sendRequest(
+        x_user_data=x_user_data, body="", content="GET_WALLET_TX", q_name=queue_name
+    )
 
 
 @router.post(
@@ -58,12 +52,13 @@ async def get_wallet_transactions(
 async def add_money_to_wallet(
     req: AddMoneyRequest,
     x_user_data: str = Header(None),
-    session: AsyncSession = Depends(get_session),
 ):
-    if not x_user_data:
-        raise HTTPException(status_code=400, detail="User data is missing in headers")
-    username, user_id = x_user_data.split("|")
-    pass
+    return await sendRequest(
+        x_user_data=x_user_data,
+        body=req.model_dump_json(),
+        content="ADD_MONEY",
+        q_name=queue_name,
+    )
 
 
 @router.get(
@@ -75,13 +70,13 @@ async def add_money_to_wallet(
         409: {"model": ErrorResponse},
     },
 )
-async def get_stock_portfolio(
-    x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)
-):
-    if not x_user_data:
-        raise HTTPException(status_code=400, detail="User data is missing in headers")
-    username, user_id = x_user_data.split("|")
-    pass
+async def get_stock_portfolio(x_user_data: str = Header(None)):
+    return await sendRequest(
+        x_user_data=x_user_data,
+        body="",
+        content="GET_STOCK_PORTFOLIO",
+        q_name=queue_name,
+    )
 
 
 @router.get(
@@ -93,13 +88,13 @@ async def get_stock_portfolio(
         409: {"model": ErrorResponse},
     },
 )
-async def get_stock_transactions(
-    x_user_data: str = Header(None), session: AsyncSession = Depends(get_session)
-):
-    if not x_user_data:
-        raise HTTPException(status_code=400, detail="User data is missing in headers")
-    username, user_id = x_user_data.split("|")
-    pass
+async def get_stock_transactions(x_user_data: str = Header(None)):
+    return await sendRequest(
+        x_user_data=x_user_data,
+        body="",
+        content="GET_STOCK_TX",
+        q_name=queue_name,
+    )
 
 
 @router.post(
@@ -116,12 +111,13 @@ async def get_stock_transactions(
 async def create_stock(
     stock: Stock,
     x_user_data: str = Header(None),
-    session: AsyncSession = Depends(get_session),
 ):
-    if not x_user_data:
-        raise HTTPException(status_code=400, detail="User data is missing in headers")
-    username, user_id = x_user_data.split("|")
-    pass
+    return await sendRequest(
+        x_user_data=x_user_data,
+        body=stock.model_dump_json(),
+        content="CREATE_STOCK",
+        q_name=queue_name,
+    )
 
 
 @router.post(
@@ -139,9 +135,10 @@ async def create_stock(
 async def add_stock_to_user(
     new_stock: StockSetup,
     x_user_data: str = Header(None),
-    session: AsyncSession = Depends(get_session),
 ):
-    if not x_user_data:
-        raise HTTPException(status_code=400, detail="User data is missing in headers")
-    username, user_id = x_user_data.split("|")
-    pass
+    return await sendRequest(
+        x_user_data=x_user_data,
+        body=new_stock.model_dump_json(),
+        content="ADD_STOCK",
+        q_name=queue_name,
+    )

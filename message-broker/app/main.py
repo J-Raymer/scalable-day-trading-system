@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from .core.broker import *
 from .routers.me_router import router as me_router
+from .routers.ts_router import router as ts_router
 
 
 @asynccontextmanager
@@ -13,3 +14,4 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(root_path="/message-broker", lifespan=lifespan)
 app.include_router(me_router)
+app.include_router(ts_router)
