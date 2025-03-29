@@ -5,15 +5,8 @@ from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOr
 from datetime import datetime
 from collections import defaultdict, deque
 from heapq import heapify, heappop, heappush
-from .engineDbConnect import (
-    fundsBuyerToSeller,
-    gatherStocks,
-    getStockData,
-    cancelTransaction,
-    getTransaction,
-    createChildTransaction,
-    setToPartiallyComplete,
-)
+from .engineDbConnect import *
+from .db_methods import *
 
 sellTrees = defaultdict(list)
 buyQueues = defaultdict(deque)
@@ -200,7 +193,7 @@ async def cancelOrderEngine(cancelOrder: CancelOrder):
     transactionId = cancelOrder.stock_tx_id
     # Search heap for order
 
-    transaction = await getTransaction(transactionId)
+    transaction = await getStockTransaction(transactionId)
     if not transaction:
         raise ValueError(500, "transcation not found")
     global sellTrees

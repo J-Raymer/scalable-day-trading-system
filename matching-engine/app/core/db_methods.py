@@ -1,4 +1,5 @@
 from typing import Tuple
+from schemas import Stock
 from schemas.common import SuccessResponse
 from schemas.engine import BuyOrder
 import dotenv
@@ -36,6 +37,50 @@ async_session_maker = sessionmaker(
 )
 
 cache = RedisClient()
+
+
+async def getWallet(user_id):
+    async with async_session_maker() as session:
+        statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
+        result = await session.execute(statement)
+        return result.scalar_one_or_none()
+
+
+async def updateWallet(session, user_id, amount, isDebit):
+    statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
+    result = await session.execute(statement)
+    wallet = result.scalar_one_or_none()
+
+    if isDebit:
+        wallet.balance -= amount
+    else:
+        wallet.balance += amount
+
+    session.add(wallet)
+
+
+async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
+    statement = sqlmodel.select(StockPortfolios).where(
+        StockPortfolios.user_id == user_id & StockPortfolios.stock_id == stock_id
+    )
+    result = await session.execute(statement)
+    wallet = result.scalar_one_or_none()
+
+    if isDebit:
+        wallet.balance -= amount
+    else:
+        wallet.balance += amount
+
+    session.add(wallet)
+
+
+async def getPortfolio(user_id, stock_id):
+    async with async_session_maker() as session:
+        statement = sqlmodel.select(StockPortfolios).where(
+            StockPortfolios.user_id == user_id & StockPortfolios.stock_id == stock_id
+        )
+        result = await session.execute(statement)
+        return result.scalar_one_or_none()
 
 
 async def addWalletTx(
@@ -85,10 +130,19 @@ async def addStockTx(
     return stockTx
 
 
-async def getTransaction(stockTxId):
+async def getStockTransaction(stockTxId):
     async with async_session_maker() as session:
         statement = sqlmodel.select(StockTransactions).where(
             StockTransactions.stock_tx_id == stockTxId
+        )
+        result = await session.execute(statement)
+        return result.scalar_one_or_none()
+
+
+async def getWalletTransaction(walletTxId):
+    async with async_session_maker() as session:
+        statement = sqlmodel.select(StockTransactions).where(
+            StockTransactions.stock_tx_id == walletTxId
         )
         result = await session.execute(statement)
         return result.scalar_one_or_none()

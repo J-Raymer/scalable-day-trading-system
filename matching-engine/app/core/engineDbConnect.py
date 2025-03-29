@@ -76,7 +76,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             raise ValueError(400, "buyer lacks funds")
 
         # pay out the stocks
-        buyerStockTx, holding = await payOutStocks(session, buyOrder, buyPrice)
+        buyerStockTx = await payOutStocks(session, buyOrder, buyPrice)
 
         # subtracts from buyer's wallet balance
         buyerWallet.balance -= buyPrice
@@ -184,47 +184,14 @@ async def payOutStocks(
     buyerStockHolding = await session.execute(statement)
     buyerStockHolding = buyerStockHolding.scalar_one_or_none()
 
-    # Try to get from cache first, query database as a fallback safety
-    stock_name = cache.get(f"{CacheName.STOCKS}:{buyOrder.stock_id}")
-    if not stock_name:
-        print("Pay out stocks cache failed")
-        stock_name_query = sqlmodel.select(Stocks.stock_name).where(
-            Stocks.stock_id == buyOrder.stock_id
-        )
-        stock_name = await session.execute(stock_name_query)
-        stock_name = stock_name.scalar_one()
-
-    # The holding is for caching things later.
-    holding = None
-    if not buyerStockHolding:
-        newStockHolding = StockPortfolios(
-            user_id=buyOrder.user_id,
-            stock_id=buyOrder.stock_id,
-            quantity_owned=buyOrder.quantity,
-        )
-        session.add(newStockHolding)
-        holding = {
-            newStockHolding.stock_id: {
-                "stock_name": stock_name,
-                **newStockHolding.model_dump(),
-            }
-        }
-
-    else:
-        buyerStockHolding.quantity_owned += buyOrder.quantity
-        session.add(buyerStockHolding)
-        holding = {
-            buyerStockHolding.user_id: {
-                "stock_name": stock_name,
-                **buyerStockHolding.model_dump(),
-            }
-        }
+    buyerStockHolding.quantity_owned += buyOrder.quantity
+    session.add(buyerStockHolding)
 
     stockTx = await addStockTx(
         session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED
     )
 
-    return stockTx, holding
+    return stockTx
 
 
 async def cancelTransaction(stockTxId):
@@ -249,15 +216,6 @@ async def cancelTransaction(stockTxId):
         session.add(sellerPortfolio)
 
         await session.commit()
-
-        # Update cache after committing the transaction
-        cancelled_dict = {
-            transactionToBeCancelled.stock_tx_id: transactionToBeCancelled.model_dump()
-        }
-        cache.update(
-            f"{CacheName.STOCK_TX}:{transactionToBeCancelled.user_id}", cancelled_dict
-        )
-        # TODO: Do we need to update the stock portfolio here?
 
 
 async def createChildTransaction(order, parentStockTxId):
