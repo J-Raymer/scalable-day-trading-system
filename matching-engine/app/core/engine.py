@@ -38,24 +38,17 @@ async def receiveOrder(order: StockOrder, sending_user_id: str):
         return SuccessResponse()
 
     else:
-        incomingSellOrder = SellOrder(
-            user_id=sending_user_id,
-            stock_id=order.stock_id,
-            quantity=order.quantity,
-            price=order.price,
-            timestamp=time,
-            order_type=order.order_type,
+        await processSellOrder(
+            SellOrder(
+                user_id=sending_user_id,
+                stock_id=order.stock_id,
+                quantity=order.quantity,
+                price=order.price,
+                timestamp=time,
+                order_type=order.order_type,
+            ),
+            sending_user_id,
         )
-        transactionId = await gatherStocks(
-            incomingSellOrder, sending_user_id, order.stock_id, order.quantity
-        )
-
-        incomingSellOrder.stock_tx_id = transactionId
-
-        if incomingSellOrder.stock_tx_id is None:
-            raise ValueError(400, "error assigned id to sell order")
-
-        await processSellOrder(incomingSellOrder)
         return SuccessResponse()
 
 
@@ -93,13 +86,19 @@ async def getStockPriceEngine():
     return SuccessResponse(data=data)
 
 
-async def processSellOrder(sellOrder: SellOrder):
+async def processSellOrder(sellOrder: SellOrder, user_id):
     global sellTrees
+
+    transactionId = await gatherStocks(
+        sellOrder, user_id, sellOrder.stock_id, sellOrder.quantity
+    )
+
+    sellOrder.stock_tx_id = transactionId
+
+    if sellOrder.stock_tx_id is None:
+        raise ValueError(400, "error assigned id to sell order")
+
     heappush(sellTrees[sellOrder.stock_id], sellOrder)
-    # TODO: We should rename "price" to "current_price" across the app for consistency and to avoid this sort of thing
-    sell_dict = dict(sellOrder)
-    sell_dict["current_price"] = sellOrder.price
-    del sell_dict["price"]
 
 
 async def processBuyOrder(buyOrder: BuyOrder):
@@ -119,6 +118,7 @@ async def matchBuy(buyOrder: BuyOrder):
     ordersFilled, newSellTree = await matchBuyRecursive(buyOrder, [], tempTree)
 
     orderPrice = calculateMarketBuy(ordersFilled)
+    sellTrees[buyOrder.stock_id] = newSellTree
 
     # takes money out of the buyers wallet
     await fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)

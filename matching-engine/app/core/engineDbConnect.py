@@ -17,6 +17,7 @@ from database import (
     OrderStatus,
 )
 from datetime import datetime
+from .db_methods import *
 
 dotenv.load_dotenv(override=True)
 USERNAME = os.getenv("USERNAME")
@@ -142,84 +143,6 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
 
         await session.commit()
 
-        # Update cache after committing the transaction
-        incomplete_tx_dict = {incompleteTx.stock_tx_id: incompleteTx.model_dump()}
-        cache.update(f"{CacheName.STOCK_TX}:{incompleteTx.user_id}", incomplete_tx_dict)
-        cache.update(f"{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}", holding)
-        cache.set(
-            f"{CacheName.WALLETS}:{buyOrder.user_id}",
-            {"balance": buyerWallet.balance},
-        )
-        cache.set(
-            f"{CacheName.WALLETS}:{sellOrder.user_id}",
-            {"balance": sellerWallet.balance},
-        )
-        buyer_stock_tx_dict = {buyerStockTx.stock_tx_id: buyerStockTx.model_dump()}
-        cache.update(
-            f"{CacheName.STOCK_TX}:{buyerStockTx.user_id}", buyer_stock_tx_dict
-        )
-        seller_stock_tx_dict = {sellerStockTx.stock_tx_id: sellerStockTx.model_dump()}
-        cache.update(
-            f"{CacheName.STOCK_TX}:{sellerStockTx.user_id}", seller_stock_tx_dict
-        )
-        buyer_wallet_tx_dict = {buyerWalletTx.wallet_tx_id: buyerWalletTx.model_dump()}
-        cache.update(
-            f"{CacheName.WALLET_TX}:{buyerWalletTx.user_id}", buyer_wallet_tx_dict
-        )
-        seller_wallet_tx_dict = {
-            sellerWalletTx.wallet_tx_id: sellerWalletTx.model_dump()
-        }
-        cache.update(
-            f"{CacheName.WALLET_TX}:{sellerWalletTx.user_id}", seller_wallet_tx_dict
-        )
-
-
-async def addWalletTx(
-    session, order, orderValue, stockTxId, isDebit: bool
-) -> WalletTransactions:
-    time = str(datetime.now())
-    walletTx = WalletTransactions(
-        user_id=order.user_id,
-        stock_tx_id=stockTxId,
-        is_debit=isDebit,
-        amount=orderValue,
-    )
-
-    session.add(walletTx)
-    await session.flush()
-    await session.refresh(walletTx)
-    return walletTx
-
-
-async def addStockTx(
-    session, order, isBuy: bool, price: int, state: OrderStatus
-) -> StockTransactions:
-
-    stockTx = StockTransactions(
-        stock_id=order.stock_id,
-        order_status=state,
-        is_buy=isBuy,
-        order_type=order.order_type,
-        quantity=order.quantity,
-        parent_stock_tx_id=None,
-        user_id=order.user_id,
-    )
-
-    # we should just put this ^^^ but for clarity im just gonna leave it like this for now
-    if isBuy:
-        stockTx.stock_price = (
-            price / order.quantity
-        )  # buy orders will pass in the total buy price from the combined orders
-    else:
-        stockTx.stock_price = (
-            price  # sell order will pass in their individual sell price
-        )
-
-    session.add(stockTx)
-    await session.flush()
-    await session.refresh(stockTx)
-    return stockTx
-
 
 async def gatherStocks(order, user_id, stock_id, stock_amount):
     async with async_session_maker() as session:
@@ -242,29 +165,8 @@ async def gatherStocks(order, user_id, stock_id, stock_amount):
             state=OrderStatus.IN_PROGRESS,
         )
         session.add(holding)
-
         await session.commit()
 
-        # Update cache after committing the transaction
-        buy_order_dict = {stockTx.stock_tx_id: stockTx.model_dump()}
-
-        # Try Querying the stock cache, query db if cache fails
-        stock = cache.get(f"{CacheName.STOCKS}:{stock_id}")
-        if not stock:
-            print("gatherStocks stock_name cache failed")
-            query = sqlmodel.select(Stocks).where(Stocks.stock_id == stock_id)
-            stock = await session.execute(query)
-            stock = stock.scalar_one()
-        portfolio_dict = {
-            holding.stock_id: {
-                "stock_name": stock.stock_name,
-                **holding.model_dump(),
-            }
-        }
-        cache.update(f"{CacheName.STOCK_TX}:{user_id}", buy_order_dict)
-        # Don't cache anything if they don't own any
-        if holding.quantity_owned > 0:
-            cache.update(f"{CacheName.STOCK_PORTFOLIO}:{user_id}", portfolio_dict)
         return stockTx.stock_tx_id
 
 
@@ -358,15 +260,6 @@ async def cancelTransaction(stockTxId):
         # TODO: Do we need to update the stock portfolio here?
 
 
-async def getTransaction(stockTxId):
-    async with async_session_maker() as session:
-        statement = sqlmodel.select(StockTransactions).where(
-            StockTransactions.stock_tx_id == stockTxId
-        )
-        result = await session.execute(statement)
-        return result.scalar_one_or_none()
-
-
 async def createChildTransaction(order, parentStockTxId):
     async with async_session_maker() as session:
         time = datetime.now()
@@ -387,33 +280,3 @@ async def createChildTransaction(order, parentStockTxId):
         await session.refresh(childTx)
         await session.commit()
         return childTx.stock_tx_id
-
-
-async def setToPartiallyComplete(stockTxId, quantity):
-    async with async_session_maker() as session:
-        statement = sqlmodel.select(StockTransactions).where(
-            StockTransactions.stock_tx_id == stockTxId
-        )
-        transactionToChange = await session.execute(statement)
-        transactionToChange = transactionToChange.scalar_one_or_none()
-
-        transactionToChange.order_status = OrderStatus.PARTIALLY_COMPLETE
-        transactionToChange.quantity = quantity
-
-        session.add(transactionToChange)
-        await session.commit()
-        return SuccessResponse()
-
-
-async def addWalletTxToStockTx(session, stockTxId, walletTxId) -> StockTransactions:
-
-    statement = sqlmodel.select(StockTransactions).where(
-        StockTransactions.stock_tx_id == stockTxId
-    )
-    stockTx = await session.execute(statement)
-    stockTx = stockTx.scalar_one_or_none()
-
-    stockTx.wallet_tx_id = walletTxId
-
-    session.add(stockTx)
-    return stockTx
