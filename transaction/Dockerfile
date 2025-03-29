@@ -10,4 +10,4 @@ COPY database /app/database
 COPY schemas /app/schemas
 
 
-CMD ["python3", "-m", "uvicorn", "transaction.main:app", "--host", "0.0.0.0", "--port", "8002", "--proxy-headers"]
+CMD ["python3", "-m", "transaction.main", "--host", "0.0.0.0", "--port", "8002", "--proxy-headers"]

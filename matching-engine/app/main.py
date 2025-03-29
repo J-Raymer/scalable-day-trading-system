@@ -100,7 +100,7 @@ async def main():
         channel = await connection.channel()
 
         # Declare queue
-        queue = await channel.declare_queue("testPlaceOrder", auto_delete=True)
+        queue = await channel.declare_queue("matching-engine", auto_delete=True)
 
         exchange = channel.default_exchange
 

@@ -1,0 +1,10 @@
+Collecting sqlalchemy
+  Downloading sqlalchemy-2.0.40-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (9.6 kB)
+Collecting greenlet>=1 (from sqlalchemy)
+  Using cached greenlet-3.1.1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (3.8 kB)
+Requirement already satisfied: typing-extensions>=4.6.0 in ./.venv/lib64/python3.13/site-packages (from sqlalchemy) (4.13.0)
+Downloading sqlalchemy-2.0.40-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.2/3.2 MB 19.5 MB/s eta 0:00:00
+Using cached greenlet-3.1.1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (615 kB)
+Installing collected packages: greenlet, sqlalchemy
+Successfully installed greenlet-3.1.1 sqlalchemy-2.0.40
