@@ -91,7 +91,7 @@ async def add_money_to_wallet(
 ):
     async with async_session_maker() as session:
         if req.amount <= 0:
-            raise HTTPException(status_code=400, detail="Amount must be greater than 0")
+            raise ValueError(400, "Amount must be greater than 0")
 
         async with session.begin():
             statement = select(Wallets).where(Wallets.user_id == user_id)
@@ -99,7 +99,7 @@ async def add_money_to_wallet(
             wallet = result.scalar_one_or_none()
 
         if not wallet:
-            raise HTTPException(status_code=404, detail="Wallet not found")
+            raise ValueError(404, "Wallet not found")
 
         wallet.balance += req.amount
 
@@ -172,7 +172,7 @@ async def create_stock(
     async with async_session_maker() as session:
         stock_name = stock.stock_name
         if not stock_name:
-            raise HTTPException(status_code=400, detail="stock_name required")
+            raise ValueError(400, "stock_name required")
 
         async with session.begin():
             query = select(Stocks).where(Stocks.stock_name == stock_name)
@@ -180,7 +180,7 @@ async def create_stock(
             existing_stock = result.scalar_one_or_none()
 
         if existing_stock:
-            raise HTTPException(status_code=409, detail="Stock already exists")
+            raise ValueError(409, "Stock already exists")
 
         new_stock = Stocks(stock_name=stock_name)
         session.add(new_stock)
@@ -197,9 +197,7 @@ async def add_stock_to_user(
 ):
     async with async_session_maker() as session:
         if not (new_stock.stock_id and new_stock.quantity):
-            raise HTTPException(
-                status_code=400, detail="Stock ID and quantity required"
-            )
+            raise ValueError(400, "Stock ID and quantity required")
 
         async with session.begin():
             query = select(Stocks).where(Stocks.stock_id == new_stock.stock_id)
@@ -207,7 +205,7 @@ async def add_stock_to_user(
             stock_exists = result.scalar_one_or_none()
 
         if not stock_exists:
-            raise HTTPException(status_code=404, detail="Stock not found")
+            raise ValueError(404, "Stock not found")
 
         stock_portfolio = StockPortfolios(
             user_id=user_id,
