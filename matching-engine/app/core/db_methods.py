@@ -95,7 +95,7 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
     result = await session.execute(statement)
     holding = result.scalar_one_or_none()
 
-    if holding is None: # this means the user doesn't own the stock yet
+    if holding is None:  # this means the user doesn't own the stock yet
         newStockHolding = StockPortfolios(
             user_id=user_id,
             stock_id=stock_id,
@@ -185,6 +185,7 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId) -> StockTransacti
     session.add(stockTx)
     return stockTx
 
+
 async def setToPartiallyComplete(stockTxId, quantity):
     async with async_session_maker() as session:
         statement = sqlmodel.select(StockTransactions).where(
@@ -208,7 +209,6 @@ async def createChildTransaction(order, parentTxId):
                 print("no order into child")
             if parentTxId is None:
                 print("no parentTxId into child")
-                
 
             childTx = StockTransactions(
                 stock_id=order.stock_id,

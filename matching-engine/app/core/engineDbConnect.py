@@ -46,6 +46,7 @@ error_counts = defaultdict(int)
 processed_count = 0
 reporting_interval = 100
 
+
 async def getStockData():
     async with async_session_maker() as session:
         query = sqlmodel.select(Stocks).order_by(desc(Stocks.stock_name))
@@ -62,7 +63,7 @@ async def getStockData():
 # Main purpose of writing it like this is to execute taking money from the buyer and giving
 #   it to sellers as one transaction
 async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
-    
+
     global processed_count
     metrics = {}
     stage_times = {}
@@ -146,52 +147,60 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
                         OrderStatus.COMPLETED,
                         sellQuantity,
                     )
-            
+
             stage_times["all_sell_orders_processed"] = time.time()
 
             current_stage = "final_commit"
             await session.commit()
             stage_times["commit_completed"] = time.time()
 
-            #prev_stage = "start"
-            #for stage in stage_times:
+            # prev_stage = "start"
+            # for stage in stage_times:
             #    if stage != "start":
             #        duration = stage_times[stage] - stage_times[prev_stage]
             #        metrics[f"{prev_stage}_to_{stage}"] = duration
             #        execution_metrics[f"{prev_stage}_to_{stage}"].append(duration)
             #    prev_stage = stage
-            
+
             # Total execution time
-            #metrics["total_execution_time"] = stage_times["commit_completed"] - stage_times["start"]
-            #execution_metrics["total_execution_time"].append(metrics["total_execution_time"])
-            #execution_metrics["sell_order_count"].append(sell_order_count)
-            
+            # metrics["total_execution_time"] = stage_times["commit_completed"] - stage_times["start"]
+            # execution_metrics["total_execution_time"].append(metrics["total_execution_time"])
+            # execution_metrics["sell_order_count"].append(sell_order_count)
+
             processed_count += 1
-            
+
             # Print periodic summary
             if processed_count % reporting_interval == -1:
-                print(f"\n--- Performance Summary after {processed_count} executions ---")
+                print(
+                    f"\n--- Performance Summary after {processed_count} executions ---"
+                )
                 print(f"Total errors: {sum(error_counts.values())}")
-                
+
                 for stage, times in sorted(execution_metrics.items()):
                     if stage != "sell_order_count":
                         avg_time = mean(times[-reporting_interval:])
                         med_time = median(times[-reporting_interval:])
                         max_time = max(times[-reporting_interval:])
-                        print(f"{stage}: avg={avg_time:.4f}s, median={med_time:.4f}s, max={max_time:.4f}s")
-                
-                print(f"Average sell order count: {mean(execution_metrics['sell_order_count'][-reporting_interval:]):.2f}")
+                        print(
+                            f"{stage}: avg={avg_time:.4f}s, median={med_time:.4f}s, max={max_time:.4f}s"
+                        )
+
+                print(
+                    f"Average sell order count: {mean(execution_metrics['sell_order_count'][-reporting_interval:]):.2f}"
+                )
                 print("---------------------------------------------------\n")
-            
-            #return "Transaction completed successfully"
+
+            # return "Transaction completed successfully"
 
     except Exception as e:
         error_counts[current_stage] += 1
-        if processed_count % reporting_interval == 0 or sum(error_counts.values()) % 10 == 0:
+        if (
+            processed_count % reporting_interval == 0
+            or sum(error_counts.values()) % 10 == 0
+        ):
             print(f"Error in {current_stage}: {str(e)}")
             print(f"Total errors by stage: {dict(error_counts)}")
         raise
-
 
 
 async def stockFromSeller(sellOrder):

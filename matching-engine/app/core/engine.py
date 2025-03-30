@@ -115,21 +115,20 @@ async def matchBuy(buyOrder: BuyOrder):
     await fundsBuyerToSeller(buyOrder, ordersFilled, orderPrice)
 
 
-
 # This function tries to match up the buy order quantity with enough sell orders to match.
 # It may return any number of sell orders from <1 to N. Where any sell order can be
 # divided to match the quantity exactly (hence <1).
 # Divided orders operate accordingly:
-#   - Parent Order: quantity is reduced by the amount required to match the remining buy order balance. AND NOT REMOVED FROM THE HEAP 
+#   - Parent Order: quantity is reduced by the amount required to match the remining buy order balance. AND NOT REMOVED FROM THE HEAP
 #   - Child  Order: created with that same quantity to be added to the returned list of orders. It is never added to the heap
-# 
-# Inputs:   
+#
+# Inputs:
 #           - @buyOrder : the buy order
 #           - @[]       : an empty list (for recursion) to populate with the returning sell orders
 #           - @tempTree : the heap for <stock_id> we are buying from
 # Outputs:
 #           - (SellOrderFilled, AmountSold) tuples
-#           - newSellTree 
+#           - newSellTree
 # Errors:
 #           - 400
 #             -> ValueError(400, "transaction not in db")
@@ -139,7 +138,7 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
 
     if len(tempTree) == 0:
         raise ValueError(400, "not enough sell volume to fill buy order")
-   
+
     ## check to make sure we aren't buying from ourselves
     skipped_orders = []
 
@@ -151,12 +150,18 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
             skipped_orders.append(minSellOrder)
             continue
         else:
-            break # this line is hit when find a valid sell order which was not created by the buyer
+            break  # this line is hit when find a valid sell order which was not created by the buyer
 
-    if not tempTree and skipped_orders and all(order.user_id == buyOrder.user_id for order in skipped_orders):
+    if (
+        not tempTree
+        and skipped_orders
+        and all(order.user_id == buyOrder.user_id for order in skipped_orders)
+    ):
         for order in skipped_orders:
             heappush(tempTree, order)
-        raise ValueError(400, "not enough sell orders from other users to fulfill order")
+        raise ValueError(
+            400, "not enough sell orders from other users to fulfill order"
+        )
 
     for order in skipped_orders:
         heappush(tempTree, order)
