@@ -136,7 +136,6 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
         minSellOrder.quantity = minSellOrder.quantity - buyQuantity
 
         # change the original stock transaction to Partially complete
-        await setToPartiallyComplete(minSellOrder.stock_tx_id, minSellOrder.quantity)
 
         # push original sell order back onto heap with reduced quantity
         heappush(tempTree, minSellOrder)
@@ -149,15 +148,13 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
             price=minSellOrder.price,
             timestamp=minSellOrder.timestamp,
             order_type=minSellOrder.order_type,
+            stock_tx_id=minSellOrder.stock_tx_id,
         )
 
         # create a child transaction that is IN_PROGRESS, with the parent stock tx id
-        childTxId = await createChildTransaction(
-            childSellOrder, minSellOrder.stock_tx_id
-        )
-        childSellOrder.stock_tx_id = childTxId
+        childTxId = await createChildTransaction(childSellOrder, sellQuantity)
 
-        res = await getTransaction(childTxId)
+        res = await getStockTransaction(childTxId)
 
         if not res:
             raise ValueError(400, "transaction not in db")

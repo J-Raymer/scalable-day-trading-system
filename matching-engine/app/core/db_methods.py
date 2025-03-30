@@ -182,21 +182,21 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId) -> StockTransacti
     return stockTx
 
 
-async def createChildTransaction(session, order, sellQuantity):
+async def createChildTransaction(order, sellQuantity):
+    with async_session_maker() as session:
+        childTx = StockTransactions(
+            stock_id=order.stock_id,
+            order_status=OrderStatus.COMPLETED,
+            is_buy=False,
+            order_type=order.order_type,
+            stock_price=order.price,
+            quantity=sellQuantity,
+            parent_stock_tx_id=order.stock_tx_id,
+            user_id=order.user_id,
+        )
 
-    childTx = StockTransactions(
-        stock_id=order.stock_id,
-        order_status=OrderStatus.COMPLETED,
-        is_buy=False,
-        order_type=order.order_type,
-        stock_price=order.price,
-        quantity=sellQuantity,
-        parent_stock_tx_id=order.stock_tx_id,
-        user_id=order.user_id,
-    )
-
-    session.add(childTx)
-    await session.flush()
-    await session.refresh(childTx)
-    await session.commit()
-    return childTx.stock_tx_id
+        await session.add(childTx)
+        await session.flush()
+        await session.refresh(childTx)
+        await session.commit()
+        return childTx.stock_tx_id

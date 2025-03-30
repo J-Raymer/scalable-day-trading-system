@@ -108,7 +108,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
                     OrderStatus.PARTIALLY_COMPLETE,
                     sellOrder.quantity - sellQuantity,
                 )
-                await createChildTransaction(session, sellOrder, sellQuantity)
+                # await createChildTransaction(session, sellOrder, sellQuantity)
             else:
                 await updateStockOrderStatus(
                     session,
