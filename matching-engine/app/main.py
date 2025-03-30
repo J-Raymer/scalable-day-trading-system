@@ -1,21 +1,11 @@
-import os
-import dotenv
-from aio_pika.abc import DeliveryMode
-from schemas.common import SuccessResponse, ErrorResponse, RabbitError
+from logging import ERROR
+from schemas.common import RabbitError
 from schemas.engine import StockOrder, CancelOrder
 from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
-from starlette.exceptions import HTTPException
-
-# from schemas import exception_handlers
-from schemas.RedisClient import RedisClient
 import aio_pika
 from aio_pika import Message
 import asyncio
 
-
-dotenv.load_dotenv(override=True)
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT"))
 
 exchange = None
 channel = None
@@ -33,61 +23,33 @@ async def process_task(message):
     if message.headers:
         user_id = message.headers["user_id"]
 
-    if message.content_type == "STOCK_ORDER":
-        try:
+    success = "ERROR"
+    response = RabbitError(status_code=500, detail="Internal Server Error")
+    try:
+        if message.content_type == "STOCK_ORDER":
             response = await receiveOrder(
                 StockOrder.model_validate_json(task_data), user_id
             )
-            success = "SUCCESS"
-        except ValueError as e:
-            response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success = "ERROR"
-        finally:
-            await exchange.publish(
-                Message(
-                    body=response.model_dump_json().encode(),
-                    correlation_id=message.correlation_id,
-                    content_type=success,
-                ),
-                routing_key=message.reply_to,
-            )
-
-    elif message.content_type == "CANCEL_ORDER":
-        try:
+        elif message.content_type == "CANCEL_ORDER":
             response = await cancelOrderEngine(
-                CancelOrder.model_validate_json(task_data)
+                CancelOrder.model_validate_json(task_data), user_id
             )
-            success = "SUCCESS"
-        except ValueError as e:
-            print("error caught", flush=True)
-            response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success = "ERROR"
-        finally:
-            await exchange.publish(
-                Message(
-                    body=response.model_dump_json().encode(),
-                    correlation_id=message.correlation_id,
-                    content_type=success,
-                ),
-                routing_key=message.reply_to,
-            )
-
-    elif message.content_type == "GET_PRICES":
-        try:
+        elif message.content_type == "GET_PRICES":
             response = await getStockPriceEngine()
-            success = "SUCCESS"
-        except ValueError as e:
-            response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success = "ERROR"
-        finally:
-            await exchange.publish(
-                Message(
-                    body=response.model_dump_json().encode(),
-                    correlation_id=message.correlation_id,
-                    content_type=success,
-                ),
-                routing_key=message.reply_to,
-            )
+        success = "SUCCESS"
+    except ValueError as e:
+        response = RabbitError(status_code=e.args[0], detail=e.args[1])
+    except Exception as e:
+        raise e
+    finally:
+        await exchange.publish(
+            Message(
+                body=response.model_dump_json().encode(),
+                correlation_id=message.correlation_id,
+                content_type=success,
+            ),
+            routing_key=message.reply_to,
+        )
 
 
 async def main():

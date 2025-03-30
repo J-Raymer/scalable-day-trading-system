@@ -21,6 +21,8 @@ class SellOrder(BaseModel):
     timestamp: str
     order_type: Literal["MARKET", "LIMIT"]
     stock_tx_id: Optional[int] = None
+    is_child: bool
+    amount_sold: int
 
     def __eq__(self, other):
         return self.price == other.price

@@ -44,9 +44,9 @@ app.add_exception_handler(
 async def get_wallet_balance(user_id: str):
 
     async with async_session_maker() as session:
-        cache_hit = cache.get(f"{CacheName.WALLETS}:{user_id}")
-        if cache_hit:
-            return SuccessResponse(data={"balance": cache_hit["balance"]})
+        # cache_hit = cache.get(f"{CacheName.WALLETS}:{user_id}")
+        # if cache_hit:
+        #     return SuccessResponse(data={"balance": cache_hit["balance"]})
 
         async with session.begin():
             print("CACHE MISS in get wallet balance")
