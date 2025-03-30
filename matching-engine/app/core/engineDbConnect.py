@@ -124,7 +124,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
                 await updateWallet(session, sellOrder.user_id, sellPrice, False)
 
                 sellerWalletTx = await addWalletTx(
-                    session, buyOrder, buyPrice, sellOrder.stock_tx_id, False
+                    session, sellOrder, sellPrice, sellOrder.stock_tx_id, False
                 )
 
                 # update the seller stock order status
@@ -206,7 +206,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
         ):
             print(f"Error in {current_stage}: {str(e)}")
             print(f"Total errors by stage: {dict(error_counts)}")
-        raise
+        raise e
 
 
 async def stockFromSeller(sellOrder):

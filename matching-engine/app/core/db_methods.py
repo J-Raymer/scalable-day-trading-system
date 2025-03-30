@@ -78,6 +78,12 @@ async def updateWallet(session, user_id, amount, isDebit):
     result = await session.execute(statement)
     wallet = result.scalar_one_or_none()
 
+    if wallet is None:
+        raise ValueError(400, "No wallet found")
+
+    if amount == 0:
+        raise ValueError(400, "Amount is 0")
+
     if isDebit:
         if wallet.balance < amount:
             raise ValueError(400, "Buyer lacks funds")

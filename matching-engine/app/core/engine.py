@@ -202,7 +202,7 @@ async def matchBuyRecursive(
     if (sellQuantity - sellAmount) == buyQuantity:
         minSellOrder.amount_sold = buyQuantity
 
-        poppedSellOrders.append((minSellOrder, minSellOrder.quantity))
+        poppedSellOrders.append((minSellOrder, buyQuantity))
         return poppedSellOrders, tempTree, skipped_orders
 
     # Case 2: sellOrder quantity > buyOrder quantity
