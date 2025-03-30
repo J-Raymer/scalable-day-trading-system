@@ -1,6 +1,4 @@
 from logging import ERROR
-import os
-import dotenv
 from schemas.common import RabbitError
 from schemas.engine import StockOrder, CancelOrder
 from .core import receiveOrder, cancelOrderEngine, getStockPriceEngine
@@ -8,10 +6,6 @@ import aio_pika
 from aio_pika import Message
 import asyncio
 
-
-dotenv.load_dotenv(override=True)
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT"))
 
 exchange = None
 channel = None
@@ -38,7 +32,7 @@ async def process_task(message):
             )
         elif message.content_type == "CANCEL_ORDER":
             response = await cancelOrderEngine(
-                CancelOrder.model_validate_json(task_data)
+                CancelOrder.model_validate_json(task_data), user_id
             )
         elif message.content_type == "GET_PRICES":
             response = await getStockPriceEngine()

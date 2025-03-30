@@ -51,7 +51,6 @@ async def getStockTransaction(stockTxId):
             StockTransactions.stock_tx_id == stockTxId
         )
         result = await session.execute(statement)
-        session.close()
         return result.scalar_one_or_none()
 
 
@@ -61,7 +60,6 @@ async def getWalletTransaction(walletTxId):
             WalletTransactions.stock_tx_id == walletTxId
         )
         result = await session.execute(statement)
-        session.close()
         return result.scalar_one_or_none()
 
 
@@ -72,7 +70,6 @@ async def getPortfolio(user_id, stock_id):
             & (StockPortfolios.stock_id == stock_id)
         )
         result = await session.execute(statement)
-        session.close()
         return result.scalar_one_or_none()
 
 
@@ -98,14 +95,21 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
     result = await session.execute(statement)
     holding = result.scalar_one_or_none()
 
-    if isDebit:
-        if holding.quantity_owned < amount:
-            raise ValueError(400, "Buyer lacks funds")
-        holding.quantity_owned -= amount
+    if holding is None: # this means the user doesn't own the stock yet
+        newStockHolding = StockPortfolios(
+            user_id=user_id,
+            stock_id=stock_id,
+            quantity_owned=amount,
+        )
+        session.add(newStockHolding)
     else:
-        holding.quantity_owned += amount
-
-    session.add(holding)
+        if isDebit:
+            if holding.quantity_owned < amount:
+                raise ValueError(400, "Seller lacks the stocks for this order")
+            holding.quantity_owned -= amount
+        else:
+            holding.quantity_owned += amount
+        session.add(holding)
 
 
 async def updateStockOrderStatus(session, stock_tx_id, status, newQuantity):
@@ -149,7 +153,7 @@ async def addStockTx(
         quantity=order.quantity,
         parent_stock_tx_id=None,
         user_id=order.user_id,
-        price=price,
+        stock_price=price,
     )
 
     # we should just put this ^^^ but for clarity im just gonna leave it like this for now
@@ -181,22 +185,51 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId) -> StockTransacti
     session.add(stockTx)
     return stockTx
 
-
-async def createChildTransaction(order, sellQuantity):
-    with async_session_maker() as session:
-        childTx = StockTransactions(
-            stock_id=order.stock_id,
-            order_status=OrderStatus.COMPLETED,
-            is_buy=False,
-            order_type=order.order_type,
-            stock_price=order.price,
-            quantity=sellQuantity,
-            parent_stock_tx_id=order.stock_tx_id,
-            user_id=order.user_id,
+async def setToPartiallyComplete(stockTxId, quantity):
+    async with async_session_maker() as session:
+        statement = sqlmodel.select(StockTransactions).where(
+            StockTransactions.stock_tx_id == stockTxId
         )
+        transactionToChange = await session.execute(statement)
+        transactionToChange = transactionToChange.scalar_one_or_none()
 
-        await session.add(childTx)
-        await session.flush()
-        await session.refresh(childTx)
+        transactionToChange.order_status = OrderStatus.PARTIALLY_COMPLETE
+        transactionToChange.quantity = quantity
+
+        session.add(transactionToChange)
         await session.commit()
-        return childTx.stock_tx_id
+        return SuccessResponse()
+
+
+async def createChildTransaction(order, parentTxId):
+    async with async_session_maker() as session:
+        try:
+            if order is None:
+                print("no order into child")
+            if parentTxId is None:
+                print("no parentTxId into child")
+                
+
+            childTx = StockTransactions(
+                stock_id=order.stock_id,
+                order_status=OrderStatus.IN_PROGRESS,
+                is_buy=False,
+                order_type=order.order_type,
+                stock_price=order.price,
+                quantity=order.quantity,
+                parent_stock_tx_id=parentTxId,
+                user_id=order.user_id,
+            )
+
+            if childTx is None:
+                print("childTx is None after creation")
+                raise ValueError(400, "FUCK YOU")
+            else:
+                session.add(childTx)
+                await session.flush()
+                await session.refresh(childTx)
+                await session.commit()
+                return childTx.stock_tx_id
+        except Exception as e:
+            print(f"error creating child transaction {e}")
+            raise
