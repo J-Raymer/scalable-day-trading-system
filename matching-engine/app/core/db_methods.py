@@ -202,34 +202,33 @@ async def setToPartiallyComplete(stockTxId, quantity):
         return SuccessResponse()
 
 
-async def createChildTransaction(order, parentTxId):
-    async with async_session_maker() as session:
-        try:
-            if order is None:
-                print("no order into child")
-            if parentTxId is None:
-                print("no parentTxId into child")
+async def createChildTransaction(session, order, newQuantity):
+    try:
+        if order is None:
+            print("no order into child")
+        # if parentTxId is None:
+        #     print("no parentTxId into child")
 
-            childTx = StockTransactions(
-                stock_id=order.stock_id,
-                order_status=OrderStatus.IN_PROGRESS,
-                is_buy=False,
-                order_type=order.order_type,
-                stock_price=order.price,
-                quantity=order.quantity,
-                parent_stock_tx_id=parentTxId,
-                user_id=order.user_id,
-            )
+        childTx = StockTransactions(
+            stock_id=order.stock_id,
+            order_status=OrderStatus.COMPLETED,
+            is_buy=False,
+            order_type=order.order_type,
+            stock_price=order.price,
+            quantity=newQuantity,
+            parent_stock_tx_id=order.stock_tx_id,
+            user_id=order.user_id,
+        )
 
-            if childTx is None:
-                print("childTx is None after creation")
-                raise ValueError(400, "FUCK YOU")
-            else:
-                session.add(childTx)
-                await session.flush()
-                await session.refresh(childTx)
-                await session.commit()
-                return childTx.stock_tx_id
-        except Exception as e:
-            print(f"error creating child transaction {e}")
-            raise
+        if childTx is None:
+            print("childTx is None after creation")
+            raise ValueError(400, "FUCK YOU")
+        else:
+            session.add(childTx)
+            await session.flush()
+            await session.refresh(childTx)
+            await session.commit()
+            return childTx.stock_tx_id
+    except Exception as e:
+        print(f"error creating child transaction {e}")
+        raise

@@ -1,4 +1,6 @@
 from typing import List
+
+from sqlalchemy import except_
 from schemas import SuccessResponse, RabbitError
 from schemas.RedisClient import RedisClient, CacheName
 from schemas.engine import StockOrder, SellOrder, BuyOrder, StockPrice, CancelOrder
@@ -40,6 +42,8 @@ async def receiveOrder(order: StockOrder, sending_user_id: str):
                 price=order.price,
                 timestamp=time,
                 order_type=order.order_type,
+                is_child=False,
+                amount_sold=0,
             ),
         )
         return SuccessResponse()
@@ -105,8 +109,17 @@ async def matchBuy(buyOrder: BuyOrder):
     global sellTrees
 
     tempTree = copy.deepcopy(sellTrees[buyOrder.stock_id])
+    skipped_orders = []
     # returns a list of touples (SellOrderFilled, AmountSold)
-    ordersFilled, newSellTree = await matchBuyRecursive(buyOrder, [], tempTree)
+    try:
+        ordersFilled, newSellTree, skipped_orders = await matchBuyRecursive(
+            buyOrder, [], tempTree, skipped_orders
+        )
+    except ValueError as e:
+        raise e
+    finally:
+        for order in skipped_orders:
+            heappush(tempTree, order)
 
     orderPrice = calculateMarketBuy(ordersFilled)
     sellTrees[buyOrder.stock_id] = newSellTree
@@ -134,37 +147,51 @@ async def matchBuy(buyOrder: BuyOrder):
 #             -> ValueError(400, "transaction not in db")
 #             -> ValueError(400, "not enough sell volume to fill buy order")
 #
-async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree):
+async def matchBuyRecursive(
+    buyOrder: BuyOrder, poppedSellOrders: List, tempTree, skipped_orders
+):
 
     if len(tempTree) == 0:
         raise ValueError(400, "not enough sell volume to fill buy order")
 
     ## check to make sure we aren't buying from ourselves
-    skipped_orders = []
 
-    while tempTree:
+    minSellOrder = heappop(tempTree)
 
-        minSellOrder = heappop(tempTree)
-
-        if buyOrder.user_id == minSellOrder.user_id:
-            skipped_orders.append(minSellOrder)
-            continue
-        else:
-            break  # this line is hit when find a valid sell order which was not created by the buyer
-
-    if (
-        not tempTree
-        and skipped_orders
-        and all(order.user_id == buyOrder.user_id for order in skipped_orders)
-    ):
-        for order in skipped_orders:
-            heappush(tempTree, order)
-        raise ValueError(
-            400, "not enough sell orders from other users to fulfill order"
+    if buyOrder.user_id == minSellOrder.user_id:
+        skipped_orders.append(minSellOrder)
+        return await matchBuyRecursive(
+            buyOrder, poppedSellOrders, tempTree, skipped_orders
         )
-
-    for order in skipped_orders:
-        heappush(tempTree, order)
+    """
+    having a while loop in a recursive function like this scares me 
+    changed the recursive handling to include a skipped orders list
+    skipped orders get added back after recursive step is over in matchBuy()
+    line 120
+    """
+    # while tempTree:
+    #
+    #     minSellOrder = heappop(tempTree)
+    #
+    #     if buyOrder.user_id == minSellOrder.user_id:
+    #         skipped_orders.append(minSellOrder)
+    #         continue
+    #     else:
+    #         break  # this line is hit when find a valid sell order which was not created by the buyer
+    #
+    # if (
+    #     not tempTree
+    #     and skipped_orders
+    #     and all(order.user_id == buyOrder.user_id for order in skipped_orders)
+    # ):
+    #     for order in skipped_orders:
+    #         heappush(tempTree, order)
+    #     raise ValueError(
+    #         400, "not enough sell orders from other users to fulfill order"
+    #     )
+    #
+    # for order in skipped_orders:
+    #     heappush(tempTree, order)
     ## end check
 
     buyQuantity = buyOrder.quantity
@@ -172,8 +199,10 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
 
     # Case 1: sellOrder quantity == buyOrder quantity
     if sellQuantity == buyQuantity:
+        minSellOrder.amount_sold = buyQuantity
+
         poppedSellOrders.append((minSellOrder, minSellOrder.quantity))
-        return poppedSellOrders, tempTree
+        return poppedSellOrders, tempTree, skipped_orders
 
     # Case 2: sellOrder quantity > buyOrder quantity
     #  (split off a child transaction)
@@ -183,35 +212,50 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
         minSellOrder.quantity = minSellOrder.quantity - buyQuantity
 
         # change the original stock transaction to Partially complete
-        await setToPartiallyComplete(minSellOrder.stock_tx_id, minSellOrder.quantity)
+        """
+         this is already getting updated somewhere else
+        """
+
+        # await setToPartiallyComplete(minSellOrder.stock_tx_id, minSellOrder.quantity)
 
         # push original sell order back onto heap with reduced quantity
         heappush(tempTree, minSellOrder)
 
         # create a child sell order
         childSellOrder = SellOrder(
+            stock_tx_id=minSellOrder.stock_tx_id,
             user_id=minSellOrder.user_id,
             stock_id=minSellOrder.stock_id,
             quantity=buyQuantity,
             price=minSellOrder.price,
             timestamp=minSellOrder.timestamp,
             order_type=minSellOrder.order_type,
+            is_child=True,
         )
 
-        # create a child transaction that is IN_PROGRESS, with the parent stock tx id
-        childTxId = await createChildTransaction(
-            childSellOrder, minSellOrder.stock_tx_id
-        )
-        childSellOrder.stock_tx_id = childTxId
-
-        res = await getStockTransaction(childTxId)
-
-        if not res:
-            raise ValueError(400, "transaction not in db")
-
+        # pass child sell order to dbConnect, no other need for it
         poppedSellOrders.append((childSellOrder, buyQuantity))
+        # create a child transaction that is IN_PROGRESS, with the parent stock tx id
 
-        return poppedSellOrders, tempTree
+        """
+         The transaction also gets created somewhere else and gets created as COMPLETE
+        """
+
+        # childTxId = await createChildTransaction(
+        #     childSellOrder, minSellOrder.stock_tx_id
+        # )
+        # childSellOrder.stock_tx_id = childTxId
+        #
+        # res = await getStockTransaction(childTxId)
+        #
+        # if not res:
+        #     raise ValueError(400, "transaction not in db")
+        """
+        child sell orders dont need to be added to the heap
+        """
+        # poppedSellOrders.append((childSellOrder, buyQuantity))
+
+        return poppedSellOrders, tempTree, skipped_orders
 
     # Case 3: sellOrder quantity < buyOrder quantity
     #  (we need more sell orders to make up the difference, so we recurse)
@@ -221,7 +265,9 @@ async def matchBuyRecursive(buyOrder: BuyOrder, poppedSellOrders: List, tempTree
 
         poppedSellOrders.append((minSellOrder, minSellOrder.quantity))
 
-        return await matchBuyRecursive(buyOrder, poppedSellOrders, tempTree)
+        return await matchBuyRecursive(
+            buyOrder, poppedSellOrders, tempTree, skipped_orders
+        )
 
 
 def calculateMarketBuy(sellOrderList):
