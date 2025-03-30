@@ -196,9 +196,10 @@ async def matchBuyRecursive(
 
     buyQuantity = buyOrder.quantity
     sellQuantity = minSellOrder.quantity
+    sellAmount = minSellOrder.amount_sold
 
     # Case 1: sellOrder quantity == buyOrder quantity
-    if sellQuantity == buyQuantity:
+    if (sellQuantity - sellAmount) == buyQuantity:
         minSellOrder.amount_sold = buyQuantity
 
         poppedSellOrders.append((minSellOrder, minSellOrder.quantity))
@@ -206,10 +207,10 @@ async def matchBuyRecursive(
 
     # Case 2: sellOrder quantity > buyOrder quantity
     #  (split off a child transaction)
-    if sellQuantity > buyQuantity:
+    if (sellQuantity - sellAmount) > buyQuantity:
 
         # remove buy quantity from sell order
-        minSellOrder.quantity = minSellOrder.quantity - buyQuantity
+        minSellOrder.amount_sold = sellAmount + buyQuantity
 
         # change the original stock transaction to Partially complete
         """
@@ -230,6 +231,7 @@ async def matchBuyRecursive(
             price=minSellOrder.price,
             timestamp=minSellOrder.timestamp,
             order_type=minSellOrder.order_type,
+            amount_sold=buyQuantity,
             is_child=True,
         )
 
@@ -259,10 +261,11 @@ async def matchBuyRecursive(
 
     # Case 3: sellOrder quantity < buyOrder quantity
     #  (we need more sell orders to make up the difference, so we recurse)
-    if sellQuantity < buyQuantity:
+    if (sellQuantity - sellAmount) < buyQuantity:
 
         buyOrder.quantity = buyOrder.quantity - minSellOrder.quantity
 
+        minSellOrder.amount_sold = sellQuantity
         poppedSellOrders.append((minSellOrder, minSellOrder.quantity))
 
         return await matchBuyRecursive(

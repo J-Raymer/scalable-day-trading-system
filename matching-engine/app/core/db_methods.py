@@ -120,7 +120,7 @@ async def updateStockOrderStatus(session, stock_tx_id, status, newQuantity):
     stockTx = result.scalar_one_or_none()
 
     stockTx.order_status = status
-    stockTx.quantity = newQuantity
+    # stockTx.quantity = newQuantity
     session.add(stockTx)
 
 
