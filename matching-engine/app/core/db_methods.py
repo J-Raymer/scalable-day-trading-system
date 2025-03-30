@@ -1,7 +1,4 @@
-from typing import Tuple
-from schemas import Stock
 from schemas.common import SuccessResponse
-from schemas.engine import BuyOrder
 import dotenv
 import os
 import sqlmodel
@@ -39,11 +36,13 @@ async_session_maker = sessionmaker(
 cache = RedisClient()
 
 
-async def getWallet(user_id):
+async def getWallet(user_id) -> Wallets:
     async with async_session_maker() as session:
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
         result = await session.execute(statement)
-        return result.scalar_one_or_none()
+        wallet = result.scalar_one_or_none()
+
+        return wallet.balance
 
 
 async def updateWallet(session, user_id, amount, isDebit):
@@ -52,6 +51,8 @@ async def updateWallet(session, user_id, amount, isDebit):
     wallet = result.scalar_one_or_none()
 
     if isDebit:
+        if wallet.balance < amount:
+            raise ValueError(400, "Buyer lacks funds")
         wallet.balance -= amount
     else:
         wallet.balance += amount
@@ -61,25 +62,29 @@ async def updateWallet(session, user_id, amount, isDebit):
 
 async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
     statement = sqlmodel.select(StockPortfolios).where(
-        StockPortfolios.user_id == user_id & StockPortfolios.stock_id == stock_id
+        (StockPortfolios.user_id == user_id) & (StockPortfolios.stock_id == stock_id)
     )
     result = await session.execute(statement)
-    wallet = result.scalar_one_or_none()
+    holding = result.scalar_one_or_none()
 
     if isDebit:
-        wallet.balance -= amount
+        if holding.quantity_owned < amount:
+            raise ValueError(400, "Buyer lacks funds")
+        holding.quantity_owned -= amount
     else:
-        wallet.balance += amount
+        holding.quantity_owned += amount
 
-    session.add(wallet)
+    session.add(holding)
 
 
 async def getPortfolio(user_id, stock_id):
     async with async_session_maker() as session:
         statement = sqlmodel.select(StockPortfolios).where(
-            StockPortfolios.user_id == user_id & StockPortfolios.stock_id == stock_id
+            (StockPortfolios.user_id == user_id)
+            & (StockPortfolios.stock_id == stock_id)
         )
         result = await session.execute(statement)
+        session.close()
         return result.scalar_one_or_none()
 
 
@@ -136,16 +141,29 @@ async def getStockTransaction(stockTxId):
             StockTransactions.stock_tx_id == stockTxId
         )
         result = await session.execute(statement)
+        session.close()
         return result.scalar_one_or_none()
 
 
 async def getWalletTransaction(walletTxId):
     async with async_session_maker() as session:
-        statement = sqlmodel.select(StockTransactions).where(
-            StockTransactions.stock_tx_id == walletTxId
+        statement = sqlmodel.select(WalletTransactions).where(
+            WalletTransactions.stock_tx_id == walletTxId
         )
         result = await session.execute(statement)
+        session.close()
         return result.scalar_one_or_none()
+
+
+async def updateStockOrderStatus(session, stock_tx_id, status):
+    statement = sqlmodel.select(StockTransactions).where(
+        StockTransactions.stock_tx_id == stock_tx_id
+    )
+    result = await session.execute(statement)
+    stockTx = result.scalar_one_or_none()
+
+    stockTx.order_status = status
+    session.add(stockTx)
 
 
 async def setToPartiallyComplete(stockTxId, quantity):

@@ -63,83 +63,47 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
     if len(sellOrders) <= 0:
         raise ValueError(400, "Missing sell orders")
 
-    if not buyOrder:
-        raise ValueError(400, "Missing buy order")
-
     async with async_session_maker() as session:
 
-        statement = sqlmodel.select(Wallets).where(Wallets.user_id == buyOrder.user_id)
-        buyerWallet = await session.execute(statement)
-        buyerWallet = buyerWallet.scalar_one_or_none()
+        # Handling for taking money from buyer and giving them stock
+        await updatePortfolio(
+            session, buyOrder.user_id, buyOrder.quantity, False, buyOrder.stock_id
+        )
 
-        if buyerWallet.balance < buyPrice:
-            raise ValueError(400, "buyer lacks funds")
+        buyerStockTx = await addStockTx(
+            session, buyOrder, True, buyPrice, OrderStatus.COMPLETED
+        )
 
-        # pay out the stocks
-        buyerStockTx = await payOutStocks(session, buyOrder, buyPrice)
+        await updateWallet(session, buyOrder.user_id, buyPrice, True)
 
-        # subtracts from buyer's wallet balance
-        buyerWallet.balance -= buyPrice
-        session.add(buyerWallet)
-
-        # creates wallet transaction for taking money from the buyer
         buyerWalletTx = await addWalletTx(
             session, buyOrder, buyPrice, buyerStockTx.stock_tx_id, isDebit=True
         )
 
-        # adds wallet tx id to stock stock_tx_id
         buyerStockTx = await addWalletTxToStockTx(
             session, buyerStockTx.stock_tx_id, buyerWalletTx.wallet_tx_id
         )
 
-        # TODO stock added to portfolio
-        amountSoldTotal = 0
-
+        # Doing the same for seller(s)
         for sellOrderTouple in sellOrders:
             sellOrder, sellQuantity = sellOrderTouple
 
-            # calculates price using the price per stock and the *actual* amount sold
             sellPrice = sellOrder.price * sellQuantity
 
-            statement = sqlmodel.select(Wallets).where(
-                Wallets.user_id == sellOrder.user_id
-            )
-            sellerWallet = await session.execute(statement)
-            sellerWallet = sellerWallet.scalar_one_or_none()
+            await updateWallet(session, sellOrder.user_id, sellPrice, False)
 
-            # adds money to sellers wallet
-            sellerWallet.balance += sellPrice
-            session.add(sellerWallet)
-
-            # updates the sell order transaction to completed
-            sellerStockTxId = sellOrder.stock_tx_id
-
-            statement = sqlmodel.select(StockTransactions).where(
-                StockTransactions.stock_tx_id == sellerStockTxId
-            )
-            incompleteTx = await session.execute(statement)
-            incompleteTx = incompleteTx.scalar_one_or_none()
-
-            if not incompleteTx:
-                raise ValueError(500, "Missing sell transaction to update")
-
-            incompleteTx.order_status = OrderStatus.COMPLETED
-
-            session.add(incompleteTx)
-
-            # creates wallet transaction for paying the seller
             sellerWalletTx = await addWalletTx(
-                session, sellOrder, sellPrice, sellerStockTxId, isDebit=False
+                session, buyOrder, buyPrice, sellOrder.stock_tx_id, False
             )
 
-            sellerStockTx = await addWalletTxToStockTx(
-                session, sellerStockTxId, sellerWalletTx.wallet_tx_id
+            await addWalletTxToStockTx(
+                session, sellOrder.stock_tx_id, sellerWalletTx.wallet_tx_id
             )
 
-            amountSoldTotal += sellPrice
-
-        if not amountSoldTotal == buyPrice:
-            raise ValueError(400, "Buyer seller mismatch")
+            # update the seller stock order status
+            await updateStockOrderStatus(
+                session, sellOrder.stock_tx_id, OrderStatus.COMPLETED
+            )
 
         await session.commit()
 

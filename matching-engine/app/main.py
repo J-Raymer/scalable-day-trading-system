@@ -29,7 +29,8 @@ async def process_task(message):
     if message.headers:
         user_id = message.headers["user_id"]
 
-    success = "SUCCESS"
+    success = "ERROR"
+    response = RabbitError(status_code=500, detail="Internal Server Error")
     try:
         if message.content_type == "STOCK_ORDER":
             response = await receiveOrder(
@@ -41,19 +42,10 @@ async def process_task(message):
             )
         elif message.content_type == "GET_PRICES":
             response = await getStockPriceEngine()
+        success = "SUCCESS"
     except ValueError as e:
         response = RabbitError(status_code=e.args[0], detail=e.args[1])
-        success = "ERROR"
     except Exception as e:
-        response = RabbitError(status_code=502, detail="Internal Server Error")
-        await exchange.publish(
-            Message(
-                body=response.model_dump_json().encode(),
-                correlation_id=message.correlation_id,
-                content_type="ERROR",
-            ),
-            routing_key=message.reply_to,
-        )
         raise e
     finally:
         await exchange.publish(
