@@ -101,61 +101,36 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             )
 
             # update the seller stock order status
-            await updateStockOrderStatus(
-                session, sellOrder.stock_tx_id, OrderStatus.COMPLETED
-            )
+            if sellQuantity < sellOrder.quantity:
+                await updateStockOrderStatus(
+                    session,
+                    sellOrder.stock_tx_id,
+                    OrderStatus.PARTIALLY_COMPLETE,
+                    sellOrder.quantity - sellQuantity,
+                )
+                await createChildTransaction(session, sellOrder, sellQuantity)
+            else:
+                await updateStockOrderStatus(
+                    session,
+                    sellOrder.stock_tx_id,
+                    OrderStatus.COMPLETED,
+                    sellQuantity,
+                )
 
         await session.commit()
 
 
-async def gatherStocks(order, user_id, stock_id, stock_amount):
+async def stockFromSeller(sellOrder):
     async with async_session_maker() as session:
-        statement = sqlmodel.select(StockPortfolios).where(
-            (StockPortfolios.user_id == user_id)
-            & (StockPortfolios.stock_id == stock_id)
+        await updatePortfolio(
+            session, sellOrder.user_id, sellOrder.quantity, True, sellOrder.stock_id
         )
-        holding = await session.execute(statement)
-        holding = holding.scalar_one_or_none()
 
-        if not holding or holding.quantity_owned < stock_amount:
-            raise ValueError(500, "you cannot sell stocks you dont own")
-
-        holding.quantity_owned -= stock_amount
         stockTx = await addStockTx(
-            session,
-            order,
-            isBuy=False,
-            price=order.price,
-            state=OrderStatus.IN_PROGRESS,
+            session, sellOrder, False, sellOrder.price, OrderStatus.IN_PROGRESS
         )
-        session.add(holding)
         await session.commit()
-
         return stockTx.stock_tx_id
-
-
-async def payOutStocks(
-    session, buyOrder: BuyOrder, buyPrice
-) -> Tuple[StockTransactions, dict]:
-
-    if not buyOrder:
-        raise ValueError(400, "Missing buy order")
-
-    statement = sqlmodel.select(StockPortfolios).where(
-        (StockPortfolios.user_id == buyOrder.user_id)
-        & (StockPortfolios.stock_id == buyOrder.stock_id)
-    )
-    buyerStockHolding = await session.execute(statement)
-    buyerStockHolding = buyerStockHolding.scalar_one_or_none()
-
-    buyerStockHolding.quantity_owned += buyOrder.quantity
-    session.add(buyerStockHolding)
-
-    stockTx = await addStockTx(
-        session, buyOrder, isBuy=True, price=buyPrice, state=OrderStatus.COMPLETED
-    )
-
-    return stockTx
 
 
 async def cancelTransaction(stockTxId):
@@ -180,25 +155,3 @@ async def cancelTransaction(stockTxId):
         session.add(sellerPortfolio)
 
         await session.commit()
-
-
-async def createChildTransaction(order, parentStockTxId):
-    async with async_session_maker() as session:
-        time = datetime.now()
-
-        childTx = StockTransactions(
-            stock_id=order.stock_id,
-            order_status=OrderStatus.IN_PROGRESS,
-            is_buy=False,
-            order_type=order.order_type,
-            stock_price=order.price,
-            quantity=order.quantity,
-            parent_stock_tx_id=parentStockTxId,
-            user_id=order.user_id,
-        )
-
-        session.add(childTx)
-        await session.flush()
-        await session.refresh(childTx)
-        await session.commit()
-        return childTx.stock_tx_id

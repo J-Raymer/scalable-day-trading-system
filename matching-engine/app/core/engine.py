@@ -40,7 +40,6 @@ async def receiveOrder(order: StockOrder, sending_user_id: str):
                 timestamp=time,
                 order_type=order.order_type,
             ),
-            sending_user_id,
         )
         return SuccessResponse()
 
@@ -79,12 +78,10 @@ async def getStockPriceEngine():
     return SuccessResponse(data=data)
 
 
-async def processSellOrder(sellOrder: SellOrder, user_id):
+async def processSellOrder(sellOrder: SellOrder):
     global sellTrees
 
-    transactionId = await gatherStocks(
-        sellOrder, user_id, sellOrder.stock_id, sellOrder.quantity
-    )
+    transactionId = await stockFromSeller(sellOrder)
 
     sellOrder.stock_tx_id = transactionId
 

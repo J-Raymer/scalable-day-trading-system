@@ -45,6 +45,37 @@ async def getWallet(user_id) -> Wallets:
         return wallet.balance
 
 
+async def getStockTransaction(stockTxId):
+    async with async_session_maker() as session:
+        statement = sqlmodel.select(StockTransactions).where(
+            StockTransactions.stock_tx_id == stockTxId
+        )
+        result = await session.execute(statement)
+        session.close()
+        return result.scalar_one_or_none()
+
+
+async def getWalletTransaction(walletTxId):
+    async with async_session_maker() as session:
+        statement = sqlmodel.select(WalletTransactions).where(
+            WalletTransactions.stock_tx_id == walletTxId
+        )
+        result = await session.execute(statement)
+        session.close()
+        return result.scalar_one_or_none()
+
+
+async def getPortfolio(user_id, stock_id):
+    async with async_session_maker() as session:
+        statement = sqlmodel.select(StockPortfolios).where(
+            (StockPortfolios.user_id == user_id)
+            & (StockPortfolios.stock_id == stock_id)
+        )
+        result = await session.execute(statement)
+        session.close()
+        return result.scalar_one_or_none()
+
+
 async def updateWallet(session, user_id, amount, isDebit):
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
     result = await session.execute(statement)
@@ -77,15 +108,16 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
     session.add(holding)
 
 
-async def getPortfolio(user_id, stock_id):
-    async with async_session_maker() as session:
-        statement = sqlmodel.select(StockPortfolios).where(
-            (StockPortfolios.user_id == user_id)
-            & (StockPortfolios.stock_id == stock_id)
-        )
-        result = await session.execute(statement)
-        session.close()
-        return result.scalar_one_or_none()
+async def updateStockOrderStatus(session, stock_tx_id, status, newQuantity):
+    statement = sqlmodel.select(StockTransactions).where(
+        StockTransactions.stock_tx_id == stock_tx_id
+    )
+    result = await session.execute(statement)
+    stockTx = result.scalar_one_or_none()
+
+    stockTx.order_status = status
+    stockTx.quantity = newQuantity
+    session.add(stockTx)
 
 
 async def addWalletTx(
@@ -117,6 +149,7 @@ async def addStockTx(
         quantity=order.quantity,
         parent_stock_tx_id=None,
         user_id=order.user_id,
+        price=price,
     )
 
     # we should just put this ^^^ but for clarity im just gonna leave it like this for now
@@ -135,53 +168,6 @@ async def addStockTx(
     return stockTx
 
 
-async def getStockTransaction(stockTxId):
-    async with async_session_maker() as session:
-        statement = sqlmodel.select(StockTransactions).where(
-            StockTransactions.stock_tx_id == stockTxId
-        )
-        result = await session.execute(statement)
-        session.close()
-        return result.scalar_one_or_none()
-
-
-async def getWalletTransaction(walletTxId):
-    async with async_session_maker() as session:
-        statement = sqlmodel.select(WalletTransactions).where(
-            WalletTransactions.stock_tx_id == walletTxId
-        )
-        result = await session.execute(statement)
-        session.close()
-        return result.scalar_one_or_none()
-
-
-async def updateStockOrderStatus(session, stock_tx_id, status):
-    statement = sqlmodel.select(StockTransactions).where(
-        StockTransactions.stock_tx_id == stock_tx_id
-    )
-    result = await session.execute(statement)
-    stockTx = result.scalar_one_or_none()
-
-    stockTx.order_status = status
-    session.add(stockTx)
-
-
-async def setToPartiallyComplete(stockTxId, quantity):
-    async with async_session_maker() as session:
-        statement = sqlmodel.select(StockTransactions).where(
-            StockTransactions.stock_tx_id == stockTxId
-        )
-        transactionToChange = await session.execute(statement)
-        transactionToChange = transactionToChange.scalar_one_or_none()
-
-        transactionToChange.order_status = OrderStatus.PARTIALLY_COMPLETE
-        transactionToChange.quantity = quantity
-
-        session.add(transactionToChange)
-        await session.commit()
-        return SuccessResponse()
-
-
 async def addWalletTxToStockTx(session, stockTxId, walletTxId) -> StockTransactions:
 
     statement = sqlmodel.select(StockTransactions).where(
@@ -194,3 +180,23 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId) -> StockTransacti
 
     session.add(stockTx)
     return stockTx
+
+
+async def createChildTransaction(session, order, sellQuantity):
+
+    childTx = StockTransactions(
+        stock_id=order.stock_id,
+        order_status=OrderStatus.COMPLETED,
+        is_buy=False,
+        order_type=order.order_type,
+        stock_price=order.price,
+        quantity=sellQuantity,
+        parent_stock_tx_id=order.stock_tx_id,
+        user_id=order.user_id,
+    )
+
+    session.add(childTx)
+    await session.flush()
+    await session.refresh(childTx)
+    await session.commit()
+    return childTx.stock_tx_id
