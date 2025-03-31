@@ -238,9 +238,7 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId, userId) -> StockT
         if stock_tx:
             stock_tx['wallet_tx_id'] = walletTxId
             updated_dict = {
-                stockTxId: {
-                    stock_tx
-                }
+                stockTxId: stock_tx
             }
             cache.update(f'{CacheName.STOCK_TX}:{userId}', updated_dict)
     else:
