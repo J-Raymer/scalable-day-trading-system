@@ -250,9 +250,15 @@ async def cancelTransaction(stockTxId):
         stock_name = stocks[str(stock_id)]
         portfolio_item = { str(stock_id): {
             "stock_name": stock_name,
-            **transactionToBeCancelled.model_dump()
+            **sellerPortfolio.model_dump()
         } }
         # TODO will have to delete if quantity is 0
+
+        transactions_item = {
+            stockTxId: transactionToBeCancelled.model_dump()
+        }
+        cache.update(f'{CacheName.STOCK_TX}:{transactionToBeCancelled.user_id}', transactions_item)
         cache.update(f'{CacheName.STOCK_PORTFOLIO}:{transactionToBeCancelled.user_id}', portfolio_item)
+
 
         await session.commit()
