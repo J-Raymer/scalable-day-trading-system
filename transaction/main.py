@@ -28,7 +28,6 @@ connection = None
 
 async def process_task(message):
     global exchange
-    print("message recieved", flush=True)
 
     if not exchange or not channel:
         print("no exchange exchange")

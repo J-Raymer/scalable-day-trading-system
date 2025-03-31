@@ -2,10 +2,12 @@ from schemas.common import *
 from schemas.setup import Stock, StockSetup
 from schemas.transaction import AddMoneyRequest
 from ..core.broker import *
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Depends
+from fastapi.security import OAuth2PasswordBearer
 
 router = APIRouter()
 queue_name = "auth"
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 
 @router.get(
@@ -16,11 +18,11 @@ queue_name = "auth"
         403: {"model": ErrorResponse},
     },
 )
-async def validate_token(token: str):
+async def validate_token(token: str = Depends(oauth2_scheme)):
     return await sendRequest(
         x_user_data="NO_AUTH",
         body=token,
-        content="VALIDATE_TOKEN",
+        content="VALIDATE",
         q_name=queue_name,
     )
 
@@ -34,7 +36,7 @@ async def validate_token(token: str):
         409: {"model": ErrorResponse},
     },
 )
-async def register(user: RegisterRequest):
+async def register_user(user: RegisterRequest):
     return await sendRequest(
         x_user_data="NO_AUTH",
         body=user.model_dump_json(),
@@ -51,7 +53,7 @@ async def register(user: RegisterRequest):
         404: {"model": ErrorResponse},
     },
 )
-async def login(user: LoginRequest):
+async def login_user(user: LoginRequest):
     return await sendRequest(
         x_user_data="NO_AUTH",
         body=user.model_dump_json(),
