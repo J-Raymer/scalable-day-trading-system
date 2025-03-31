@@ -214,5 +214,16 @@ async def add_stock_to_user(
         )
         session.add(stock_portfolio)
         await session.commit()
+        stock_id = new_stock.stock_id
+        stocks = cache.get(CacheName.STOCKS)
+        if not stocks:
+            print("cache miss getting stocks in add_stock_to_user")
+        stock_name = stocks[str(stock_id)]
+        portfolio_item = { str(stock_id): {
+            "stock_name": stock_name,
+            **stock_portfolio.model_dump()
+        } }
 
+        # TODO will have to delete if quantity is 0
+        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', portfolio_item)
         return SuccessResponse(data={"stock": stock_portfolio})

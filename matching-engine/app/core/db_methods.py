@@ -136,6 +136,8 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
         holding_dict = holding.model_dump()
     stock_id = holding_dict.get('stock_id')
     stocks = cache.get(CacheName.STOCKS)
+    if not stocks:
+        print("cache miss getting stocks in updatePortfolio")
     stock_name = stocks[str(stock_id)]
     portfolio_item = { str(stock_id): {
         "stock_name": stock_name,
@@ -233,7 +235,6 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId, userId) -> StockT
     session.add(stockTx)
     cache_hit = cache.get(f'{CacheName.STOCK_TX}:{userId}')
     if cache_hit:
-        print('cache hit ', cache_hit)
         stock_tx = cache_hit.get(str(stockTxId))
         if stock_tx:
             stock_tx['wallet_tx_id'] = walletTxId

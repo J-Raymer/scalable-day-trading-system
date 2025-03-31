@@ -243,4 +243,16 @@ async def cancelTransaction(stockTxId):
         sellerPortfolio.quantity_owned += transactionToBeCancelled.quantity
         session.add(sellerPortfolio)
 
+        stock_id = transactionToBeCancelled.stock_id
+        stocks = cache.get(CacheName.STOCKS)
+        if not stocks:
+            print("Cache miss getting stocks in cancelTransaction")
+        stock_name = stocks[str(stock_id)]
+        portfolio_item = { str(stock_id): {
+            "stock_name": stock_name,
+            **transactionToBeCancelled.model_dump()
+        } }
+        # TODO will have to delete if quantity is 0
+        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{transactionToBeCancelled.user_id}', portfolio_item)
+
         await session.commit()
