@@ -136,11 +136,12 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
         holding_dict = holding.model_dump()
     stock_id = holding_dict.get('stock_id')
     stocks = cache.get(CacheName.STOCKS)
-    stock = stocks[stock_id]
-    portfolio_item = { stock_id: {
-        "stock_name": stock['stock_name'],
+    stock_name = stocks[str(stock_id)]
+    portfolio_item = { str(stock_id): {
+        "stock_name": stock_name,
         **holding_dict
     } }
+     # TODO will have to delete if quantity is 0
     cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', portfolio_item)
 
 

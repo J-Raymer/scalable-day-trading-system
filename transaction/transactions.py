@@ -116,7 +116,7 @@ async def get_stock_portfolio(user_id: str):
         if cache_hit:
             return SuccessResponse(
                 data=sorted(
-                    list(cache_hit.values()),
+                    filter(lambda stock: stock['quantity_owned'] > 0, list(cache_hit.values())),
                     reverse=True,
                     key=lambda x: x["stock_name"],
                 )
