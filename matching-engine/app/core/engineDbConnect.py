@@ -106,7 +106,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             stage_times["buyer_wallet_tx_created"] = time.time()
 
             buyerStockTx = await addWalletTxToStockTx(
-                session, buyerStockTx.stock_tx_id, buyerWalletTx.wallet_tx_id
+                session, buyerStockTx.stock_tx_id, buyerWalletTx.wallet_tx_id, buyOrder.user_id
             )
             stage_times["buyer_complete"] = time.time()
 
@@ -133,25 +133,25 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
                         session,
                         sellOrder.stock_tx_id,
                         OrderStatus.PARTIALLY_COMPLETE,
-                        sellOrder.quantity,
+                        sellOrder.user_id
                     )
                     childTxId = await createChildTransaction(
                         session, sellOrder, sellQuantity
                     )
 
                     await addWalletTxToStockTx(
-                        session, childTxId, sellerWalletTx.wallet_tx_id
+                        session, childTxId, sellerWalletTx.wallet_tx_id, sellOrder.user_id
                     )
                 else:
                     await updateStockOrderStatus(
                         session,
                         sellOrder.stock_tx_id,
                         OrderStatus.COMPLETED,
-                        sellQuantity,
+                        sellOrder.user_id
                     )
 
                     await addWalletTxToStockTx(
-                        session, sellOrder.stock_tx_id, sellerWalletTx.wallet_tx_id
+                        session, sellOrder.stock_tx_id, sellerWalletTx.wallet_tx_id, sellOrder.user_id
                     )
 
             stage_times["all_sell_orders_processed"] = time.time()

@@ -285,7 +285,7 @@ async def cancelOrderEngine(cancelOrder: CancelOrder, user_id: str):
     transactionId = cancelOrder.stock_tx_id
     # Search heap for order
 
-    transaction = await getStockTransaction(transactionId)
+    transaction = await getStockTransaction(transactionId, user_id)
     if not transaction:
         raise ValueError(500, "transcation not found")
     global sellTrees

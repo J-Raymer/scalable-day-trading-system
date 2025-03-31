@@ -37,6 +37,11 @@ cache = RedisClient()
 
 
 async def getWallet(user_id) -> Wallets:
+    cache_hit = cache.get(f'{CacheName.WALLETS}:{user_id}')
+    if cache_hit:
+        return cache_hit['balance']
+
+    print("Cache miss in getWallet ", user_id)
     async with async_session_maker() as session:
         statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
         result = await session.execute(statement)
@@ -45,7 +50,16 @@ async def getWallet(user_id) -> Wallets:
         return wallet.balance
 
 
-async def getStockTransaction(stockTxId):
+async def getStockTransaction(stockTxId, userId):
+    cache_hit = cache.get(f'{CacheName.STOCK_TX}:{userId}')
+    tx = None
+    if cache_hit:
+        # Get the transaction from the list of stock transactions for the user if it exists
+        tx = cache_hit.get(str(stockTxId))
+    if tx:
+        return tx
+
+    print(f'Cache miss in getStockTransaction stockTxId: {stockTxId}, userId: {userId}')
     async with async_session_maker() as session:
         statement = sqlmodel.select(StockTransactions).where(
             StockTransactions.stock_tx_id == stockTxId
@@ -92,6 +106,8 @@ async def updateWallet(session, user_id, amount, isDebit):
         wallet.balance += amount
 
     session.add(wallet)
+    cache.set(f"{CacheName.WALLETS}:{user_id}", {"balance": wallet.balance})
+
 
 
 async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
@@ -100,7 +116,7 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
     )
     result = await session.execute(statement)
     holding = result.scalar_one_or_none()
-
+    holding_dict = None
     if holding is None:  # this means the user doesn't own the stock yet
         newStockHolding = StockPortfolios(
             user_id=user_id,
@@ -108,6 +124,7 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
             quantity_owned=amount,
         )
         session.add(newStockHolding)
+        holding_dict = newStockHolding.model_dump()
     else:
         if isDebit:
             if holding.quantity_owned < amount:
@@ -116,18 +133,35 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
         else:
             holding.quantity_owned += amount
         session.add(holding)
+        holding_dict = holding.model_dump()
+    portfolio_item = {
+        holding_dict['stock_id']: {
+            holding_dict
+        }
+    }
+    cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', portfolio_item)
 
 
-async def updateStockOrderStatus(session, stock_tx_id, status, newQuantity):
+
+
+async def updateStockOrderStatus(session, stock_tx_id, status, user_id):
     statement = sqlmodel.select(StockTransactions).where(
         StockTransactions.stock_tx_id == stock_tx_id
     )
     result = await session.execute(statement)
     stockTx = result.scalar_one_or_none()
+    if not stockTx:
+        raise ValueError(404, "No stockTx in updateStockOrderStatus")
 
     stockTx.order_status = status
-    # stockTx.quantity = newQuantity
     session.add(stockTx)
+    stockTxDict = stockTx.model_dump()
+    tx_item = {
+        stock_tx_id: {
+            stockTxDict
+        }
+    }
+    cache.update(f'{CacheName.STOCK_TX}:{user_id}', tx_item)
 
 
 async def addWalletTx(
@@ -144,6 +178,12 @@ async def addWalletTx(
     session.add(walletTx)
     await session.flush()
     await session.refresh(walletTx)
+    wallet_tx_item = {
+        walletTx.wallet_tx_id: {
+            walletTx.model_dump()
+        }
+    }
+    cache.update(f'{CacheName.WALLET_TX}:{order.user_id}', wallet_tx_item)
     return walletTx
 
 
@@ -175,10 +215,16 @@ async def addStockTx(
     session.add(stockTx)
     await session.flush()
     await session.refresh(stockTx)
+    tx_item = {
+        stockTx.stock_tx_id: {
+            stockTx
+        }
+    }
+    cache.update(f'{CacheName.STOCK_TX}:{order.user_id}', tx_item)
     return stockTx
 
 
-async def addWalletTxToStockTx(session, stockTxId, walletTxId) -> StockTransactions:
+async def addWalletTxToStockTx(session, stockTxId, walletTxId, userId) -> StockTransactions:
 
     statement = sqlmodel.select(StockTransactions).where(
         StockTransactions.stock_tx_id == stockTxId
@@ -189,6 +235,17 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId) -> StockTransacti
     stockTx.wallet_tx_id = walletTxId
 
     session.add(stockTx)
+    cache_hit = cache.get(f'{CacheName.STOCK_TX}:{userId}')
+    if cache_hit:
+        stock_tx = cache_hit.get(str(stockTxId))
+        if stock_tx:
+            stock_tx['wallet_tx_id'] = walletTxId
+            updated_dict = {
+                stockTxId: {
+                    stock_tx
+                }
+            }
+            cache.update(f'{CacheName.STOCK_TX}:{userId}', updated_dict)
     return stockTx
 
 
@@ -226,15 +283,19 @@ async def createChildTransaction(session, order, newQuantity):
             user_id=order.user_id,
         )
 
-        if childTx is None:
-            print("childTx is None after creation")
-            raise ValueError(400, "FUCK YOU")
-        else:
-            session.add(childTx)
-            await session.flush()
-            await session.refresh(childTx)
-            await session.commit()
-            return childTx.stock_tx_id
+        session.add(childTx)
+        await session.flush()
+        await session.refresh(childTx)
+        await session.commit()
+
+        child_tx_item = {
+            childTx.stock_tx_id: {
+                childTx
+            }
+        }
+        cache.update(f'{CacheName.STOCK_TX}:{order.user_id}', child_tx_item)
+
+        return childTx.stock_tx_id
     except Exception as e:
         print(f"error creating child transaction {e}")
         raise
