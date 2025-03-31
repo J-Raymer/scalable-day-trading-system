@@ -134,11 +134,13 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
             holding.quantity_owned += amount
         session.add(holding)
         holding_dict = holding.model_dump()
-    portfolio_item = {
-        holding_dict['stock_id']: {
-            holding_dict
-        }
-    }
+    stock_id = holding_dict.get('stock_id')
+    stocks = cache.get(CacheName.STOCKS)
+    stock = stocks[stock_id]
+    portfolio_item = { stock_id: {
+        "stock_name": stock['stock_name'],
+        **holding_dict
+    } }
     cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', portfolio_item)
 
 
@@ -157,9 +159,8 @@ async def updateStockOrderStatus(session, stock_tx_id, status, user_id):
     session.add(stockTx)
     stockTxDict = stockTx.model_dump()
     tx_item = {
-        stock_tx_id: {
-            stockTxDict
-        }
+        stock_tx_id: stockTxDict
+
     }
     cache.update(f'{CacheName.STOCK_TX}:{user_id}', tx_item)
 
@@ -178,11 +179,7 @@ async def addWalletTx(
     session.add(walletTx)
     await session.flush()
     await session.refresh(walletTx)
-    wallet_tx_item = {
-        walletTx.wallet_tx_id: {
-            walletTx.model_dump()
-        }
-    }
+    wallet_tx_item = { walletTx.wallet_tx_id: walletTx.model_dump()    }
     cache.update(f'{CacheName.WALLET_TX}:{order.user_id}', wallet_tx_item)
     return walletTx
 
@@ -216,9 +213,7 @@ async def addStockTx(
     await session.flush()
     await session.refresh(stockTx)
     tx_item = {
-        stockTx.stock_tx_id: {
-            stockTx
-        }
+        stockTx.stock_tx_id: stockTx.model_dump()
     }
     cache.update(f'{CacheName.STOCK_TX}:{order.user_id}', tx_item)
     return stockTx
@@ -237,6 +232,7 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId, userId) -> StockT
     session.add(stockTx)
     cache_hit = cache.get(f'{CacheName.STOCK_TX}:{userId}')
     if cache_hit:
+        print('cache hit ', cache_hit)
         stock_tx = cache_hit.get(str(stockTxId))
         if stock_tx:
             stock_tx['wallet_tx_id'] = walletTxId
@@ -246,6 +242,8 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId, userId) -> StockT
                 }
             }
             cache.update(f'{CacheName.STOCK_TX}:{userId}', updated_dict)
+    else:
+        print('Cache miss in addWalletTxToStockTx update')
     return stockTx
 
 
@@ -289,9 +287,7 @@ async def createChildTransaction(session, order, newQuantity):
         await session.commit()
 
         child_tx_item = {
-            childTx.stock_tx_id: {
-                childTx
-            }
+            childTx.stock_tx_id: childTx.model_dump()
         }
         cache.update(f'{CacheName.STOCK_TX}:{order.user_id}', child_tx_item)
 
