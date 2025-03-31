@@ -18,6 +18,7 @@ from .db import get_session, AsyncSessionLocal
 import logging
 from contextlib import asynccontextmanager
 import aio_pika
+import json
 
 logging.basicConfig()
 logging.getLogger("sqlalchemy.engine").setLevel(logging.DEBUG)
@@ -68,7 +69,11 @@ async def validate_token(token: str = Depends(oauth2_scheme)):
             algorithms=[JWT_ALGORITHM],
             options={"require": ["exp", "id", "username"]},
         )
-        return {"username": decoded_token["username"], "id": decoded_token["id"]}
+
+        token_dict = {"username": decoded_token["username"], "id": decoded_token["id"]}
+
+        return json.dumps(token_dict)
+
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Invalid Token")
     except jwt.InvalidSignatureError:

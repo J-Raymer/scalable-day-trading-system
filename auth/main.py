@@ -40,26 +40,33 @@ async def process_task(message):
         user_id = message.headers["user_id"]
 
     success = "ERROR"
-    response = RabbitError(status_code=500, detail="Internal Server Error")
+    response = RabbitError(
+        status_code=500, detail="Internal Server Error"
+    ).model_dump_json()
     try:
         if message.content_type == "REGISTER":
             response = await register_user(
                 RegisterRequest.model_validate_json(task_data)
             )
+            response = response.model_dump_json()
+            success = "SUCCESS"
         elif message.content_type == "LOGIN":
             response = await login_user(LoginRequest.model_validate_json(task_data))
+            response = response.model_dump_json()
+            success = "SUCCESS"
         elif message.content_type == "VALIDATE":
-            await validate_token(task_data)
-            response = SuccessResponse()
-        success = "SUCCESS"
+            response = await validate_token(task_data)
+            success = "TOKEN"
     except ValueError as e:
-        response = RabbitError(status_code=e.args[0], detail=e.args[1])
+        response = RabbitError(
+            status_code=e.args[0], detail=e.args[1]
+        ).model_dump_json()
     except Exception as e:
         raise e
     finally:
         await exchange.publish(
             aio_pika.Message(
-                body=response.model_dump_json().encode(),
+                body=response.encode(),
                 correlation_id=message.correlation_id,
                 content_type=success,
             ),

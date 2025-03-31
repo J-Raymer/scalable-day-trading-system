@@ -4,6 +4,7 @@ import uuid
 from fastapi import HTTPException
 from schemas.common import SuccessResponse, RabbitError
 from pydantic import ValidationError
+import json
 
 futures = {}
 
@@ -33,6 +34,8 @@ async def sendRequest(x_user_data, body, content, q_name):
 
     if response.content_type == "SUCCESS":
         return SuccessResponse.model_validate_json(response.body.decode())
+    if response.content_type == "TOKEN":
+        return json.loads(response.body.decode())
 
     error = RabbitError.model_validate_json(response.body.decode())
     raise HTTPException(status_code=error.status_code, detail=error.detail)
