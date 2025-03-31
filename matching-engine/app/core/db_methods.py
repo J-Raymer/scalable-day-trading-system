@@ -87,7 +87,7 @@ async def getPortfolio(user_id, stock_id):
         return result.scalar_one_or_none()
 
 
-async def updateWallet(session, user_id, amount, isDebit):
+async def updateWallet(session, user_id, amount, isDebit) -> Wallets:
     statement = sqlmodel.select(Wallets).where(Wallets.user_id == user_id)
     result = await session.execute(statement)
     wallet = result.scalar_one_or_none()
@@ -106,8 +106,7 @@ async def updateWallet(session, user_id, amount, isDebit):
         wallet.balance += amount
 
     session.add(wallet)
-    cache.set(f"{CacheName.WALLETS}:{user_id}", {"balance": wallet.balance})
-
+    return wallet
 
 
 async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
@@ -124,7 +123,7 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
             quantity_owned=amount,
         )
         session.add(newStockHolding)
-        holding_dict = newStockHolding.model_dump()
+        return newStockHolding
     else:
         if isDebit:
             if holding.quantity_owned < amount:
@@ -133,23 +132,14 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
         else:
             holding.quantity_owned += amount
         session.add(holding)
-        holding_dict = holding.model_dump()
-    stock_id = holding_dict.get('stock_id')
-    stocks = cache.get(CacheName.STOCKS)
-    if not stocks:
-        print("cache miss getting stocks in updatePortfolio")
-    stock_name = stocks[str(stock_id)]
-    portfolio_item = { str(stock_id): {
-        "stock_name": stock_name,
-        **holding_dict
-    } }
-     # TODO will have to delete if quantity is 0
-    cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', portfolio_item)
+        return holding
 
 
 
 
-async def updateStockOrderStatus(session, stock_tx_id, status, user_id):
+
+
+async def updateStockOrderStatus(session, stock_tx_id, status, user_id) -> StockTransactions:
     statement = sqlmodel.select(StockTransactions).where(
         StockTransactions.stock_tx_id == stock_tx_id
     )
@@ -160,12 +150,8 @@ async def updateStockOrderStatus(session, stock_tx_id, status, user_id):
 
     stockTx.order_status = status
     session.add(stockTx)
-    stockTxDict = stockTx.model_dump()
-    tx_item = {
-        stock_tx_id: stockTxDict
 
-    }
-    cache.update(f'{CacheName.STOCK_TX}:{user_id}', tx_item)
+    return stockTx
 
 
 async def addWalletTx(
@@ -182,8 +168,7 @@ async def addWalletTx(
     session.add(walletTx)
     await session.flush()
     await session.refresh(walletTx)
-    wallet_tx_item = { walletTx.wallet_tx_id: walletTx.model_dump()    }
-    cache.update(f'{CacheName.WALLET_TX}:{order.user_id}', wallet_tx_item)
+
     return walletTx
 
 
@@ -215,10 +200,6 @@ async def addStockTx(
     session.add(stockTx)
     await session.flush()
     await session.refresh(stockTx)
-    tx_item = {
-        stockTx.stock_tx_id: stockTx.model_dump()
-    }
-    cache.update(f'{CacheName.STOCK_TX}:{order.user_id}', tx_item)
     return stockTx
 
 
@@ -233,17 +214,17 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId, userId) -> StockT
     stockTx.wallet_tx_id = walletTxId
 
     session.add(stockTx)
-    cache_hit = cache.get(f'{CacheName.STOCK_TX}:{userId}')
-    if cache_hit:
-        stock_tx = cache_hit.get(str(stockTxId))
-        if stock_tx:
-            stock_tx['wallet_tx_id'] = walletTxId
-            updated_dict = {
-                stockTxId: stock_tx
-            }
-            cache.update(f'{CacheName.STOCK_TX}:{userId}', updated_dict)
-    else:
-        print('Cache miss in addWalletTxToStockTx update')
+    # cache_hit = cache.get(f'{CacheName.STOCK_TX}:{userId}')
+    # if cache_hit:
+    #     stock_tx = cache_hit.get(str(stockTxId))
+    #     if stock_tx:
+    #         stock_tx['wallet_tx_id'] = walletTxId
+    #         updated_dict = {
+    #             stockTxId: stock_tx
+    #         }
+    #     cache.update(f'{CacheName.STOCK_TX}:{userId}', updated_dict)
+    # else:
+    #     print('Cache miss in addWalletTxToStockTx update')
     return stockTx
 
 

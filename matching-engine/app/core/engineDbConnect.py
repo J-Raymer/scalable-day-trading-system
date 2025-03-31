@@ -87,7 +87,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             current_stage = "db_session_created"
 
             # Handling for taking money from buyer and giving them stock
-            await updatePortfolio(
+            holding = await updatePortfolio(
                 session, buyOrder.user_id, buyOrder.quantity, False, buyOrder.stock_id
             )
             stage_times["updated_portfolio"] = time.time()
@@ -97,7 +97,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             )
             stage_times["buyer_stock_tx_created"] = time.time()
 
-            await updateWallet(session, buyOrder.user_id, buyPrice, True)
+            buyer_wallet = await updateWallet(session, buyOrder.user_id, buyPrice, True)
             stage_times["buyer_wallet_updated"] = time.time()
 
             buyerWalletTx = await addWalletTx(
@@ -114,6 +114,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             sell_order_count = len(sellOrders)
 
             # Doing the same for seller(s)
+            sell_order_cache_list: (str, Wallets, WalletTransactions, StockTransactions) = []
             for i, sellOrderTouple in enumerate(sellOrders):
                 current_stage = f"sell_order_{i+1}_of_{sell_order_count}"
 
@@ -121,7 +122,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
 
                 sellPrice = sellOrder.price * sellQuantity
 
-                await updateWallet(session, sellOrder.user_id, sellPrice, False)
+                wallet = await updateWallet(session, sellOrder.user_id, sellPrice, False)
 
                 sellerWalletTx = await addWalletTx(
                     session, sellOrder, sellPrice, sellOrder.stock_tx_id, False
@@ -139,7 +140,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
                         session, sellOrder, sellQuantity
                     )
 
-                    await addWalletTxToStockTx(
+                    stock_tx = await addWalletTxToStockTx(
                         session, childTxId, sellerWalletTx.wallet_tx_id, sellOrder.user_id
                     )
                 else:
@@ -150,14 +151,47 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
                         sellOrder.user_id
                     )
 
-                    await addWalletTxToStockTx(
+                    stock_tx = await addWalletTxToStockTx(
                         session, sellOrder.stock_tx_id, sellerWalletTx.wallet_tx_id, sellOrder.user_id
                     )
+                sell_order_cache_list.append((sellOrder.user_id, wallet, sellerWalletTx, stock_tx))
+
 
             stage_times["all_sell_orders_processed"] = time.time()
 
             current_stage = "final_commit"
             await session.commit()
+            tx_item = {
+                buyerStockTx.stock_tx_id: buyerStockTx.model_dump()
+            }
+            cache.update(f'{CacheName.STOCK_TX}:{buyOrder.user_id}', tx_item)
+
+
+            holding_dict = holding.model_dump()
+            stock_id = holding_dict.get('stock_id')
+            stocks = cache.get(CacheName.STOCKS)
+            if not stocks:
+                print("cache miss getting stocks in updatePortfolio")
+            stock_name = stocks[str(stock_id)]
+            portfolio_item = { str(stock_id): {
+                "stock_name": stock_name,
+                **holding_dict
+            } }
+             # TODO will have to delete if quantity is 0
+            cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', portfolio_item)
+            cache.set(f"{CacheName.WALLETS}:{buyOrder.user_id}", {"balance": buyer_wallet.balance})
+            for sell_order in sell_order_cache_list:
+                cache.set(f"{CacheName.WALLETS}:{sell_order[0]}", {"balance": sell_order[1].balance})
+                wallet_tx_item = { sell_order[2].wallet_tx_id: sell_order[2].model_dump()    }
+                cache.update(f'{CacheName.WALLET_TX}:{sell_order[0]}', wallet_tx_item)
+
+                stockTxDict = sell_order[3].model_dump()
+                tx_item = {
+                    sell_order[3].stock_tx_id: stockTxDict
+
+                }
+                cache.update(f'{CacheName.STOCK_TX}:{sell_order[0]}', tx_item)
+
             stage_times["commit_completed"] = time.time()
 
             # prev_stage = "start"
@@ -211,14 +245,26 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
 
 async def stockFromSeller(sellOrder):
     async with async_session_maker() as session:
-        await updatePortfolio(
+        holding = await updatePortfolio(
             session, sellOrder.user_id, sellOrder.quantity, True, sellOrder.stock_id
         )
+        holding_dict = holding.model_dump()
 
         stockTx = await addStockTx(
             session, sellOrder, False, sellOrder.price, OrderStatus.IN_PROGRESS
         )
         await session.commit()
+        stock_id = holding_dict.get('stock_id')
+        stocks = cache.get(CacheName.STOCKS)
+        if not stocks:
+            print("cache miss getting stocks in updatePortfolio")
+        stock_name = stocks[str(stock_id)]
+        portfolio_item = { str(stock_id): {
+            "stock_name": stock_name,
+            **holding_dict
+        } }
+         # TODO will have to delete if quantity is 0
+        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{sellOrder.user_id}', portfolio_item)
         return stockTx.stock_tx_id
 
 
@@ -243,6 +289,7 @@ async def cancelTransaction(stockTxId):
         sellerPortfolio.quantity_owned += transactionToBeCancelled.quantity
         session.add(sellerPortfolio)
 
+        await session.commit()
         stock_id = transactionToBeCancelled.stock_id
         stocks = cache.get(CacheName.STOCKS)
         if not stocks:
@@ -259,6 +306,3 @@ async def cancelTransaction(stockTxId):
         }
         cache.update(f'{CacheName.STOCK_TX}:{transactionToBeCancelled.user_id}', transactions_item)
         cache.update(f'{CacheName.STOCK_PORTFOLIO}:{transactionToBeCancelled.user_id}', portfolio_item)
-
-
-        await session.commit()
