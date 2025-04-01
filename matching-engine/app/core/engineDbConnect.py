@@ -161,82 +161,45 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
 
             current_stage = "final_commit"
             await session.commit()
+        tx_item = {
+            buyerStockTx.stock_tx_id: buyerStockTx.model_dump()
+        }
+        cache.update(f'STOCK_TX:{buyOrder.user_id}', tx_item)
+
+
+        holding_dict = holding.model_dump()
+        stock_id = holding_dict.get('stock_id')
+        stocks = cache.get("STOCKS")
+        if not stocks:
+            print("cache miss getting stocks in updatePortfolio")
+        stock_name = stocks[str(stock_id)]
+        portfolio_item = { str(stock_id): {
+            "stock_name": stock_name,
+            **holding_dict
+        } }
+
+        buyer_wallet_tx_item = {
+            buyerWalletTx.wallet_tx_id: buyerWalletTx.model_dump()   }
+
+         # TODO will have to delete if quantity is 0
+        cache.update(f'STOCK_PORTFOLIO:{buyOrder.user_id}', portfolio_item)
+        cache.set(f"WALLETS:{buyOrder.user_id}", {"balance": buyer_wallet.balance})
+        cache.update(f'WALLET_TX:{buyOrder.user_id}', buyer_wallet_tx_item)
+        for sell_order in sell_order_cache_list:
+            cache.set(f"WALLETS:{sell_order[0]}", {"balance": sell_order[1].balance})
+            wallet_tx_item = { sell_order[2].wallet_tx_id: sell_order[2].model_dump()    }
+            wallet_update_result = cache.update(f'WALLET_TX:{sell_order[0]}', wallet_tx_item)
+            print(f'WALLET UPDATE RESULT {wallet_update_result}  {sell_order[0]}  {wallet_tx_item}', )
+
+            stockTxDict = sell_order[3].model_dump()
             tx_item = {
-                buyerStockTx.stock_tx_id: buyerStockTx.model_dump()
+                sell_order[3].stock_tx_id: stockTxDict
+
             }
-            cache.update(f'STOCK_TX:{buyOrder.user_id}', tx_item)
+            cache.update(f'STOCK_TX:{sell_order[0]}', tx_item)
 
 
-            holding_dict = holding.model_dump()
-            stock_id = holding_dict.get('stock_id')
-            stocks = cache.get("STOCKS")
-            if not stocks:
-                print("cache miss getting stocks in updatePortfolio")
-            stock_name = stocks[str(stock_id)]
-            portfolio_item = { str(stock_id): {
-                "stock_name": stock_name,
-                **holding_dict
-            } }
 
-            buyer_wallet_tx_item = {
-                buyerWalletTx.wallet_tx_id: buyerWalletTx.model_dump()   }
-
-             # TODO will have to delete if quantity is 0
-            cache.update(f'STOCK_PORTFOLIO:{buyOrder.user_id}', portfolio_item)
-            cache.set(f"WALLETS:{buyOrder.user_id}", {"balance": buyer_wallet.balance})
-            cache.update(f'WALLET_TX:{buyOrder.user_id}', buyer_wallet_tx_item)
-            for sell_order in sell_order_cache_list:
-                cache.set(f"WALLETS:{sell_order[0]}", {"balance": sell_order[1].balance})
-                wallet_tx_item = { sell_order[2].wallet_tx_id: sell_order[2].model_dump()    }
-                wallet_update_result = cache.update(f'WALLET_TX:{sell_order[0]}', wallet_tx_item)
-                print(f'WALLET UPDATE RESULT {wallet_update_result}  {sell_order[0]}  {wallet_tx_item}', )
-
-                stockTxDict = sell_order[3].model_dump()
-                tx_item = {
-                    sell_order[3].stock_tx_id: stockTxDict
-
-                }
-                cache.update(f'STOCK_TX:{sell_order[0]}', tx_item)
-
-            stage_times["commit_completed"] = time.time()
-
-            # prev_stage = "start"
-            # for stage in stage_times:
-            #    if stage != "start":
-            #        duration = stage_times[stage] - stage_times[prev_stage]
-            #        metrics[f"{prev_stage}_to_{stage}"] = duration
-            #        execution_metrics[f"{prev_stage}_to_{stage}"].append(duration)
-            #    prev_stage = stage
-
-            # Total execution time
-            # metrics["total_execution_time"] = stage_times["commit_completed"] - stage_times["start"]
-            # execution_metrics["total_execution_time"].append(metrics["total_execution_time"])
-            # execution_metrics["sell_order_count"].append(sell_order_count)
-
-            processed_count += 1
-
-            # Print periodic summary
-            if processed_count % reporting_interval == -1:
-                print(
-                    f"\n--- Performance Summary after {processed_count} executions ---"
-                )
-                print(f"Total errors: {sum(error_counts.values())}")
-
-                for stage, times in sorted(execution_metrics.items()):
-                    if stage != "sell_order_count":
-                        avg_time = mean(times[-reporting_interval:])
-                        med_time = median(times[-reporting_interval:])
-                        max_time = max(times[-reporting_interval:])
-                        print(
-                            f"{stage}: avg={avg_time:.4f}s, median={med_time:.4f}s, max={max_time:.4f}s"
-                        )
-
-                print(
-                    f"Average sell order count: {mean(execution_metrics['sell_order_count'][-reporting_interval:]):.2f}"
-                )
-                print("---------------------------------------------------\n")
-
-            # return "Transaction completed successfully"
 
     except Exception as e:
         error_counts[current_stage] += 1

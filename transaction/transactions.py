@@ -111,16 +111,17 @@ async def add_money_to_wallet(
 
 
 async def get_stock_portfolio(user_id: str):
-    async with async_session_maker() as session:
-        cache_hit = cache.get(f"STOCK_PORTFOLIO:{user_id}")
-        if cache_hit:
-            return SuccessResponse(
-                data=sorted(
-                    filter(lambda stock: stock['quantity_owned'] > 0, list(cache_hit.values())),
-                    reverse=True,
-                    key=lambda x: x["stock_name"],
-                )
+    cache_hit = cache.get(f"STOCK_PORTFOLIO:{user_id}")
+    if cache_hit:
+        return SuccessResponse(
+            data=sorted(
+                filter(lambda stock: stock['quantity_owned'] > 0, list(cache_hit.values())),
+                reverse=True,
+                key=lambda x: x["stock_name"],
             )
+        )
+    async with async_session_maker() as session:
+
 
         async with session.begin():
             print(f"CACHE MISS in get stock portfolio {user_id}")
