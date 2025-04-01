@@ -14,8 +14,12 @@ from database import Users, Wallets
 from schemas.common import *
 from schemas import exception_handlers
 from schemas.RedisClient import RedisClient, CacheName
-from .db import get_session
+from .db import get_session, AsyncSessionLocal
 import logging
+from contextlib import asynccontextmanager
+import aio_pika
+from .auth import *
+
 logging.basicConfig()
 logging.getLogger("sqlalchemy.engine").setLevel(logging.DEBUG)
 import hashlib
@@ -23,167 +27,71 @@ import hashlib
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
-app = FastAPI(root_path="/authentication")
 
-cache = RedisClient()
+async def process_task(message):
+    global exchange
 
-app.add_exception_handler(StarletteHTTPException, exception_handlers.http_exception_handler)
-app.add_exception_handler(RequestValidationError, exception_handlers.validation_exception_handler)
+    if not exchange or not channel:
+        print("no exchange exchange")
+        return
 
+    task_data = message.body.decode()
+    if message.headers:
+        user_id = message.headers["user_id"]
 
-
-### Auth Functions
-
-def generate_token(user: Users):
-    expiration = datetime.now() + timedelta(days=1)
-    token = jwt.encode(
-        {
-            "username": user.user_name,
-            "name": user.name,
-            "id": user.id,
-            "exp": expiration,
-        },
-        JWT_SECRET,
-        algorithm=JWT_ALGORITHM,
-    )
-    return token
-
-
-
-# TODO: If the hash slows things down again we can try using this
-async def hash_password(password: str, salt: bytes) -> str:
-    return await asyncio.to_thread(
-        lambda: hashlib.sha256(salt + password.encode("utf-8")).hexdigest()
-    )
-
-
-
-## Auth Routes
-
-@app.get("/")
-async def home():
-    return RedirectResponse(url="/authentication/docs", status_code=302)
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
-
-@app.get(
-    "/validate_token",
-    responses={
-        200: {"model": SuccessResponse},
-        401: {"model": ErrorResponse},
-        403: {"model": ErrorResponse},
-    },
-)
-async def validate_token(token: str = Depends(oauth2_scheme)):
-    if not token:
-        raise HTTPException(status_code=400, detail="Token is required")
+    success = "ERROR"
+    response = RabbitError(
+        status_code=500, detail="Internal Server Error"
+    ).model_dump_json()
     try:
-        decoded_token = jwt.decode(
-            token,
-            JWT_SECRET,
-            algorithms=[JWT_ALGORITHM],
-            options={"require": ["exp", "id", "username"]},
-        )
-        return {"username": decoded_token["username"], "id": decoded_token["id"]}
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Invalid Token")
-    except jwt.InvalidSignatureError:
-        raise HTTPException(status_code=401, detail="Invalid Token")
-    except jwt.MissingRequiredClaimError:
-        raise HTTPException(status_code=400, detail="Invalid Token")
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=400, detail="Invalid Payload")
-
-@app.post(
-    "/register",
-    status_code=201,
-    responses={
-        201: {"model": SuccessResponse},
-        400: {"model": ErrorResponse},
-        409: {"model": ErrorResponse},
-    },
-)
-async def register(user: RegisterRequest, session: AsyncSession = Depends(get_session)):
-    if not (user.user_name and user.password and user.name):
-        raise HTTPException(
-            status_code=400, detail="Invalid Payload"
+        if message.content_type == "REGISTER":
+            response = await register_user(
+                RegisterRequest.model_validate_json(task_data)
+            )
+            response = response.model_dump_json()
+            success = "SUCCESS"
+        elif message.content_type == "LOGIN":
+            response = await login_user(LoginRequest.model_validate_json(task_data))
+            response = response.model_dump_json()
+            success = "SUCCESS"
+        elif message.content_type == "VALIDATE":
+            response = await validate_token(task_data)
+            success = "TOKEN"
+    except ValueError as e:
+        response = RabbitError(
+            status_code=e.args[0], detail=e.args[1]
+        ).model_dump_json()
+    except Exception as e:
+        raise e
+    finally:
+        await exchange.publish(
+            aio_pika.Message(
+                body=response.encode(),
+                correlation_id=message.correlation_id,
+                content_type=success,
+            ),
+            routing_key=message.reply_to,
         )
 
-    # check for an existing user
-    query = select(Users).where(
-        func.lower(Users.user_name) == func.lower(user.user_name)
-    )
-    db_result = await session.execute(query)
-    existing_user = db_result.one_or_none()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Invalid Payload")
 
-    # Create a new User in the db
-    salt = os.urandom(16)
-    # hashed_password = await hash_password(user.password, salt)
-    new_user = Users(
-        user_name=user.user_name,
-        password=hashlib.sha256(salt + user.password.encode('utf-8')).hexdigest(),
-        name=user.name,
-        salt=salt.hex(), # Needs to be a string to serialize it in the cache
-    )
+async def main():
+    global exchange, channel, connection
 
-    session.add(new_user)
-    await session.flush()
-    await session.refresh(new_user)
+    connection = await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/")
 
-    # Create a new wallet in the db
-    new_wallet = Wallets(user_id=new_user.id)
-    session.add(new_wallet)
-    await session.commit()
-    await session.refresh(new_user)
-    
-    token = generate_token(new_user)
-    
-    # Username is unique so use that as the key since on login users don't send a user ID.
-    user_dict = {
-        new_user.user_name: {
-            "id": new_user.id,
-            "password": new_user.password,
-            "salt": new_user.salt,
-            "name": new_user.name
-        }}
-    cache.set(f'{CacheName.USERS}:{new_user.user_name}',user_dict)
-    cache.set(f'{CacheName.WALLETS}:{new_user.id}',{"balance": 0})
-    return SuccessResponse(data={"token": token})
+    async with connection:
+        channel = await connection.channel()
+
+        # Declare queue
+        queue = await channel.declare_queue("auth", auto_delete=True)
+
+        exchange = channel.default_exchange
+
+        # Start consuming
+        await queue.consume(process_task, no_ack=True)
+
+        await asyncio.Future()
 
 
-@app.post(
-    "/login",
-    responses={
-        200: {"model": LoginResponse},
-        400: {"model": ErrorResponse},
-        404: {"model": ErrorResponse},
-    },
-)
-async def login(user: LoginRequest, session: AsyncSession = Depends(get_session)):
-    if not (user.user_name and user.password):
-        raise HTTPException(status_code=400, detail="Username and password required")
-
-    result = None
-    cache_hit = cache.get(f'{CacheName.USERS}:{user.user_name}')
-    if cache_hit:
-        result = User(user_name=user.user_name, **cache_hit[user.user_name])
-    else:
-        query = select(Users).where(Users.user_name == user.user_name)
-        db_result = await session.execute(query)
-        query_result = db_result.one_or_none()
-        if query_result:
-            result= query_result[0]
-        print("CACHE miss in login, result is and user is", result, user.user_name)
-
-
-    if not result:
-        raise HTTPException(status_code=404, detail="User not found")
-    hashed_password = hashlib.sha256((bytes.fromhex(result.salt) + user.password.encode('utf-8'))).hexdigest()
-
-    if hashed_password != result.password:
-        raise HTTPException(status_code=400, detail="Invalid Payload")
-
-    token = generate_token(result)
-    return SuccessResponse(data={"token": token})
+if __name__ == "__main__":
+    asyncio.run(main())

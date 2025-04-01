@@ -28,7 +28,6 @@ connection = None
 
 async def process_task(message):
     global exchange
-    print("message recieved", flush=True)
 
     if not exchange or not channel:
         print("no exchange exchange")
@@ -37,127 +36,42 @@ async def process_task(message):
     task_data = message.body.decode()
     user_id = message.headers["user_id"]
 
-    if message.content_type == "GET_WALLET":
-        try:
+    success = "ERROR"
+    response = RabbitError(status_code=500, detail="Internal Server Error")
+    try:
+        if message.content_type == "GET_WALLET":
             response = await get_wallet_balance(user_id)
-            success = "SUCCESS"
-        except ValueError as e:
-            response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success = "ERROR"
-        finally:
-            await exchange.publish(
-                Message(
-                    body=response.model_dump_json().encode(),
-                    correlation_id=message.correlation_id,
-                    content_type=success,
-                ),
-                routing_key=message.reply_to,
-            )
-
-    elif message.content_type == "GET_WALLET_TX":
-        try:
+        elif message.content_type == "GET_WALLET_TX":
             response = await get_wallet_transactions(user_id)
-            success = "SUCCESS"
-        except ValueError as e:
-            print("error caught", flush=True)
-            response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success = "ERROR"
-        finally:
-            await exchange.publish(
-                Message(
-                    body=response.model_dump_json().encode(),
-                    correlation_id=message.correlation_id,
-                    content_type=success,
-                ),
-                routing_key=message.reply_to,
-            )
-
-    elif message.content_type == "ADD_MONEY":
-        try:
+        elif message.content_type == "ADD_MONEY":
             response = await add_money_to_wallet(
                 AddMoneyRequest.model_validate_json(task_data), user_id
             )
-            success = "SUCCESS"
-        except ValueError as e:
-            response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success = "ERROR"
-        finally:
-            await exchange.publish(
-                Message(
-                    body=response.model_dump_json().encode(),
-                    correlation_id=message.correlation_id,
-                    content_type=success,
-                ),
-                routing_key=message.reply_to,
-            )
-    elif message.content_type == "GET_STOCK_PORTFOLIO":
-        try:
+        elif message.content_type == "GET_STOCK_PORTFOLIO":
             response = await get_stock_portfolio(user_id)
-            success = "SUCCESS"
-        except ValueError as e:
-            response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success = "ERROR"
-        finally:
-            await exchange.publish(
-                Message(
-                    body=response.model_dump_json().encode(),
-                    correlation_id=message.correlation_id,
-                    content_type=success,
-                ),
-                routing_key=message.reply_to,
-            )
-    elif message.content_type == "GET_STOCK_TX":
-        try:
+        elif message.content_type == "GET_STOCK_TX":
             response = await get_stock_transactions(user_id)
-            success = "SUCCESS"
-        except ValueError as e:
-            response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success = "ERROR"
-        finally:
-            await exchange.publish(
-                Message(
-                    body=response.model_dump_json().encode(),
-                    correlation_id=message.correlation_id,
-                    content_type=success,
-                ),
-                routing_key=message.reply_to,
-            )
-    elif message.content_type == "CREATE_STOCK":
-        try:
+        elif message.content_type == "CREATE_STOCK":
             response = await create_stock(Stock.model_validate_json(task_data), user_id)
-            success = "SUCCESS"
-        except ValueError as e:
-            response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success = "ERROR"
-        finally:
-            await exchange.publish(
-                Message(
-                    body=response.model_dump_json().encode(),
-                    correlation_id=message.correlation_id,
-                    content_type=success,
-                ),
-                routing_key=message.reply_to,
-            )
-    elif message.content_type == "ADD_STOCK":
-        try:
+        elif message.content_type == "ADD_STOCK":
             response = await add_stock_to_user(
                 StockSetup.model_validate_json(task_data), user_id
             )
-            success = "SUCCESS"
-        except ValueError as e:
-            response = RabbitError(status_code=e.args[0], detail=e.args[1])
-            success = "ERROR"
-        finally:
-            await exchange.publish(
-                Message(
-                    body=response.model_dump_json().encode(),
-                    correlation_id=message.correlation_id,
-                    content_type=success,
-                ),
-                routing_key=message.reply_to,
-            )
-    else:
-        raise ValidationError("content id match failed")
+        success = "SUCCESS"
+    except ValueError as e:
+        response = RabbitError(status_code=e.args[0], detail=e.args[1])
+
+    except Exception as e:
+        raise e
+    finally:
+        await exchange.publish(
+            Message(
+                body=response.model_dump_json().encode(),
+                correlation_id=message.correlation_id,
+                content_type=success,
+            ),
+            routing_key=message.reply_to,
+        )
 
 
 async def main():

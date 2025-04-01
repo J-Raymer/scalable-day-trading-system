@@ -14,4 +14,4 @@ COPY database /app/database
 COPY schemas /app/schemas
 
 # Run the application
-CMD ["python3", "-m", "uvicorn", "auth.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+CMD ["python3", "-m", "auth.main", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]

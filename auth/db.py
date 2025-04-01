@@ -1,6 +1,6 @@
 import os
 import dotenv
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool  # Disable connection pooling
 
@@ -16,9 +16,12 @@ DATABASE_URL = f"postgresql+asyncpg://{USERNAME}:{PASSWORD}@pgbouncer:6432/{DB_N
 engine = create_async_engine(
     DATABASE_URL,
     poolclass=NullPool,
-    echo=False,               
+    echo=False,
 )
-AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine, class_=AsyncSession, expire_on_commit=False
+)
+
 
 async def get_session() -> AsyncSession:
     async with AsyncSessionLocal() as session:
