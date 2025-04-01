@@ -37,7 +37,7 @@ cache = RedisClient()
 
 
 async def getWallet(user_id) -> Wallets:
-    cache_hit = cache.get(f'{CacheName.WALLETS}:{user_id}')
+    cache_hit = cache.get(f'WALLETS:{user_id}')
     if cache_hit:
         return cache_hit['balance']
 
@@ -51,7 +51,7 @@ async def getWallet(user_id) -> Wallets:
 
 
 async def getStockTransaction(stockTxId, userId):
-    cache_hit = cache.get(f'{CacheName.STOCK_TX}:{userId}')
+    cache_hit = cache.get(f'STOCK_TX:{userId}')
     tx = None
     if cache_hit:
         # Get the transaction from the list of stock transactions for the user if it exists
@@ -270,7 +270,7 @@ async def createChildTransaction(session, order, newQuantity):
         child_tx_item = {
             childTx.stock_tx_id: childTx.model_dump()
         }
-        cache.update(f'{CacheName.STOCK_TX}:{order.user_id}', child_tx_item)
+        cache.update(f'STOCK_TX:{order.user_id}', child_tx_item)
 
         return childTx.stock_tx_id
     except Exception as e:

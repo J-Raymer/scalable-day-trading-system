@@ -148,8 +148,8 @@ async def register(user: RegisterRequest, session: AsyncSession = Depends(get_se
             "salt": new_user.salt,
             "name": new_user.name
         }}
-    cache.set(f'{CacheName.USERS}:{new_user.user_name}',user_dict)
-    cache.set(f'{CacheName.WALLETS}:{new_user.id}',{"balance": 0})
+    cache.set(f'USERS:{new_user.user_name}',user_dict)
+    cache.set(f'WALLETS:{new_user.id}',{"balance": 0})
     return SuccessResponse(data={"token": token})
 
 
@@ -166,7 +166,7 @@ async def login(user: LoginRequest, session: AsyncSession = Depends(get_session)
         raise HTTPException(status_code=400, detail="Username and password required")
 
     result = None
-    cache_hit = cache.get(f'{CacheName.USERS}:{user.user_name}')
+    cache_hit = cache.get(f'USERS:{user.user_name}')
     if cache_hit:
         result = User(user_name=user.user_name, **cache_hit[user.user_name])
     else:

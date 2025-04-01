@@ -44,7 +44,7 @@ app.add_exception_handler(
 async def get_wallet_balance(user_id: str):
 
     async with async_session_maker() as session:
-        cache_hit = cache.get(f"{CacheName.WALLETS}:{user_id}")
+        cache_hit = cache.get(f"WALLETS:{user_id}")
         if cache_hit:
             return SuccessResponse(data={"balance": cache_hit["balance"]})
 
@@ -62,12 +62,12 @@ async def get_wallet_balance(user_id: str):
 
 async def get_wallet_transactions(user_id: str):
     async with async_session_maker() as session:
-        cache_hit = cache.get(f"{CacheName.WALLET_TX}:{user_id}")
+        cache_hit = cache.get(f"WALLET_TX:{user_id}")
         if cache_hit:
             return SuccessResponse(data=list(cache_hit.values()))
 
         async with session.begin():
-            print("Cache MISS in get wallet transactions")
+            print(f"Cache MISS in get wallet transactions {user_id}")
             statement = (
                 select(WalletTransactions)
                 .join(
@@ -106,13 +106,13 @@ async def add_money_to_wallet(
         session.add(wallet)
         await session.commit()
 
-        cache.set(f"{CacheName.WALLETS}:{user_id}", {"balance": wallet.balance})
+        cache.set(f"WALLETS:{user_id}", {"balance": wallet.balance})
         return SuccessResponse()
 
 
 async def get_stock_portfolio(user_id: str):
     async with async_session_maker() as session:
-        cache_hit = cache.get(f"{CacheName.STOCK_PORTFOLIO}:{user_id}")
+        cache_hit = cache.get(f"STOCK_PORTFOLIO:{user_id}")
         if cache_hit:
             return SuccessResponse(
                 data=sorted(
@@ -123,7 +123,7 @@ async def get_stock_portfolio(user_id: str):
             )
 
         async with session.begin():
-            print("CACHE MISS in get stock portfolio")
+            print(f"CACHE MISS in get stock portfolio {user_id}")
             statement = (
                 select(StockPortfolios, Stocks.stock_name)
                 .join(Stocks, StockPortfolios.stock_id == Stocks.stock_id)
@@ -148,12 +148,12 @@ async def get_stock_portfolio(user_id: str):
 
 async def get_stock_transactions(user_id: str):
     async with async_session_maker() as session:
-        cache_hit = cache.get(f"{CacheName.STOCK_TX}:{user_id}")
+        cache_hit = cache.get(f"STOCK_TX:{user_id}")
         if cache_hit:
-            return SuccessResponse(data=list(cache_hit.values()))
+            return SuccessResponse(data=sorted(list(cache_hit.values()), key=lambda tx: tx['stock_tx_id']))
 
         async with session.begin():
-            print("Cache MISS in get stock transactions")
+            print(f"Cache MISS in get stock transactions {user_id}")
             statement = (
                 select(StockTransactions)
                 .where(StockTransactions.user_id == user_id)
@@ -187,7 +187,7 @@ async def create_stock(
         await session.commit()
 
         # Cache the stock id with the stock name
-        cache.update(CacheName.STOCKS, {new_stock.stock_id: new_stock.stock_name})
+        cache.update("STOCKS", {new_stock.stock_id: new_stock.stock_name})
         return SuccessResponse(data={"stock_id": new_stock.stock_id})
 
 
@@ -215,7 +215,7 @@ async def add_stock_to_user(
         session.add(stock_portfolio)
         await session.commit()
         stock_id = new_stock.stock_id
-        stocks = cache.get(CacheName.STOCKS)
+        stocks = cache.get("STOCKS")
         if not stocks:
             print("cache miss getting stocks in add_stock_to_user")
         stock_name = stocks[str(stock_id)]
@@ -225,5 +225,5 @@ async def add_stock_to_user(
         } }
 
         # TODO will have to delete if quantity is 0
-        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{user_id}', portfolio_item)
+        cache.update(f'STOCK_PORTFOLIO:{user_id}', portfolio_item)
         return SuccessResponse(data={"stock": stock_portfolio})

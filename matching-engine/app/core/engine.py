@@ -52,7 +52,7 @@ async def receiveOrder(order: StockOrder, sending_user_id: str):
 async def getStockPriceEngine():
     global sellTrees
 
-    cache_hit = cache.get(CacheName.STOCKS)
+    cache_hit = cache.get('STOCKS')
     data = []
 
     if cache_hit:

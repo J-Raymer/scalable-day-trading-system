@@ -164,12 +164,12 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             tx_item = {
                 buyerStockTx.stock_tx_id: buyerStockTx.model_dump()
             }
-            cache.update(f'{CacheName.STOCK_TX}:{buyOrder.user_id}', tx_item)
+            cache.update(f'STOCK_TX:{buyOrder.user_id}', tx_item)
 
 
             holding_dict = holding.model_dump()
             stock_id = holding_dict.get('stock_id')
-            stocks = cache.get(CacheName.STOCKS)
+            stocks = cache.get("STOCKS")
             if not stocks:
                 print("cache miss getting stocks in updatePortfolio")
             stock_name = stocks[str(stock_id)]
@@ -177,20 +177,26 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
                 "stock_name": stock_name,
                 **holding_dict
             } }
+
+            buyer_wallet_tx_item = {
+                buyerWalletTx.wallet_tx_id: buyerWalletTx.model_dump()   }
+
              # TODO will have to delete if quantity is 0
-            cache.update(f'{CacheName.STOCK_PORTFOLIO}:{buyOrder.user_id}', portfolio_item)
-            cache.set(f"{CacheName.WALLETS}:{buyOrder.user_id}", {"balance": buyer_wallet.balance})
+            cache.update(f'STOCK_PORTFOLIO:{buyOrder.user_id}', portfolio_item)
+            cache.set(f"WALLETS:{buyOrder.user_id}", {"balance": buyer_wallet.balance})
+            cache.update(f'WALLET_TX:{buyOrder.user_id}', buyer_wallet_tx_item)
             for sell_order in sell_order_cache_list:
-                cache.set(f"{CacheName.WALLETS}:{sell_order[0]}", {"balance": sell_order[1].balance})
+                cache.set(f"WALLETS:{sell_order[0]}", {"balance": sell_order[1].balance})
                 wallet_tx_item = { sell_order[2].wallet_tx_id: sell_order[2].model_dump()    }
-                cache.update(f'{CacheName.WALLET_TX}:{sell_order[0]}', wallet_tx_item)
+                wallet_update_result = cache.update(f'WALLET_TX:{sell_order[0]}', wallet_tx_item)
+                print(f'WALLET UPDATE RESULT {wallet_update_result}  {sell_order[0]}  {wallet_tx_item}', )
 
                 stockTxDict = sell_order[3].model_dump()
                 tx_item = {
                     sell_order[3].stock_tx_id: stockTxDict
 
                 }
-                cache.update(f'{CacheName.STOCK_TX}:{sell_order[0]}', tx_item)
+                cache.update(f'STOCK_TX:{sell_order[0]}', tx_item)
 
             stage_times["commit_completed"] = time.time()
 
@@ -255,7 +261,7 @@ async def stockFromSeller(sellOrder):
         )
         await session.commit()
         stock_id = holding_dict.get('stock_id')
-        stocks = cache.get(CacheName.STOCKS)
+        stocks = cache.get("STOCKS")
         if not stocks:
             print("cache miss getting stocks in updatePortfolio")
         stock_name = stocks[str(stock_id)]
@@ -264,7 +270,7 @@ async def stockFromSeller(sellOrder):
             **holding_dict
         } }
          # TODO will have to delete if quantity is 0
-        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{sellOrder.user_id}', portfolio_item)
+        cache.update(f'STOCK_PORTFOLIO:{sellOrder.user_id}', portfolio_item)
         return stockTx.stock_tx_id
 
 
@@ -291,7 +297,7 @@ async def cancelTransaction(stockTxId):
 
         await session.commit()
         stock_id = transactionToBeCancelled.stock_id
-        stocks = cache.get(CacheName.STOCKS)
+        stocks = cache.get("STOCKS")
         if not stocks:
             print("Cache miss getting stocks in cancelTransaction")
         stock_name = stocks[str(stock_id)]
@@ -304,5 +310,5 @@ async def cancelTransaction(stockTxId):
         transactions_item = {
             stockTxId: transactionToBeCancelled.model_dump()
         }
-        cache.update(f'{CacheName.STOCK_TX}:{transactionToBeCancelled.user_id}', transactions_item)
-        cache.update(f'{CacheName.STOCK_PORTFOLIO}:{transactionToBeCancelled.user_id}', portfolio_item)
+        cache.update(f'STOCK_TX:{transactionToBeCancelled.user_id}', transactions_item)
+        cache.update(f'STOCK_PORTFOLIO:{transactionToBeCancelled.user_id}', portfolio_item)
