@@ -4,7 +4,7 @@
 docker swarm init
 
 # Build all the services
-$services = @("auth", "transaction", "database", "matching-engine", "api-gateway", "frontend")
+$services = @("auth", "transaction", "database", "matching-engine", "api-gateway", "frontend", "message-broker")
 
 foreach ($service in $services) {
     Write-Host "Building $service..."
