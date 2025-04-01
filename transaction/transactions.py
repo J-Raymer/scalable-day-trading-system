@@ -62,10 +62,6 @@ async def get_wallet_balance(user_id: str):
 
 async def get_wallet_transactions(user_id: str):
     async with async_session_maker() as session:
-        cache_hit = cache.get(f"WALLET_TX:{user_id}")
-        if cache_hit:
-            return SuccessResponse(data=list(cache_hit.values()))
-
         async with session.begin():
             print(f"Cache MISS in get wallet transactions {user_id}")
             statement = (
@@ -111,15 +107,6 @@ async def add_money_to_wallet(
 
 
 async def get_stock_portfolio(user_id: str):
-    cache_hit = cache.get(f"STOCK_PORTFOLIO:{user_id}")
-    if cache_hit:
-        return SuccessResponse(
-            data=sorted(
-                filter(lambda stock: stock['quantity_owned'] > 0, list(cache_hit.values())),
-                reverse=True,
-                key=lambda x: x["stock_name"],
-            )
-        )
     async with async_session_maker() as session:
 
 
@@ -149,10 +136,6 @@ async def get_stock_portfolio(user_id: str):
 
 async def get_stock_transactions(user_id: str):
     async with async_session_maker() as session:
-        cache_hit = cache.get(f"STOCK_TX:{user_id}")
-        if cache_hit:
-            return SuccessResponse(data=sorted(list(cache_hit.values()), key=lambda tx: tx['stock_tx_id']))
-
         async with session.begin():
             print(f"Cache MISS in get stock transactions {user_id}")
             statement = (
@@ -215,16 +198,5 @@ async def add_stock_to_user(
         )
         session.add(stock_portfolio)
         await session.commit()
-        stock_id = new_stock.stock_id
-        stocks = cache.get("STOCKS")
-        if not stocks:
-            print("cache miss getting stocks in add_stock_to_user")
-        stock_name = stocks[str(stock_id)]
-        portfolio_item = { str(stock_id): {
-            "stock_name": stock_name,
-            **stock_portfolio.model_dump()
-        } }
 
-        # TODO will have to delete if quantity is 0
-        cache.update(f'STOCK_PORTFOLIO:{user_id}', portfolio_item)
         return SuccessResponse(data={"stock": stock_portfolio})

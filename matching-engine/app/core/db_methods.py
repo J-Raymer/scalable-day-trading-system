@@ -51,15 +51,6 @@ async def getWallet(user_id) -> Wallets:
 
 
 async def getStockTransaction(stockTxId, userId):
-    cache_hit = cache.get(f'STOCK_TX:{userId}')
-    tx = None
-    if cache_hit:
-        # Get the transaction from the list of stock transactions for the user if it exists
-        tx = cache_hit.get(str(stockTxId))
-    if tx:
-        return tx
-
-    print(f'Cache miss in getStockTransaction stockTxId: {stockTxId}, userId: {userId}')
     async with async_session_maker() as session:
         statement = sqlmodel.select(StockTransactions).where(
             StockTransactions.stock_tx_id == stockTxId
@@ -214,17 +205,6 @@ async def addWalletTxToStockTx(session, stockTxId, walletTxId, userId) -> StockT
     stockTx.wallet_tx_id = walletTxId
 
     session.add(stockTx)
-    # cache_hit = cache.get(f'{CacheName.STOCK_TX}:{userId}')
-    # if cache_hit:
-    #     stock_tx = cache_hit.get(str(stockTxId))
-    #     if stock_tx:
-    #         stock_tx['wallet_tx_id'] = walletTxId
-    #         updated_dict = {
-    #             stockTxId: stock_tx
-    #         }
-    #     cache.update(f'{CacheName.STOCK_TX}:{userId}', updated_dict)
-    # else:
-    #     print('Cache miss in addWalletTxToStockTx update')
     return stockTx
 
 
@@ -267,10 +247,6 @@ async def createChildTransaction(session, order, newQuantity):
         await session.refresh(childTx)
         await session.commit()
 
-        child_tx_item = {
-            childTx.stock_tx_id: childTx.model_dump()
-        }
-        cache.update(f'STOCK_TX:{order.user_id}', child_tx_item)
 
         return childTx.stock_tx_id
     except Exception as e:
