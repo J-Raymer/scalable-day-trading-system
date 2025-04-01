@@ -63,7 +63,6 @@ async def get_wallet_balance(user_id: str):
 async def get_wallet_transactions(user_id: str):
     async with async_session_maker() as session:
         async with session.begin():
-            print(f"Cache MISS in get wallet transactions {user_id}")
             statement = (
                 select(WalletTransactions)
                 .join(
@@ -111,7 +110,6 @@ async def get_stock_portfolio(user_id: str):
 
 
         async with session.begin():
-            print(f"CACHE MISS in get stock portfolio {user_id}")
             statement = (
                 select(StockPortfolios, Stocks.stock_name)
                 .join(Stocks, StockPortfolios.stock_id == Stocks.stock_id)
@@ -137,7 +135,6 @@ async def get_stock_portfolio(user_id: str):
 async def get_stock_transactions(user_id: str):
     async with async_session_maker() as session:
         async with session.begin():
-            print(f"Cache MISS in get stock transactions {user_id}")
             statement = (
                 select(StockTransactions)
                 .where(StockTransactions.user_id == user_id)

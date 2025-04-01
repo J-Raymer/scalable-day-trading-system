@@ -106,7 +106,6 @@ async def updatePortfolio(session, user_id, amount, isDebit, stock_id):
     )
     result = await session.execute(statement)
     holding = result.scalar_one_or_none()
-    holding_dict = None
     if holding is None:  # this means the user doesn't own the stock yet
         newStockHolding = StockPortfolios(
             user_id=user_id,
