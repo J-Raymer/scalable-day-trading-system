@@ -87,7 +87,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             current_stage = "db_session_created"
 
             # Handling for taking money from buyer and giving them stock
-            await updatePortfolio(
+            holding = await updatePortfolio(
                 session, buyOrder.user_id, buyOrder.quantity, False, buyOrder.stock_id
             )
             stage_times["updated_portfolio"] = time.time()
@@ -97,7 +97,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             )
             stage_times["buyer_stock_tx_created"] = time.time()
 
-            await updateWallet(session, buyOrder.user_id, buyPrice, True)
+            buyer_wallet = await updateWallet(session, buyOrder.user_id, buyPrice, True)
             stage_times["buyer_wallet_updated"] = time.time()
 
             buyerWalletTx = await addWalletTx(
@@ -106,7 +106,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             stage_times["buyer_wallet_tx_created"] = time.time()
 
             buyerStockTx = await addWalletTxToStockTx(
-                session, buyerStockTx.stock_tx_id, buyerWalletTx.wallet_tx_id
+                session, buyerStockTx.stock_tx_id, buyerWalletTx.wallet_tx_id, buyOrder.user_id
             )
             stage_times["buyer_complete"] = time.time()
 
@@ -114,6 +114,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
             sell_order_count = len(sellOrders)
 
             # Doing the same for seller(s)
+            sell_order_cache_list: (str, Wallets, WalletTransactions, StockTransactions) = []
             for i, sellOrderTouple in enumerate(sellOrders):
                 current_stage = f"sell_order_{i+1}_of_{sell_order_count}"
 
@@ -121,7 +122,7 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
 
                 sellPrice = sellOrder.price * sellQuantity
 
-                await updateWallet(session, sellOrder.user_id, sellPrice, False)
+                wallet = await updateWallet(session, sellOrder.user_id, sellPrice, False)
 
                 sellerWalletTx = await addWalletTx(
                     session, sellOrder, sellPrice, sellOrder.stock_tx_id, False
@@ -133,70 +134,47 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
                         session,
                         sellOrder.stock_tx_id,
                         OrderStatus.PARTIALLY_COMPLETE,
-                        sellOrder.quantity,
+                        sellOrder.user_id
                     )
                     childTxId = await createChildTransaction(
                         session, sellOrder, sellQuantity
                     )
 
-                    await addWalletTxToStockTx(
-                        session, childTxId, sellerWalletTx.wallet_tx_id
+                    stock_tx = await addWalletTxToStockTx(
+                        session, childTxId, sellerWalletTx.wallet_tx_id, sellOrder.user_id
                     )
                 else:
                     await updateStockOrderStatus(
                         session,
                         sellOrder.stock_tx_id,
                         OrderStatus.COMPLETED,
-                        sellQuantity,
+                        sellOrder.user_id
                     )
 
-                    await addWalletTxToStockTx(
-                        session, sellOrder.stock_tx_id, sellerWalletTx.wallet_tx_id
+                    stock_tx = await addWalletTxToStockTx(
+                        session, sellOrder.stock_tx_id, sellerWalletTx.wallet_tx_id, sellOrder.user_id
                     )
+                sell_order_cache_list.append((sellOrder.user_id, wallet, sellerWalletTx, stock_tx))
+
 
             stage_times["all_sell_orders_processed"] = time.time()
 
             current_stage = "final_commit"
             await session.commit()
-            stage_times["commit_completed"] = time.time()
 
-            # prev_stage = "start"
-            # for stage in stage_times:
-            #    if stage != "start":
-            #        duration = stage_times[stage] - stage_times[prev_stage]
-            #        metrics[f"{prev_stage}_to_{stage}"] = duration
-            #        execution_metrics[f"{prev_stage}_to_{stage}"].append(duration)
-            #    prev_stage = stage
 
-            # Total execution time
-            # metrics["total_execution_time"] = stage_times["commit_completed"] - stage_times["start"]
-            # execution_metrics["total_execution_time"].append(metrics["total_execution_time"])
-            # execution_metrics["sell_order_count"].append(sell_order_count)
 
-            processed_count += 1
 
-            # Print periodic summary
-            if processed_count % reporting_interval == -1:
-                print(
-                    f"\n--- Performance Summary after {processed_count} executions ---"
-                )
-                print(f"Total errors: {sum(error_counts.values())}")
+         # TODO will have to delete if quantity is 0
+        cache.set(f"WALLETS:{buyOrder.user_id}", {"balance": buyer_wallet.balance})
+        for sell_order in sell_order_cache_list:
+            cache.set(f"WALLETS:{sell_order[0]}", {"balance": sell_order[1].balance})
 
-                for stage, times in sorted(execution_metrics.items()):
-                    if stage != "sell_order_count":
-                        avg_time = mean(times[-reporting_interval:])
-                        med_time = median(times[-reporting_interval:])
-                        max_time = max(times[-reporting_interval:])
-                        print(
-                            f"{stage}: avg={avg_time:.4f}s, median={med_time:.4f}s, max={max_time:.4f}s"
-                        )
 
-                print(
-                    f"Average sell order count: {mean(execution_metrics['sell_order_count'][-reporting_interval:]):.2f}"
-                )
-                print("---------------------------------------------------\n")
 
-            # return "Transaction completed successfully"
+
+
+
 
     except Exception as e:
         error_counts[current_stage] += 1
@@ -211,9 +189,10 @@ async def fundsBuyerToSeller(buyOrder: BuyOrder, sellOrders, buyPrice):
 
 async def stockFromSeller(sellOrder):
     async with async_session_maker() as session:
-        await updatePortfolio(
+        holding = await updatePortfolio(
             session, sellOrder.user_id, sellOrder.quantity, True, sellOrder.stock_id
         )
+        holding_dict = holding.model_dump()
 
         stockTx = await addStockTx(
             session, sellOrder, False, sellOrder.price, OrderStatus.IN_PROGRESS

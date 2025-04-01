@@ -52,7 +52,7 @@ async def receiveOrder(order: StockOrder, sending_user_id: str):
 async def getStockPriceEngine():
     global sellTrees
 
-    cache_hit = cache.get(CacheName.STOCKS)
+    cache_hit = cache.get('STOCKS')
     data = []
 
     if cache_hit:
@@ -285,7 +285,7 @@ async def cancelOrderEngine(cancelOrder: CancelOrder, user_id: str):
     transactionId = cancelOrder.stock_tx_id
     # Search heap for order
 
-    transaction = await getStockTransaction(transactionId)
+    transaction = await getStockTransaction(transactionId, user_id)
     if not transaction:
         raise ValueError(500, "transcation not found")
     global sellTrees
