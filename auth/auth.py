@@ -61,7 +61,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 async def validate_token(token: str = Depends(oauth2_scheme)):
     if not token:
-        raise HTTPException(status_code=400, detail="Token is required")
+        raise ValueError(400, "Token is required")
     try:
         decoded_token = jwt.decode(
             token,
@@ -75,19 +75,19 @@ async def validate_token(token: str = Depends(oauth2_scheme)):
         return json.dumps(token_dict)
 
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Invalid Token")
+        raise ValueError(401, "Invalid Token")
     except jwt.InvalidSignatureError:
-        raise HTTPException(status_code=401, detail="Invalid Token")
+        raise ValueError(401, "Invalid Token")
     except jwt.MissingRequiredClaimError:
-        raise HTTPException(status_code=400, detail="Invalid Token")
+        raise ValueError(400, "Invalid Token")
     except jwt.PyJWTError:
-        raise HTTPException(status_code=400, detail="Invalid Payload")
+        raise ValueError(400, "Invalid Payload")
 
 
 async def register_user(user: RegisterRequest):
     async with AsyncSessionLocal() as session:
         if not (user.user_name and user.password and user.name):
-            raise HTTPException(status_code=400, detail="Invalid Payload")
+            raise ValueError(400, "Invalid Payload")
 
         # check for an existing user
         query = select(Users).where(
@@ -96,7 +96,7 @@ async def register_user(user: RegisterRequest):
         db_result = await session.execute(query)
         existing_user = db_result.one_or_none()
         if existing_user:
-            raise HTTPException(status_code=400, detail="Invalid Payload")
+            raise ValueError(400, "Invalid Payload")
 
         # Create a new User in the db
         salt = os.urandom(16)
@@ -137,9 +137,7 @@ async def register_user(user: RegisterRequest):
 async def login_user(user: LoginRequest):
     async with AsyncSessionLocal() as session:
         if not (user.user_name and user.password):
-            raise HTTPException(
-                status_code=400, detail="Username and password required"
-            )
+            raise ValueError(400, "Username and password required")
 
         result = None
         cache_hit = cache.get(f"{CacheName.USERS}:{user.user_name}")
@@ -154,13 +152,13 @@ async def login_user(user: LoginRequest):
             print("CACHE miss in login, result is and user is", result, user.user_name)
 
         if not result:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise ValueError(404, "User not found")
         hashed_password = hashlib.sha256(
             (bytes.fromhex(result.salt) + user.password.encode("utf-8"))
         ).hexdigest()
 
         if hashed_password != result.password:
-            raise HTTPException(status_code=400, detail="Invalid Payload")
+            raise ValueError(400, "Invalid Payload")
 
         token = generate_token(result)
         return SuccessResponse(data={"token": token})
